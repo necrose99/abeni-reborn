@@ -2,10 +2,25 @@ Abeni
 
 0.0.5 -------------
 
+Jul 24, 2003
+
+Much better SourceForge support. If you give a SRC_URI with sourceforge in it it
+will convert it to mirror://sourceforce/package/... and guess the HOMEPAGE.
+
+Fixed stop button to work with wxProcess
+
+It now shows the log at the bottom, rathter than top when switching between tabbed/bottom log. 
+
+Jul 23, 2003
+
+You can switch the log between tab and bottom window with F9 and F10 keys
+
 Jul 21, 2003
 
 Major fix with response of GUI when doing emerge, ebuild commands. Switched
 to wxProcess instead of cheesy DoIdle/wxYield method.
+
+Changed View Environment to show only the most common vars: P, PF, PV etc
 
 Jun 29, 2003
 

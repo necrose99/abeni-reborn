@@ -60,19 +60,18 @@ class MyFrame(wxFrame):
         self.lastFile = ''
         # Saved state
         self.saved = 1
+        # Tells if an external command is running, like emerge, ebuild etc.
+        self.running = None
+        # Action performed during external commands
+        self.action = None
         # Ordered list of notebook tabs
         self.tabs = []
         self.tabsInstance = []
-        #Stuff to keep log window updating in "real-time" as shell commands are executed
-        #ID_Timer = wxNewId()
-        #self.myTimer = wxTimer(self, ID_Timer)
-        #EVT_TIMER(self, ID_Timer, self.OnTimer)
-        #self.inp = None
 
+        #Stuff to keep log window updating in "real-time" as shell commands are executed
         self.process = None
         EVT_IDLE(self, self.OnIdle)
         EVT_END_PROCESS(self, -1, self.OnProcessEnded)
-
 
         #application icon 16x16
         iconFile = ('/usr/share/pixmaps/abeni/abeni_logo16.png')
@@ -92,6 +91,11 @@ class MyFrame(wxFrame):
         self.log = wxTextCtrl(self.splitter, -1,
                              style = wxTE_MULTILINE|wxTE_READONLY|wxHSCROLL)
         self.log.SetFont(wxFont(12, wxMODERN, wxNORMAL, wxNORMAL, faceName="Lucida Console"))
+        #This would be nice, but some .gtkrc files screw it up:
+        #self.log.SetBackgroundColour(wxBLACK)
+        #self.log.SetDefaultStyle(wxTextAttr(wxWHITE))
+        #self.log.SetDefaultStyle(wxTextAttr(wxNullColour, wxBLACK))
+
         wxLog_SetActiveTarget(MyLog(self.log))
         self.Show(True)
         self.splitter.SplitHorizontally(self.nb, self.log, 400)
@@ -120,6 +124,7 @@ class MyFrame(wxFrame):
             return
         self.LogBottom()
 
+
     def LogBottom(self):
         txt = self.log.GetValue()
         self.splitter.SplitHorizontally(self.nb, self.log, 400)
@@ -127,7 +132,8 @@ class MyFrame(wxFrame):
         wxLog_SetActiveTarget(MyLog(self.log))
         self.log.SetValue(txt)
         self.log.Show(True)
-        self.log.Refresh()
+        self.log.ShowPosition(self.log.GetLastPosition())
+        #self.log.Refresh()
         self.pref['log'] = 'bottom'
         self.nb.DeletePage(0)
 
@@ -136,12 +142,13 @@ class MyFrame(wxFrame):
         if not self.editing:
             return
         self.LogTab()
+        self.logWindow.log.ShowPosition(self.logWindow.log.GetLastPosition())
 
     def LogTab(self):
         txt = self.log.GetValue()
         self.logWindow=panels.LogWindow(self.nb, self.sb, self.pref)
-        self.nb.InsertPage(0, self.logWindow, "Log")
         wxLog_SetActiveTarget(MyLog(self.logWindow.log))
+        self.nb.InsertPage(0, self.logWindow, "Log")
         self.logWindow.log.SetValue(txt)
         self.splitter.Unsplit()
         self.nb.SetSelection(0)
@@ -154,6 +161,18 @@ class MyFrame(wxFrame):
 
     def write(self, txt):
         self.WriteText(txt)
+
+    def OnToolbarXterm(self, event):
+        """Launch xterm in $PORTAGE_TMPDIR/portage/$P/"""
+        #TODO: Damn it. I wish we could cd to ${S}
+        if self.editing:
+            c = os.getcwd()
+            #TODO: Make a self.P variable or something:
+            ebuild = self.panelMain.EbuildFile.GetValue()
+            p = string.replace(ebuild, '.ebuild', '')
+            os.chdir('%s/portage/%s' % (portage_tmpdir, p))
+            os.system('sudo %s &' % self.pref['xterm'])
+            os.chdir(c)
 
     def OnMnuNewVariable(self, event):
         """Dialog for adding new variable"""
@@ -345,7 +364,7 @@ class MyFrame(wxFrame):
     def OnProcessEnded(self, evt):
         #self.log.write('OnProcessEnded, pid:%s,  exitCode: %s\n' %
         #               (evt.GetPid(), evt.GetExitCode()))
-        print "PROCESS ENDED"
+        #print "PROCESS ENDED"
         stream = self.process.GetInputStream()
         if stream.CanRead():
             text = stream.read()
@@ -354,31 +373,35 @@ class MyFrame(wxFrame):
         self.process.Destroy()
         self.process = None
         self.tb.EnableTool(self.toolStopID, False)
+        self.running = None
+        self.log.ShowPosition(self.log.GetLastPosition())
+        self.PostAction(self.action)
+        self.action = None
 
+    def PostAction(self, action):
+        if action == 'unpack':
+            ebuild = self.panelMain.EbuildFile.GetValue()
+            p = string.replace(ebuild, '.ebuild', '')
+            d = '%s/portage/%s/work' % (portage_tmpdir, p)
+            self.write("Unpacked into ${WORKDIR}/work/:")
+            self.ExecuteInLog('sudo ls %s' % d)
 
     def ExecuteInLog(self, cmd):
+        if self.running:
+            msg = ("Please wait till this finishes:\n %s" % self.running)
+            dlg = wxMessageDialog(self, msg, 'Abeni: Error - Wait till external program is finished.', \
+                                wxOK | wxICON_INFORMATION)
+            dlg.ShowModal()
+            dlg.Destroy()
+            return
+        self.running = cmd
         self.tb.EnableTool(self.toolStopID, True)
         self.process = wxProcess(self)
         self.process.Redirect();
         pyCmd = "python -u doCmd.py %s" % cmd
-        pid = wxExecute(pyCmd, wxEXEC_ASYNC, self.process)
+        self.pid = wxExecute(pyCmd, wxEXEC_ASYNC, self.process)
         #self.write('"%s" pid: %s\n' % (cmd, pid))
 
-
-    '''
-    def ExecuteInLog(self, cmd):
-        """Executes cmd and shows output asynchronously in log window"""
-        #TODO: add option to run command when complete
-        self.tb.EnableTool(self.toolStopID, True)
-        wxYield()
-        a = popen2.Popen4(cmd, 1)
-        self.inp = a.fromchild
-        self.pid = a.pid
-        self.write("%s (PID: %s)" % (cmd, self.pid))
-        l = self.inp.readline()
-        self.write(l)
-        #self.myTimer.Start(500)
-    '''
 
     def KillProc(self, event):
         os.system("sudo kill %s" % self.pid)
@@ -544,6 +567,12 @@ class MyFrame(wxFrame):
             return
         EclassDistutils(self)
 
+    def OnMnuEclassGames(self, event):
+        """Add games.eclass inherit, default funcs"""
+        if not self.editing:
+            return
+        EclassGames(self)
+
     def OnMnuNewFunction(self, event):
         """Dialog to add new function"""
         if not self.editing:
@@ -595,7 +624,7 @@ class MyFrame(wxFrame):
     def AddEditor(self, name, val):
         """Add page in notebook for an editor"""
         n = panels.Editor(self.nb, self.sb, self.pref)
-        if name == 'Ebuild File':
+        if name == 'Output':
             self.ebuildfile = n
         #self.nb.AddPage(n, name)
         self.NewPage(n, name)
@@ -644,12 +673,10 @@ class MyFrame(wxFrame):
         if not os.path.exists(valid_cat):
             msg = category + " isn't a valid category."
             return msg
-
         l = self.panelMain.Category.GetValue()
         if not l:
             msg = "You must specify a license."
             return msg
-
         return 0
 
     def OnMnuNew(self,event):
@@ -677,20 +704,17 @@ class MyFrame(wxFrame):
                     #self.panelMain.SetURI("package-cvs-0.0.1")
                     self.panelMain.SetName("package-cvs-0.0.1")
                 else:
-                    t = self.URI.find('sourceforge')
-                    print "sourceforge", t
-                    if t:
+                    if self.URI.find('sourceforge') != -1:
                         #http://umn.dl.sourceforge.net/sourceforge/tikiwiki/tiki161.zip
                         #mirror://sourceforge/tikiwiki/tiki161.ip
                         #a = urlparse.urlparse("http://umn.dl.sourceforge.net/sourceforge/tikiwiki/tiki161.zip")
                         #('http', 'umn.dl.sourceforge.net', '/sourceforge/tikiwiki/tiki161.zip', '', '', '')
                         a = urlparse.urlparse(self.URI)
                         self.URI='mirror:/%s' % a[2]
-
                     self.panelMain.SetURI(self.URI)
                     self.panelMain.SetName(self.URI)
                 self.panelMain.SetPackage()
-                if self.URI.find('sourceforge'):
+                if self.URI.find('sourceforge') != -1:
                     self.panelMain.Homepage.SetValue('"http://%s.sourceforge.net/"' % self.panelMain.GetPackage().lower())
                 self.panelChangelog.Populate("%s/skel.ChangeLog" % portdir, portdir)
                 self.editing = 1
@@ -704,14 +728,19 @@ class MyFrame(wxFrame):
     def AddPages(self):
         """Add pages to blank notebook"""
         self.panelMain=panels.main(self.nb, self.sb, self.pref)
-        self.panelDepend=panels.depend(self.nb, self.sb, self.pref)
-        self.panelChangelog=panels.changelog(self.nb, self.sb, self.pref)
+        self.panelDepend=panels.depend(self.nb)
+        self.panelChangelog=panels.changelog(self.nb)
         self.NewPage(self.panelMain, "Main")
         self.NewPage(self.panelDepend, "Dependencies")
         self.NewPage(self.panelChangelog, "ChangeLog")
 
     def OnClose(self, event):
         """Called when trying to close application"""
+        #TODO: Give yes/no quit dialog.
+        if self.running:
+            self.write("You're executing %s" % self.running)
+            return
+
         if not self.VerifySaved():
             bookmarks = os.path.expanduser('~/.abeni/recent.txt')
             f = open(bookmarks, 'w')
@@ -890,8 +919,8 @@ class MyFrame(wxFrame):
         if not os.path.exists(f):
             cmd = 'sudo /usr/sbin/ebuild %s setup' % self.filename
             self.write(cmd)
-            self.ExecuteInLog(cmd)
-            time.sleep(1)
+            #self.ExecuteInLog(cmd)
+            os.system(cmd)
         lines = open(f, 'r').readlines()
         envVars = ['A', 'AA', 'AUTOCLEAN', 'BUILDDIR', 'BUILD_PREFIX', \
                 'D', 'DESTTREE', 'EBUILD', 'FEATURES', 'FILESDIR', \
@@ -917,6 +946,7 @@ class MyFrame(wxFrame):
             dlg.Destroy()
 
         p = self.panelMain.EbuildFile.GetValue()[:-7]
+            #TODO: Need to get ${S}
         s = '%s/portage/%s/work/%s/configure' % (portage_tmpdir, p, p)
         try:
             os.system('sudo cp %s /tmp/configure 2> /dev/null' % s)
@@ -937,11 +967,26 @@ class MyFrame(wxFrame):
         if os.path.exists('%s/portage/%s/.unpacked' % (portage_tmpdir, p)):
             return 1
 
-    def OnMnuUnpack(self, event):
+    #TODO: Errr. I see a pattern here.
+    def OnToolbarUnpack(self, event):
         if self.editing:
             if self.SaveEbuild():
                 self.write("Unpacking %s " % self.filename)
+                self.action = 'unpack'
                 self.ExecuteInLog("sudo /usr/sbin/ebuild %s unpack" % self.filename)
+
+    def OnToolbarCompile(self, event):
+        if self.editing:
+            if self.SaveEbuild():
+                self.write("Compiling %s " % self.filename)
+                self.ExecuteInLog("sudo /usr/sbin/ebuild %s compile" % self.filename)
+
+    def OnToolbarInstall(self, event):
+        if self.editing:
+            if self.SaveEbuild():
+                self.write("Installing %s " % self.filename)
+                self.ExecuteInLog("sudo /usr/sbin/ebuild %s install" % self.filename)
+
 
     def OnMnuViewSetuppy(self, event):
         """Show setuppy file in editor window"""

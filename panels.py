@@ -249,33 +249,38 @@ class LogWindow(wxPanel):
         self.SetSizer(s)
         self.SetAutoLayout(True)
 
-
 class depend(wxPanel):
 
     """This class is for adding DEPEND and RDEPEND info"""
 
-    def __init__(self, parent, statusbar, pref):
+    def __init__(self, parent):
         wxPanel.__init__(self, parent, -1)
-        self.statusbar = statusbar
-        self.pref = pref
-        self.parent=parent
         self.elb1 = wxEditableListBox(self, -1, "DEPEND",
                                      (10, 10), (450, 170),)
         self.elb2 = wxEditableListBox(self, -1, "RDEPEND",
                                      (10, 184), (450, 170),)
 
 
+'''
+class depend(wxPanel):
+
+    """This class is for adding DEPEND and RDEPEND info"""
+
+    def __init__(self, parent):
+        wxPanel.__init__(self, parent, -1)
+        self.txt = wxTextCtrl(self, -1, pos=(10, 184), size=(450, 400), style = wxTE_MULTILINE|wxTE_READONLY|wxHSCROLL)
+        self.txt.SetFont(wxFont(12, wxMODERN, wxNORMAL, wxNORMAL, faceName="Lucida Console"))
+'''
+
 class changelog(wxPanel):
 
     """This class is for viewing the Changelog file"""
 
     #TODO: Switch to generic Editor class
+    #Make read-only unless in developer mode.
     # Add option to add ChangeLog template
-    def __init__(self, parent, statusbar, pref):
+    def __init__(self, parent):
         wxPanel.__init__(self, parent, -1)
-        self.statusbar = statusbar
-        self.pref = pref
-        self.parent=parent
         self.edChangelog = PythonSTC(self, -1)
         s = wxBoxSizer(wxHORIZONTAL)
         s.Add(self.edChangelog, 1, wxEXPAND)

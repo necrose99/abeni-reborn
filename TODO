@@ -1,25 +1,47 @@
 Abeni 0.0.5
 
 
-There are minor bugs/new features needed noted in the source code with #TODO. Mostly these are
+There are minor bugs and new features needed noted in the source code with #TODO. Mostly these are
 message dialogs that need to be created for error and confirmation msgs.
 
 
 Bugs:
 
-    Ebuilds that don't load properly:
-    PORTDIR/app-emacs/cdrw/cdrw-1.2.ebuild
-    It isn't detecting variable SITEFILE=50cdrw-gentoo.el
+    CRITICAL:
 
+    Pango font errors with gtk2.
+    Fix: USE='-gtk2' when compiling wxGTK and wxPython
+    gtk2 is just plain terrible with wxPython as of version 2.4.1.2
 
-    IMPORTANT:
+    MISC:
+
+    Get Stop button to cancel running commands in log window.
 
     Need to check if people have saved/changed ebuilds before loading/creating new one
-    # UPDATE: If you modify a function buffer, it'll prompt you to save/ignore/cancel when loading/quitting
-    # Still need to check if variables have changed.
+       Only thing not checked is when a variable or statement changes.
+       Make a copy of all variables and check against that? Feh.
+       Catch the event when they enter a text control and check when leaving if changed?
 
+    Need to create dictionary to keep better track of which pages in the notebook are funcs, environment etc.
+
+    If opening ${PORTDIR} ebuild, copy files in ${FILESDIR} to PORTDIR_OVERLAY/${FILESDIR}
 
     COSMETIC:
+
+    Shift-F5 to clear log
+
+    Use ShowPosition(GetLastPosition()) to show end of log when switching to that page
+
+    Watch to see if/when repoman gets patched for users so I can stop using
+    my custom repoman-safe.py:
+    http://bugs.gentoo.org/show_bug.cgi?id=23072
+    http://forums.gentoo.org/viewtopic.php?t=59389
+
+    Filter out escape codes for color/bold in repoman
+    repoman has color hard-coded in. I'm using custom options.py called nulloptions.py
+    Although I always set FEATURES='notitles', some escape codes are still sent in emerge:
+     http://bugs.gentoo.org/show_bug.cgi?id=21430
+
 
     Editors (wxStyledTextCtrl) needs work on syntax and keyword highlighting.
         * Syntax highlighting is buggy for multi-line variables, see RDEPENDS/DEPENDS
@@ -28,14 +50,16 @@ Bugs:
     Order of funtions is not kept when saving.
         * Save in logical order: src_unpack, src_compile, src_install etc.
 
-    When you delete a notebook page, the control gets screwy looking. I'm sure
-    this is a wxPython bug, but I may be able to .refresh() the window to fix it?
-        * Seems to be a wxPython 2.4.0.7 bug. Who shall release first, Abeni 1.0 or wxpython 2.4.0.8?
+    When you delete a notebook page, the control gets screwy looking.
         * This problem isn't resolved in wxPython 2.4.1.2. Bah.
+        * Fixed, but very kludgy. I manually resize the entire app by one pixel horizontally.
+        * Robin Dunn is stumped. Could be Gentoo specific due to site-wide gtkrc?
 
-    When you delete a variable it leaves a space, need to work on wxSizer.
 
 Add Features:
+
+    After unpacking a file with a new ebuild, determine if its a kde, python,
+    etc. package and add eclass and corresponding functions automatically.
 
     Add command line options:
         * As of 0.0.5 you can abeni <filename> to load an ebuild.
@@ -80,28 +104,18 @@ Add Features:
         cheese-0.0.2.ebuild is created in PORTDIR_OVERLAY/app-admin/cheese/
         The digest is updated. cheese-0.0.2.ebuild is ready to emerge.
 
-    Add config option for fixing tabs/indent on import
-
-    Add config option to run ebuild/emerge without checking for password when people have commands setup with sudo.
-
-    If running root, don't ask for password. Bad idea?
-
     Create diff of ebuild
         * Need dialog to verify 'diff file-x file-y' or let them choose.
-        * Right now it diffs current ebuild vs last loaded.
+        * As of now it diffs current ebuild vs last loaded.
 
     Eclass templates for the most common secnarios:
         * KDE, Gnome etc.
         * Done: distutils, CVS eclasses
         * Show help dialog for more difficult, such as CVS
 
-    View /usr/portage/skel.ebuild for reference
-
-    Download, unpack and view Makefile.am/configure from source tarball
-    ** Browse ${WORKDIR} and let them open files with editor?
-
-    Live variable evaluations ${P} ${D} ${PV} etc.
-
+    Download, unpack and view Makefile/configure from source tarball
+    Hmmm. Why not open by default when unpacking package?
+    ** Run file browser in ${WORKDIR} and let them open files with editor?
 
 Documentation:
 
@@ -113,6 +127,10 @@ Documentation:
                 - Python with distutils
                 - KDE
 
+    Explain about sudo usage
+
+    Explain FEATURES defaults
+
     Convert online help to Gentoo documentation XML templates
 
     Show actual ebuilds in portage that are good examples for specific scenarios
@@ -120,3 +138,10 @@ Documentation:
     Link to Daniel Robbins Bash/ebuild tutorial
     	* http://www-106.ibm.com/developerworks/library/bash3.html
 
+    Show which FEATURES are best for user-submitted ebuilds.
+
+    FAQ:
+    What is this I keep seeing?
+    ]1;]2;xterm
+    Bug in emerge:
+    http://bugs.gentoo.org/show_bug.cgi?id=21430

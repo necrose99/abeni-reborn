@@ -75,7 +75,7 @@ def LoadEbuild(parent, filename, __version__, portdir):
                 #replace spaces with tabs
                 if parent.pref['autoTabs'] == 'yes':
                     l = badSpaces.sub('\t', l)
-                l = badComments.sub('\t#', l)
+                    l = badComments.sub('\t#', l)
                 tempf.append(l)
                 if l[0] == "}":
                     s = ""
@@ -127,7 +127,7 @@ def LoadEbuild(parent, filename, __version__, portdir):
     parent.panelChangelog.Populate(clog, portdir)
 
     # Add original ebuild file:
-    parent.AddEditor('Ebuild File', open(filename, 'r').read())
+    parent.AddEditor('Output', open(filename, 'r').read())
     #Add custom variables to Main panel
 
     #This was un-ordered:
@@ -155,7 +155,7 @@ def LoadEbuild(parent, filename, __version__, portdir):
         parent.nb.SetSelection(1)
 
     # Set titlebar of app to ebuild name
-    parent.SetTitle(parent.ebuild_file + ' | Abeni ' + __version__)
+    parent.SetTitle(parent.ebuild_file + " | Abeni " + __version__)
 
 def WriteEbuild(parent, temp=0):
     """Format data into fields and output to ebuild file"""
@@ -202,6 +202,8 @@ def WriteEbuild(parent, temp=0):
     f.write('SLOT=' + parent.panelMain.Slot.GetValue() + '\n')
     f.write('KEYWORDS=' + parent.panelMain.Keywords.GetValue() + '\n')
     f.write('IUSE=' + parent.panelMain.USE.GetValue() + '\n')
+
+    #f.write(parent.panelDepend.txt.GetText())
 
     dlist = parent.panelDepend.elb1.GetStrings()
     depFirst = 1 # Do we write DEPEND or RDEPEND first?
@@ -257,6 +259,12 @@ def WriteEbuild(parent, temp=0):
     parent.recentList.append(filename)
     parent.sb.SetStatusText("Saved", 0)
     parent.write("Saved %s" % filename)
+    #parent.SetTitle("%s | %s" % (parent.panelMain.EbuildFile.GetValue(), parent.__version__))
+    #TODO: CRITICAL Fix this. It doesn't work on first save of new ebuild.
+    try:
+        parent.ebuildfile.editorCtrl.SetText(open(filename, 'r').read())
+    except:
+        pass
 
 def getDefaultVars(parent):
     """Gather default variables from Main form"""
@@ -279,6 +287,24 @@ def getDefaultVars(parent):
         defaultVars['S'] = "S=${WORKDIR}/${P}"
     defaultVars['changelog'] = parent.panelChangelog.edChangelog.GetText()
     return defaultVars
+
+def EclassGames(parent):
+    """Add games.eclass stuff"""
+
+    parent.AddCommand("inherit games")
+
+    src_compile = "src_compile() {\n" + \
+    "\tegamesconf\n" + \
+    "\temake\n" + \
+    "}"
+    parent.AddFunc("src_compile", (src_compile))
+
+    src_install = "src_install() {\n" + \
+    "\tmake DESTDIR=${D} install || die\n" + \
+    "\tprepgamesdirs\n" + \
+    "}"
+    parent.AddFunc("src_install", (src_install))
+
 
 def EclassDistutils(parent):
     """Add Python distutils-related variables, inherit etc."""
@@ -354,12 +380,19 @@ def AddMenu(parent):
     menubar.Append(menu_function, "Functio&n")
     # Eclass
     menu_eclass = wxMenu()
-    mnuDistutilsID = wxNewId()
-    menu_eclass.Append(mnuDistutilsID, "distutils")
-    EVT_MENU(parent, mnuDistutilsID, parent.OnMnuEclassDistutils)
+
+    mnuGamesID = wxNewId()
+    menu_eclass.Append(mnuGamesID, "games")
+    EVT_MENU(parent, mnuGamesID, parent.OnMnuEclassGames)
+
     mnuCVSID = wxNewId()
     menu_eclass.Append(mnuCVSID, "cvs")
     EVT_MENU(parent, mnuCVSID, parent.OnMnuEclassCVS)
+
+    mnuDistutilsID = wxNewId()
+    menu_eclass.Append(mnuDistutilsID, "distutils")
+    EVT_MENU(parent, mnuDistutilsID, parent.OnMnuEclassDistutils)
+
     menubar.Append(menu_eclass, "E&class")
     # Tools
     menu_tools = wxMenu()
@@ -413,10 +446,10 @@ def AddMenu(parent):
     EVT_MENU(parent, mnuPrefID, parent.OnMnuPref)
     menu_options.AppendSeparator()
     mnuLogBottomID = wxNewId()
-    menu_options.Append(mnuLogBottomID, "Log at &bottom", "", wxITEM_RADIO)
+    menu_options.Append(mnuLogBottomID, "Log at &bottom\tf9", "", wxITEM_RADIO)
     EVT_MENU(parent, mnuLogBottomID, parent.OnMnuLogBottom)
     mnuLogTabID = wxNewId()
-    menu_options.Append(mnuLogTabID, "Log in separate &tab", "", wxITEM_RADIO)
+    menu_options.Append(mnuLogTabID, "Log in separate &tab\tf10", "", wxITEM_RADIO)
     EVT_MENU(parent, mnuLogTabID, parent.OnMnuLogTab)
     menu_options.AppendSeparator()
 
@@ -469,11 +502,7 @@ def AddToolbar(parent):
                             "New Function")
     EVT_TOOL(parent, newFunID, parent.OnMnuNewFunction)
     parent.tb.AddSeparator()
-    lintoolID = wxNewId()
-    lintoolBmp = ('/usr/share/pixmaps/abeni/lintool.png')
-    parent.tb.AddSimpleTool(lintoolID, wxBitmap(lintoolBmp, wxBITMAP_TYPE_PNG), \
-                         "Lintool - check syntax of ebuild")
-    EVT_TOOL(parent, lintoolID, parent.OnMnuLintool)
+
     toolDigestID = wxNewId()
     digestBmp = ('/usr/share/pixmaps/abeni/digest.png')
     parent.tb.AddSimpleTool(toolDigestID, wxBitmap(digestBmp, wxBITMAP_TYPE_PNG), \
@@ -483,7 +512,21 @@ def AddToolbar(parent):
     unpackBmp = ('/usr/share/pixmaps/abeni/unpack.png')
     parent.tb.AddSimpleTool(toolUnpackID, wxBitmap(unpackBmp, wxBITMAP_TYPE_PNG), \
                          "Unpack this package")
-    EVT_TOOL(parent, toolUnpackID, parent.OnMnuUnpack)
+    EVT_TOOL(parent, toolUnpackID, parent.OnToolbarUnpack)
+
+    toolCompileID = wxNewId()
+    compileBmp = ('/usr/share/pixmaps/abeni/compile.png')
+    parent.tb.AddSimpleTool(toolCompileID, wxBitmap(compileBmp, wxBITMAP_TYPE_PNG), \
+                         "Compile this package")
+    EVT_TOOL(parent, toolCompileID, parent.OnToolbarCompile)
+
+    toolInstallID = wxNewId()
+    installBmp = ('/usr/share/pixmaps/abeni/install.png')
+    parent.tb.AddSimpleTool(toolInstallID, wxBitmap(installBmp, wxBITMAP_TYPE_PNG), \
+                         "Install this package")
+    EVT_TOOL(parent, toolInstallID, parent.OnToolbarInstall)
+
+
     parent.tb.AddSeparator()
     toolEbuildID = wxNewId()
     ebuildBmp = ('/usr/share/pixmaps/abeni/ebuild.png')
@@ -498,13 +541,18 @@ def AddToolbar(parent):
     EVT_TOOL(parent, toolEmergeID, parent.OnMnuEmerge)
 
     parent.tb.AddSeparator()
-    parent.toolStopID = wxNewId()
-    stopBmp = ('/usr/share/pixmaps/abeni/stop.png')
-    parent.stop = parent.tb.AddSimpleTool(parent.toolStopID, wxBitmap(stopBmp, wxBITMAP_TYPE_PNG), \
-                         "Stop command running")
-    EVT_TOOL(parent, parent.toolStopID, parent.KillProc)
-    parent.tb.EnableTool(parent.toolStopID, False)
-    parent.tb.AddSeparator()
+
+    #lintoolID = wxNewId()
+    #lintoolBmp = ('/usr/share/pixmaps/abeni/lintool.png')
+    #parent.tb.AddSimpleTool(lintoolID, wxBitmap(lintoolBmp, wxBITMAP_TYPE_PNG), \
+    #                     "Lintool - check syntax of ebuild")
+    #EVT_TOOL(parent, lintoolID, parent.OnMnuLintool)
+
+    xtermID = wxNewId()
+    xtermBmp = ('/usr/share/pixmaps/abeni/xterm.png')
+    parent.tb.AddSimpleTool(xtermID, wxBitmap(xtermBmp, wxBITMAP_TYPE_PNG), \
+                            "Launch xterm in ${S}")
+    EVT_TOOL(parent, xtermID, parent.OnToolbarXterm)
 
     helpID = wxNewId()
     helpBmp = ('/usr/share/pixmaps/abeni/help.png')
@@ -515,8 +563,17 @@ def AddToolbar(parent):
     for ebuild in parent.recentList:
         parent.filehistory.AddFileToHistory(ebuild.strip())
 
+    parent.tb.AddSeparator()
+    parent.toolStopID = wxNewId()
+    stopBmp = ('/usr/share/pixmaps/abeni/stop.png')
+    parent.stop = parent.tb.AddSimpleTool(parent.toolStopID, wxBitmap(stopBmp, wxBITMAP_TYPE_PNG), \
+                         "Stop command running")
+    EVT_TOOL(parent, parent.toolStopID, parent.KillProc)
+    parent.tb.EnableTool(parent.toolStopID, False)
+
     parent.tb.Realize()
     parent.timer = None
+
 
 def DelVariable(parent):
     varDict = parent.panelMain.GetVars()
