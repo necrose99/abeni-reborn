@@ -583,7 +583,10 @@ class MyFrame(wxFrame):
         import popen2
         p = self.GetP()
         d = '%s/portage/%s/work' % (portage_tmpdir, p)
-        lines = os.listdir(d)
+        try:
+            lines = os.listdir(d)
+        except:
+            return
         dirs = []
         self.logColor("RED")
         self.write("Unpacked these directory(s) into ${WORKDIR}:")
