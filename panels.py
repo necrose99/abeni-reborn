@@ -180,6 +180,11 @@ class main(wxPanel):
         def strp(s): return s.strip()
         c = map(strp, c)
         c = filter(None, c)
+        if os.path.exists("/etc/portage/categories"):
+            d = open("/etc/portage/categories")
+            d = map(strp, d)
+            d = filter(None, d)
+            c += d
         c.sort()
         dlg = wxSingleChoiceDialog(self, 'Category', 'Category:',
                                    c, wxOK|wxCANCEL)
