@@ -4,6 +4,8 @@ If you are interested in working on any of these, please
 email pythonhead AT gentoo DOT org
 
 
+ wx.CallAfter(self.EnsureCaretVisible)
+
 * General:
  - Change focus to log window when doing emerge
  - Add separator after menu, between groups Cat, PN, PV? (test with various gtk styles)
