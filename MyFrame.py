@@ -32,7 +32,7 @@ import pyipc
 import enamer
 
 
-# __revision__ = "$Id: MyFrame.py,v 1.5 2005/01/22 19:59:04 robc Exp $"
+# __revision__ = "$Id: MyFrame.py,v 1.6 2005/01/22 20:09:51 robc Exp $"
 
 env = config(clone = settings).environ()
 PORTDIR_OVERLAY = env['PORTDIR_OVERLAY'].split(" ")[0]
@@ -761,6 +761,20 @@ class MyFrame(wx.Frame):
         #Remove color and other esc codes
         text = text.replace('\b', '')
         text = text.replace("\x1b[0m" , '')
+        text = text.replace("\x1b[01m", '')
+        text = text.replace("\x1b[31;06m", '')
+        text = text.replace("\x1b[31;01m", '')
+        text = text.replace("\x1b[32;06m", '')
+        text = text.replace("\x1b[32;01m", '')
+        text = text.replace("\x1b[33;06m", '')
+        text = text.replace("\x1b[33;01m", '')
+        text = text.replace("\x1b[34;06m", '')
+        text = text.replace("\x1b[34;01m", '')
+        text = text.replace("\x1b[35;01m", '')
+        text = text.replace("\x1b[35;06m", '')
+        text = text.replace("\x1b[36;01m", '')
+        text = text.replace("\x1b[36;06m", '')
+
         # For the [ok]'s
         text = text.replace("\x1b[A", '')
         text = text.replace("\x1b[-7G", '')
