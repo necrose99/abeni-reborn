@@ -1,10 +1,25 @@
 #!/usr/bin/python
 
-"""Abeni - Gentoo Linux Ebuild Editor/Syntax Checker
-Released under the terms of the GNU Public License v2"""
+"""Abeni - Gentoo Linux Ebuild Integrated Development Environment
+"""
+
+# This program is free software; you can redistribute it and/or
+# modify it under the terms of the GNU General Public License
+# as published by the Free Software Foundation; either version 2
+# of the License, or (at your option) any later version.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the GNU
+# General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program; if not, write to the
+# Free Software Foundation, Inc., 59 Temple Place - Suite 330,
+# Boston, MA 02111-1307, USA.
 
 __author__ = 'Rob Cakebread'
-__email__ = 'robc@myrealbox.com'
+__email__ = 'pythonhead@gentoo.org'
 __version__ = '0.0.10'
 __changelog_ = 'http://abeni.sf.net/ChangeLog'
 
@@ -170,6 +185,8 @@ class MyFrame(wxFrame):
         self.Show(True)
         self.splitter.SplitHorizontally(self.nb, self.log, 400)
         self.sashPosition = 400
+        self.write("PORTDIR=%s" % portdir)
+        self.write("PORTDIR_OVERLAY=%s" % portdir_overlay)
         #Load ebuild if specified on command line, by filename or by full package name
         if len(sys.argv) == 2:
             f = sys.argv[1]
@@ -1350,6 +1367,9 @@ class MyFrame(wxFrame):
             cmd = 'FEATURES="%s" USE="%s" /usr/sbin/ebuild %s digest' % \
                 (self.pref['features'], self.pref['use'], self.filename)
             self.ExecuteInLog(cmd)
+
+    def OnToolbarEdit(self, event):
+        self.OnMnuEdit()
 
     def OnToolbarUnpack(self, event):
         if self.editing:

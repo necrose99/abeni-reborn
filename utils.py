@@ -359,6 +359,14 @@ def AddToolbar(parent):
     parent.tb.AddSimpleTool(saveID, wxBitmap(saveBmp, wxBITMAP_TYPE_PNG), \
                             "Save ebuild")
     EVT_TOOL(parent, saveID, parent.OnMnuSave)
+
+    editID = wxNewId()
+    editBmp = ('/usr/share/pixmaps/abeni/edit.png')
+    parent.tb.AddSimpleTool(editID, wxBitmap(editBmp, wxBITMAP_TYPE_PNG), \
+                            "Edit ebuild in external editor")
+    EVT_TOOL(parent, editID, parent.OnMnuEdit)
+
+
     parent.tb.AddSeparator()
     newVarID = wxNewId()
     newVarBmp = ('/usr/share/pixmaps/abeni/x.png')
@@ -429,11 +437,12 @@ def AddToolbar(parent):
                             "Launch xterm in ${S}")
     EVT_TOOL(parent, xtermID, parent.OnToolbarXterm)
 
-    helpID = wxNewId()
-    helpBmp = ('/usr/share/pixmaps/abeni/help.png')
-    parent.tb.AddSimpleTool(helpID, wxBitmap(helpBmp, wxBITMAP_TYPE_PNG), \
-                            "Help")
-    EVT_TOOL(parent, helpID, parent.OnMnuHelp)
+    #helpID = wxNewId()
+    #helpBmp = ('/usr/share/pixmaps/abeni/help.png')
+    #parent.tb.AddSimpleTool(helpID, wxBitmap(helpBmp, wxBITMAP_TYPE_PNG), \
+    #                        "Help")
+    #EVT_TOOL(parent, helpID, parent.OnMnuHelp)
+
     #Load recent ebuilds to File menu
     for ebuild in parent.recentList:
         parent.filehistory.AddFileToHistory(ebuild.strip())
