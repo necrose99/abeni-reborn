@@ -24,7 +24,7 @@ class GetURIDialog(wxDialog):
 
     def __set_properties(self):
         # begin wxGlade: GetURIDialog.__set_properties
-        self.SetTitle("dialog_1")
+        self.SetTitle("Enter URI for package")
         self.URI.SetSize((304, 22))
         self.combo_box_1.SetSelection(0)
         self.button_ok.SetDefault()
