@@ -1,3 +1,13 @@
+
+"""utils.py
+
+miscellaneous functions that don't belong in gui.py
+
+"""
+
+__revision__ = "$"
+
+
 import commands
 import pwd
 import os
@@ -115,16 +125,6 @@ def MyMessage(parent, msg, title, type="info", cancel=0):
         dlg.Destroy()
         return 0
 
-def LogWindow(parent):
-    """Show log in separate window"""
-    if parent.splitter.IsSplit():
-        parent.splitter.Unsplit()
-        parent.logWin=MyLog.LogWindow(parent)
-        parent.logWin.Show(True)
-        parent.text_ctrl_log.Show(True)
-        parent.pref['log'] = 'window'
-        parent.menu_options.Check(parent.mnuLogWindowID, 1)
-
 def RefreshS(parent):
     """Refresh ${S} file browser"""
     s = GetS(parent)
@@ -170,6 +170,8 @@ def PostAction(parent, action):
         RefreshS(parent)
         LogToOutput(parent)
         parent.Write("))) qmerge finished")
+        parent.button_d_view.Enable(True)
+        parent.button_d_refresh.Enable(True)
     if action == 'emerge':
         RefreshS(parent)
         parent.filesDir.onRefresh(-1)
@@ -180,7 +182,7 @@ def PostAction(parent, action):
 def LogToOutput(parent):
     """Get logfile text and display in output tab"""
     #TODO: Run through WriteText or something to get color/filter esc codes
-    #lines = commands.getoutput("sudo cat /var/tmp/abeni/emerge_log").splitlines()
+    #lines = commands.getoutput("cat /var/tmp/abeni/emerge_log").splitlines()
     #for l in lines:
     #    parent.Write(l)
     #t = commands.getoutput("sudo cat /var/tmp/abeni/emerge_log")
@@ -200,7 +202,8 @@ def ExportEbuild(parent):
         # add all filenames that are present in the ebuild and ask
         # the user about the others.
         # Hmm, the multi-choice dialog does not allow to pre-select anything
-        # I'd like to select all files by default, but I guess that needs a custom dialog then.
+        # I'd like to select all files by default, but I guess that needs a
+        # custom dialog then.
         #ebuild_content = parent.ebuildfile.editorCtrl.GetText()
         ebuild_content = parent.STCeditor.GetText()
         for f in auxfilelist:
@@ -385,11 +388,11 @@ def DeleteEbuild(parent):
         os.unlink(f)
         Reset(parent)
     except:
-       msg = "Couldn't delete %s" % f 
-       MyMessage(parent, msg, "Error", "error")
+        msg = "Couldn't delete %s" % f 
+        MyMessage(parent, msg, "Error", "error")
     d = os.path.split(f)[0]
     if True in [ f[-7:] == '.ebuild' for f in os.listdir(d) ]:
-       return
+        return
     msg = "There are no more ebuilds for this package in the overlay.\nWould you like to delete this directory and its entire contents?\n%s" % d
     dlg = wx.MessageDialog(parent, msg,
             'Delete dirctory?', wx.YES_NO)
@@ -561,8 +564,8 @@ def LoadByPackage(parent, query):
                 fname = '%s/%s/%s/%s-%s.ebuild' % \
                         (PORTDIR_OVERLAY, cat, package, package, version)
             else:
-                    fname = '%s/%s/%s/%s-%s.ebuild' % \
-                            (PORTDIR, cat, package, package, version)
+                fname = '%s/%s/%s/%s-%s.ebuild' % \
+                        (PORTDIR, cat, package, package, version)
             LoadEbuild(parent, fname)
     else:
         print "Package " + query + " not found. Use full category/package name."
@@ -784,6 +787,23 @@ def LoadEbuild(parent, filename):
         parent.button_filesdir_new.Enable(False)
         parent.button_filesdir_download.Enable(False)
         parent.button_filesdir_delete.Enable(False)
+
+    EnableBrowserButtons(parent)
+
+def EnableBrowserButtons(parent):
+    """Enable all the file browser buttons"""
+    parent.button_filesdir_view.Enable(True)
+    parent.button_filesdir_edit.Enable(True)
+    parent.button_filesdir_new.Enable(True)
+    parent.button_filesdir_download.Enable(True)
+    parent.button_filesdir_rename.Enable(True)
+    parent.button_filesdir_delete.Enable(True)
+    parent.button_filesdir_refresh.Enable(True)
+    parent.button_s_view.Enable(True)
+    parent.button_s_edit.Enable(True)
+    parent.button_s_delete.Enable(True)
+    parent.button_s_patch.Enable(True)
+    parent.button_s_refresh.Enable(True)
 
 def LoadDbRecord(parent):
     """Load db record for current ebuild"""

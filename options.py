@@ -1,9 +1,19 @@
+"""options.py
+
+This module keeps track of Abeni's preferences
+and sets some sane values on first run.
+
+"""
+
+
 import os
 import string
 
 class Options:
-    def __init__(self):
 
+    """Set and store system wide preferences"""
+
+    def __init__(self):
         """Set vars to sane values"""
         self.pref = {}
         self.pref['stripHeader'] = 1
