@@ -149,7 +149,6 @@ class MyFrame(wxFrame):
         self.nb = wxNotebook(self.splitter, -1, style=wxCLIP_CHILDREN)
         EVT_NOTEBOOK_PAGE_CHANGED(self.nb, -1, self.OnPageChanged)
         EVT_NOTEBOOK_PAGE_CHANGED(self.nb, -1, self.OnPageChanging)
-        #TODO, just pass the env dict
         self.nb.portdir_overlay = portdir_overlay
         self.nb.portdir = portdir
         self.log = wxTextCtrl(self.splitter, -1,
@@ -172,11 +171,14 @@ class MyFrame(wxFrame):
                 self.LoadByPackage(f)
 
     def OnMnuProjManager(self, event):
+        """Open Project Menu frame"""
         import ProjectManager
         frame = ProjectManager.MyFrame(self)
         frame.Show(true)
 
     def OnMnuGetDeps(self, event):
+        """Resolve 'lazy' dependencies to full version"""
+        # i.e. dev-lang/python TO >=dev-lang/python-2.2.2
         #DEPEND
         l = self.panelDepend.elb1.GetStrings()
         new = self.ResolveDeps(l)
@@ -198,7 +200,7 @@ class MyFrame(wxFrame):
                     new.append(p)
                 elif curver == "":
                     #Multiple names. Be more specific.")
-                    #Also means isn't installed. TODO
+                    #Also means isn't installed.
                     #self.write("Not installed, or multiple names like %s" % p)
                     new.append(p)
                 else:
@@ -394,6 +396,7 @@ class MyFrame(wxFrame):
 
     def write(self, txt):
         """Send text to log window"""
+        self.OnIdle()
         self.WriteText(txt)
 
     def GetP(self):
@@ -549,7 +552,8 @@ class MyFrame(wxFrame):
             self.write('Executing:\n%s' % cmd)
             self.ExecuteInLog(cmd)
 
-    def OnIdle(self, event):
+    def OnIdle(self, event=None):
+        """This is called after the GUI stops being idle (mouse or key events)"""
         if self.process is not None:
             stream = self.process.GetInputStream()
             if stream.CanRead():
@@ -573,6 +577,7 @@ class MyFrame(wxFrame):
         action = self.action
         self.action = None
         self.PostAction(action)
+        self.timer.Stop()
 
     def PostAction(self, action):
         """Execute code after ExecuteInLog finishes"""
@@ -580,6 +585,7 @@ class MyFrame(wxFrame):
             self.PostUnpack()
 
     def PostUnpack(self):
+        """Report what directories were unpacked, try to set S if necessary"""
         import popen2
         p = self.GetP()
         d = '%s/portage/%s/work' % (portage_tmpdir, p)
@@ -594,7 +600,6 @@ class MyFrame(wxFrame):
             if os.path.isdir("%s/%s" % (d, l)):
                 self.write(l)
                 dirs.append(l)
-        #print len(dirs)
         if len(dirs) == 1:
             #We know we have S. Otherwise there were multiple directories unpacked
             p = dirs[0]
@@ -613,10 +618,16 @@ class MyFrame(wxFrame):
         self.ViewMakefile()
 
     def SetS(self, myp):
+        """Set S"""
         p = self.GetP()
         self.s = "%s/portage/%s/work/%s" % (portage_tmpdir, p, myp)
 
+    def OnTimer(self, evt):
+        """Call idle handler every second to update log window"""
+        self.OnIdle()
+
     def ExecuteInLog(self, cmd):
+        """Run a program and send stdout & stderr to the log window"""
         if self.running:
             msg = ("Please wait till this finishes:\n %s" % self.running)
             title = 'Abeni: Error - Wait till external program is finished.'
@@ -628,9 +639,13 @@ class MyFrame(wxFrame):
         self.process.Redirect();
         pyCmd = "python -u %s/doCmd.py %s" % (modulePath, cmd)
         self.pid = wxExecute(pyCmd, wxEXEC_ASYNC, self.process)
-        #self.write('"%s" pid: %s\n' % (cmd, pid))
+        ID_Timer = wxNewId()
+        self.timer = wxTimer(self, ID_Timer)
+        EVT_TIMER(self,  ID_Timer, self.OnTimer)
+        self.timer.Start(1000)
 
     def KillProc(self, event):
+        """Kill processes when stop button clicked"""
         os.system("kill %s" % self.pid)
         self.write("Killed %s" % self.pid)
         try:
@@ -681,6 +696,7 @@ class MyFrame(wxFrame):
         return defaultVars, vars
 
     def VerifySaved(self):
+        """Check if the ebuild has changed and offer to save if so"""
         modified = 0
         status = 0
         for fns in self.funcList:
@@ -763,7 +779,6 @@ class MyFrame(wxFrame):
 
     def OnPageChanging(self, event):
         """Catch event when page in notebook is going to change"""
-        #self.tab[n] = labels
         to = event.GetSelection()
         current = event.GetOldSelection()
         #Remember sash position on all pages except Main and Dependencies
@@ -780,11 +795,6 @@ class MyFrame(wxFrame):
         if n == 0 or n == 1:
             if self.pref['log'] == 'bottom':
                 self.splitter.SetSashPosition(400)
-
-        #if self.tabs[n] == 'Ebuild File':
-            #WriteEbuild(self)
-            #self.ebuildfile.editorCtrl.SetText(open(self.filename, 'r').read())
-            #pass
         event.Skip()
 
     def GetCat(self):
@@ -806,7 +816,6 @@ class MyFrame(wxFrame):
         """Dialog to add new function"""
         if not self.editing:
             return
-        #from NewFuncDialog import wxDialog1
         dlg = dialogs.NewFunction(self)
         dlg.CenterOnScreen()
         v = dlg.ShowModal()
@@ -817,25 +826,20 @@ class MyFrame(wxFrame):
         dlg.Destroy()
 
     def NewPage(self, panel, name):
+        """Add new page to notebook"""
         self.nb.AddPage(panel, name)
         self.tabs.append(name)
-        #self.tabsInstance.append(panel)
-        #print self.tabsInstance
-        #print self.tabs
 
     def AddFunc(self, newFunction, val):
         """Add page in notebook for a new function"""
-        #TODO don't pass sb, pref if not necessary
         n = panels.NewFunction(self.nb)
         self.funcList.append(n)
         self.NewPage(n, newFunction)
         n.edNewFun.SetText(val)
         n.edNewFun.SetSavePoint()
-        #self.nb.SetSelection(self.nb.GetPageCount() -1)
 
     def OnMnuDelFunction(self, event):
         """Remove current function page"""
-        #TODO: This removes any page, change to only move functions.
         p = self.nb.GetSelection()
         check = self.nb.GetPage(p)
         n = 0
@@ -883,6 +887,7 @@ class MyFrame(wxFrame):
         self.SaveEbuild()
 
     def SaveEbuild(self):
+        '''Save ebuild if entries are sane'''
         msg = self.checkEntries()
         if not msg:
             defaultVars = getDefaultVars(self)
@@ -963,11 +968,11 @@ class MyFrame(wxFrame):
             return 0
 
     def GetPackageName(self):
+        """Return PN from form"""
         return self.panelMain.GetPackageName()
 
     def checkEntries(self):
         """Validate entries on forms"""
-        # We're checking category and license now.
         category = self.panelMain.Category.GetValue()
         categoryDir = self.GetCategory()
         valid_cat = os.path.join(portdir, category)
