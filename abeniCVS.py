@@ -4,7 +4,7 @@ import shutil
 import utils
 import string
 
-from wxPython.wx import wxID_OK, wxTextEntryDialog, wxSafeYield
+from wxPython.wx import *
 from wxPython.lib.dialogs import wxMultipleChoiceDialog
 from wxPython.lib.dialogs import wxScrolledMessageDialog
 
@@ -50,11 +50,14 @@ class CVS:
         #full path to CVS ebuild:
         self.cvsEbuild = "%s/%s" % (self.cvsEbuildDir, self.ebuild)
         # msg for echangelog and repoman commit
-        self.msg = ""
+        self.cmsg = ""
 
     def FullCommit(self):
         """Does the whole repoman CVS commit dealio"""
         cur_dir = os.getcwd()
+
+        
+        busy = wxBusyInfo("Copying ebuild and creating digest...")
 
         if self.newPackage:
             try:
@@ -62,14 +65,15 @@ class CVS:
             except:
                 utils.write(self.parent, "!!! Failed to cd to %s/%s" % \
                             (self.cvsRoot, self.category))
-                utils.write(self.parent, "!!! Aborting CVS commit.")
+                utils.write(self.parent, "!!! Check your CVS directory setting in Developer Preferences under the Options menu.")
+                utils.write(self.parent, "!!! Aborted CVS commit.")
                 return
 
             if (self.CreateCVSdir()):
                 utils.write(self.parent, ">>> Created directory %s" % self.cvsEbuildDir)
             else:
                 utils.write(self.parent, "!!! Failed to create %s" % self.cvsEbuildDir)
-                utils.write(self.parent, "!!! Aborting CVS commit.")
+                utils.write(self.parent, "!!! Aborted CVS commit.")
                 return
 
         if self.newPackage:
@@ -80,7 +84,7 @@ class CVS:
             os.chdir(self.cvsEbuildDir)
         except:
             utils.write(self.parent, "!!! Failed to cd to %s" % self.cvsEbuildDir)
-            utils.write(self.parent, "!!! Aborting CVS commit.")
+            utils.write(self.parent, "!!! Aborted CVS commit.")
             return
 
 
@@ -100,84 +104,116 @@ class CVS:
         # /usr/bin/cvs add em all
         r = self.DoFilesdir()
         if r == "error":
-            utils.write(self.parent, "!!! Aborting CVS commit.")
+            utils.write(self.parent, "!!! Aborted CVS commit.")
             return
         if r == 0:
-            utils.write(self.parent, " *  No files from $FILESDIR copied.")
+            utils.write(self.parent, ">>> No files from $FILESDIR copied.")
 
 
         # Show dialog with metadata.xml in case they need to change it
         #  or create it
 
         if self.newPackage:
+            busy = None
             if not os.path.exists("%s/metadata.xml" % self.overlay_dir):
                 dlg = MetadataDialog(self.parent)
             if not self.CopyMetadata():
                 utils.write(self.parent, "!!! Failed to copy metadata.xml.")
-                utils.write(self.parent, "!!! Aborting CVS commit.")
+                utils.write(self.parent, "!!! Aborted CVS commit.")
                 return
             self.FixPerms()
+            busy = wxBusyInfo("Adding metadata...")
             self.CVSAdd("metadta.xml")
 
         self.FixPerms()
         # Create digest for ebuild (should auto-add to cvs)
         self.CreateDigest()
+        wxYield()
+        utils.write(self.parent, "     ")
+        busy = None
 
         # echangelog dialog
-        if not (self.GetMsg("Enter echangelog message                                ", \
-                    "Enter echangelog message")):
-            utils.write(self.parent, "Aborting CVS commit.")
+        r = self.GetMsg("Enter echangelog message                                ", \
+                    "Enter echangelog message")
+        if r == 0:
+            utils.write(self.parent, "!!! Aborted CVS commit.")
             return
 
-        self.Echangelog(self.msg)
+        #kludge to keep log window scrolled to bottom:
+        wxSafeYield()
+        utils.write(self.parent, "     ")
+
+        self.Echangelog(self.cmsg)
+
+        wxSafeYield()
+        utils.write(self.parent, "     ")
 
         if self.newPackage:
             self.CVSAdd("ChangeLog")
+            wxSafeYield()
+            utils.write(self.parent, "     ")
+
 
         # Get commit message (could be same as echangelog msg)
-        self.GetMsg("Enter CVS commit message                                ", \
+        r = self.GetMsg("Enter CVS commit message                                ", \
                     "Enter CVS commit message")
+        if r == 0:
+            utils.write(self.parent, "!!! Aborted CVS commit.")
+            return
 
+        busy = wxBusyInfo("Running repoman full...")
         txt = self.SyncExecute("PORTDIR_OVERLAY=%s /usr/bin/repoman full" \
                                 % self.cvsEbuildDir, 1, 1)
+        busy=None
         dlg = wxScrolledMessageDialog(self.parent, txt, "repoman full")
         dlg.ShowModal()
         dlg.Destroy()
 
+        wxSafeYield()
+        utils.write(self.parent, "     ")
+
+
         msg = """Happy with 'repoman full'?\nDo you want to run:\n \
-              /usr/bin/repoman --pretend commit -m "%s" """ % self.msg
+              /usr/bin/repoman --pretend commit -m "%s" """ % self.cmsg
 
         if (utils.MyMessage(self.parent, msg, "repoman --pretend commit", "info", 1)):
+            busy = wxBusyInfo("Running repoman --pretend commit...")
  
-            txt = self.SyncExecute((\
-                                    """PORTDIR_OVERLAY=%s /usr/bin/repoman \
-                                    --pretend commit -m "%s" """ % \
-                                    (self.msg, self.cvsEbuildDir)), 1, 1)
+            txt = self.SyncExecute(('''PORTDIR_OVERLAY=%s /usr/bin/repoman --pretend commit -m "%s"''' % (self.cvsEbuildDir, self.cmsg)), 1, 1)
+            busy=None
             dlg = wxScrolledMessageDialog(self.parent, txt, "repoman --pretend commit")
             dlg.ShowModal()
             dlg.Destroy()
         else:
-            utils.write(self, "!!! CVS commit Cancelled.")
+            utils.write(self.parent, "!!! CVS commit Cancelled.")
+            return
 
+        wxSafeYield()
+        utils.write(self.parent, "     ")
 
         msg = 'Happy with repoman --pretend commit?\nDo you want to run:\n \
               /usr/bin/repoman commit -m "%s"\n\n \
-              WARNING: This will actually COMMIT to CVS with repoman!' % self.msg
-        if (utils.MyMessage(self.parent, msg, "repoman commit", "info", 1)):
-            self.SyncExecute(\
-                            """PORTDIR_OVERLAY=%s /usr/bin/repoman --pretend \
-                            commit -m "%s" """ % (self.msg, self.cvsEbuildDir))
-        else:
-            utils.write(self, "!!! CVS commit Cancelled.")
+              WARNING: This will actually COMMIT to CVS with repoman!' % self.cmsg
 
-        #self.parent.log.ShowPosition(self.parent.log.GetLastPosition())
+        if (utils.MyMessage(self.parent, msg, "repoman commit", "info", 1)):
+            busy = wxBusyInfo("Running repoman commit...")
+            self.SyncExecute('''PORTDIR_OVERLAY=%s /usr/bin/repoman commit -m "%s"''' % (self.cvsEbuildDir, self.cmsg))
+            busy=None
+
+            wxSafeYield()
+            utils.write(self.parent,">>> Repoman commit finished.")
+        else:
+            utils.write(self.parent, "!!! CVS commit Cancelled.")
 
         # go back to overlay dir
         os.chdir(cur_dir)
 
     def DoFilesdir(self):
         """Copy files from overlay ${FILESDIR} to CVS ${FILESDIR} """
-        files = os.listdir('%s/files' % utils.GetEbuildDir(self.parent))
+        p = '%s/files' % utils.GetEbuildDir(self.parent)
+        if not os.path.exists(p):
+            return 0
+        files = os.listdir(p)
         def strp(s): return s.strip()
         files = map(strp, files )
         files = filter(None, files)
@@ -262,13 +298,13 @@ class CVS:
     def RepomanCommit(self):
         msg = self.GetMsg()
         if msg:
-            cmd = "/usr/bin/repoman --pretend commit -m '%s'" %  msg
+            cmd = "/usr/bin/repoman commit -m '%s'" %  msg
             self.SyncExecute(cmd)
 
     def GetMsg(self, caption, title):
-        dlg = wxTextEntryDialog(self.parent, caption, title, self.msg)
+        dlg = wxTextEntryDialog(self.parent, caption, title, self.cmsg)
         if dlg.ShowModal() == wxID_OK:
-            self.msg = dlg.GetValue()
+            self.cmsg = dlg.GetValue()
             dlg.Destroy()
             return 1
         else:

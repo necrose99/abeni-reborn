@@ -106,8 +106,9 @@ class wxFrame1(wxFrame):
     def OnButton1Button(self, event):
         """ Copy file """
         #TODO: If exists, pop up dialog and don't Append to list
-        src = "%s/%s" % (self.fdir, self.GetPortdirSelection())
-        dest = self.fdir_olay
+        f = self.GetPortdirSelection()
+        src = "%s/%s" % (self.fdir, f)
+        dest = "%s/%s" % (self.fdir_olay, f)
         if os.path.exists(src):
             if os.path.exists(dest):
                 dlg = wxMessageDialog(self, "File already exists in OVERLAY.\n\nOverwrite?", "Error", wxYES_NO)
@@ -130,9 +131,13 @@ class wxFrame1(wxFrame):
             if os.path.isdir(victim):
                 return 
             else:
-                os.remove(victim)
-                self.listBox2.Delete(pos)
-                self.listBox2.SetSelection(pos-1)
+                msg = "Delete this file?\n\n%s" % victim
+                dlg = wxMessageDialog(self, msg, "Delete file?", wxYES_NO)
+                v = dlg.ShowModal()
+                if v == wxID_YES:
+                    os.remove(victim)
+                    self.listBox2.Delete(pos)
+                    self.listBox2.SetSelection(pos-1)
 
     def OnButton3Button(self, event):
         """ Edit file """
@@ -144,6 +149,8 @@ class wxFrame1(wxFrame):
         #if not os.path.exists(f):
         #    print "!!! Editor app not found."
         #    return
+        if os.path.isdir(file):
+            return
         if app:
             os.system("%s %s &" % (app, file))
 
@@ -154,9 +161,17 @@ class wxFrame1(wxFrame):
         file2 = "%s/%s" % (self.fdir_olay, self.GetOverlaySelection())
         #TODO:
         # This fails if app has switches: "/usr/bin/foodiff -f"
+        #
         #if not os.path.exists(f):
-        #    print "!!! Editor app not found."
+        #    print "!!! app not found."
         #    return
+        #
+        # We'll try:
+        # which app 
+        # Or if it starts with '/' check if it exists, minus any flags
+
+        if os.path.isdir(file1) or os.path.isdir(file2):
+            return 
         if app:
             if os.path.exists(file1):
                 if os.path.exists(file2):

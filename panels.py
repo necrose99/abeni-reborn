@@ -13,6 +13,8 @@ from wxPython.stc import *
 sys.path.insert(0, "/usr/lib/gentoolkit/pym/")
 import gentoolkit
 
+import utils
+
 faces = { 'times': 'Times',
         'mono' : 'Courier',
         'helv' : 'Helvetica',
@@ -356,11 +358,30 @@ class depend(wxPanel):
 
     def __init__(self, parent):
         wxPanel.__init__(self, parent, -1)
+        self.parent = parent
         self.elb1 = wxEditableListBox(self, -1, "DEPEND",
                                      (10, 10), (450, 170),)
         self.elb2 = wxEditableListBox(self, -1, "RDEPEND",
                                      (10, 184), (450, 170),)
+        ButID = wxNewId()
+        Button = wxButton(self, ButID, "Fix lazy deps", (500, 100))
+        EVT_BUTTON(self, ButID, self.FixLazyDeps)
+        wxStaticText(self, -1, "Example:", (500, 140))
+        wxStaticText(self, -1, "Change dev-lang/python to dev-lang/python-2.3.4", (500, 160))
 
+    def FixLazyDeps(self, event):
+        """Resolve 'lazy' dependencies to full version"""
+        # i.e. dev-lang/python TO >=dev-lang/python-2.2.2
+        #TODO: This is duplicated in gui.py
+        #DEPEND
+        l = self.elb1.GetStrings()
+        new = utils.ResolveDeps(self.parent, l)
+        self.elb1.SetStrings(new)
+        #RDEPEND
+        l = self.elb2.GetStrings()
+        new = utils.ResolveDeps(self.parent, l)
+
+        self.elb2.SetStrings(new)
 
 '''
 class depend(wxPanel):
@@ -410,17 +431,15 @@ class Logo(wxPanel):
                 <body bgcolor="#dddaec">
                 <table cellpadding="0" cellspacing="0">
                      <tr>
-                          <td align=center><img src="/usr/share/abeni/images/abeni_logo50.png")</td>
+                          <td align=center><img src="/usr/share/pixmaps/abeni/abeni_logo50.png")</td>
                           <td><h2>Abeni - The ebuild Builder</h2>
                           Abeni is not an official Gentoo product. Please do <i>not</i> report
                           Abeni bugs on Gentoo's bugzilla.<br><br>
 
-                          Send bug reports to pythonhead@gentoo.dev<br><br>
+                          Send bug reports to pythonhead@gentoo.dev or come to #abeni on Freenode IRC.<br><br>
 
-                          Abeni is pre-alpha. You may want to create a separate PORTDIR_OVERLAY
-                          for Abeni. You can create the directory then add it in /etc/make.conf,
-                          separating it with a space:<br><br>
-                          PORTDIR_OVERLAY="/tmp/abeni /usr/local/portage"
+                          Be sure to fill in info under the Options menu for external apps like your
+                          editor, graphical diff program etc.
                           </td>
 
                      </tr>

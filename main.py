@@ -23,13 +23,7 @@ __email__ = 'pythonhead@gentoo.org'
 __changelog_ = 'http://abeni.sourceforge.net/ChangeLog'
 
 
-import os
-import string
 import sys
-import time
-import re
-import shutil
-#import tarfile (when Abeni depends on Python 2.3)
 
 from portage import config, settings
 from wxPython.wx import *

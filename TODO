@@ -1,59 +1,31 @@
-Abeni 0.0.10
 
-menu item to copy a file to ${FILESDIR}
+Abeni 0.0.11
 
-show which file just loaded in log window, add option to clear log when loading new file, log to disk
-
-don't write ChangeLog - ever. Only via echangelo
-
-Abeni 0.0.9
-
-
-
-Add checkbox for ACCEPT_KEYWORDS="~x86" in emerge dialog
-
-Allow user to view private functions in /usr/lib/portage/bin such as dobin, insinto etc.
-
-Search dialog for configure/Makefiles
-
-If people have multiple overlay directories, put an option in the Preferences
-dialog to choose where Abeni stores them. Official developers may use this
-feature. It might be nice to store all your own in one overlay and other
-people's that you are using in a separate overlay dir.
-
-After unpacking check for COPYING and grep for GNU stuff, then fill in the
-LICENSE variable with GPL-2
-
-Need to check if external apps exist every time someone tries to launch
-the editor, web browser etc.
-
-The /usr/sbin/ebuild icon on the toolbar brings up a list of all the "standard"
-functions. It should scan the ebuild in case the user added custom-named
-functions.
+Create patches and view diffs with ease.
 
 When you inherit an eclass, scan the functions and add them to Scintilla's
 keyword list for highlighting and auto-completion
 
-Project Manager can get tweaked if ebuilds are in the wrong directory
-(/usr/local/portage/duh.ebuild for example)
+Prune recent files list if files no longer exist
+
+Option to delete ${A} in distfiles in case download was aborted etc.
+
+Add options to clear log when loading new file, write log to disk
+
+Option to view private functions in /usr/lib/portage/bin such as dobin, insinto etc.
+
+Search dialog for configure/Makefiles
+
+Need to check if external apps exist every time someone tries to launch
+the editor, web browser etc.
 
 The first entry in the Most-Recently-Used list is shown without the path, the other entries
-contain the full path
+contain the full path (wxPython/wxGTK quirk?)
 
-When user cancels download, popup dialog letting them know there is a bug
-in ebuild command and they must cancel wget manually. Verify this?
-(Add menu option do delete partial download from DISTFILES)
+Add menu option do delete partial download from DISTFILES
 
-Make New Function descripts more clear i.e.
- src_compile ./configure && make
- Also make user supported templates (Done in 0.0.9pre)
-
-Add a submit button to ProjMan to submit new ebuilds to bugzilla (we
-should exclude the bugzilla stuff to its own class)
+Add a submit button to ProjMan to submit new ebuilds to bugzilla 
 (Worked in 0.9 needs testing in 0.10 in case bugs.g.o has changed)
-
-seperate the GUI code from the backend code
-(done in 0.10 pretty much)
 
 better format for TODO :)
 
@@ -64,13 +36,6 @@ There are minor bugs and new features needed noted in the source code with
 confirmation msgs.
 
 
-Bugs:
-
-    MISC:
-
-    (0.10 ) If opening ${PORTDIR} ebuild, copy files in ${FILESDIR} to
-	PORTDIR_OVERLAY/${FILESDIR} when user saves.
-    
     COSMETIC:
 
     (0.10) Seems to be fixed in portage
@@ -80,14 +45,6 @@ Bugs:
 
     Order of funtions should be logical no matter the sequence created:
         src_unpack, src_compile, src_install etc.
-
-    When you delete a notebook page, the control gets screwy looking.
-        * This problem isn't resolved in wxPython 2.4.1.2. Bah.
-        * Fixed, but very kludgy. I manually resize the entire app by one
-		  pixel horizontally.
-        * Robin Dunn (wxPython author) is stumped. Could be Gentoo specific
-		  due to site-wide gtkrc?
-
 
 Add Features:
 
@@ -135,7 +92,3 @@ Add Features:
 
     cheese-0.0.2.ebuild is created in PORTDIR_OVERLAY/app-admin/cheese/
     The digest is updated. cheese-0.0.2.ebuild is ready to emerge.
-
-    (0.11) Do something to make patches and view diffs with ease.
-
-    (0.11) Finish up CVS utils for gentoo devs, follow gpg signing discussions

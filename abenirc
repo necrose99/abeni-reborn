@@ -1,10 +1,14 @@
-browser = /usr/bin/firefox
-xterm = /usr/X11R6/bin/xterm
-diff = /usr/kde/3.1/bin/kompare
-editor = /usr/bin/gvim -f
-autoTabs = no
-fileBrowser = kfmclient -exec
-use =
-features = notitles sandbox
 log = bottom
-
+statuslist = WORKS,WONTFIX,LATER,OBSOLETE,TESTING,BORKED,SUBMITTED
+use = 
+fileBrowser = kfmclient exec
+xterm = xterm
+userName = 
+cvsRoot = /tmp/cvs/gentoo-x86
+features = notitles
+editor = /usr/bin/gvim -f
+cvsOptions = -z0
+diff = /usr/bin/gtkdiff
+browser = /usr/bin/firefox
+email = 
+autoTabs = no

@@ -56,7 +56,7 @@ def ResolveDeps(frame, l):
         p = p.strip()
         if p:
             #curver = frame.versions('^%s$' % p)
-            curver = frame.versions(p)
+            curver = versions(frame, p)
             if curver == None:
                 #frame.write("Can't find: %s" % p)
                 new.append(p)
@@ -229,12 +229,6 @@ def write(frame, txt):
     """Send text to log window"""
     WriteText(frame, txt)
 
-def GetP(frame):
-    """ Returns P from the ebuild name"""
-    ebuild = frame.panelMain.EbuildFile.GetValue()
-    p = string.replace(ebuild, '.ebuild', '')
-    return p
-
 def AddNewVar(frame, var, val):
     """Add new variable on Main panel"""
     if val == '':
@@ -324,14 +318,6 @@ def SetFilename(frame, filename):
     frame.lastFile = frame.filename
     frame.filename = filename
     frame.sb.SetStatusText(filename, 1)
-
-def GetEbuildDir(frame):
-    """Get the full path to ebuild minus ebuild file"""
-    return os.path.dirname(GetFilename(frame))
-
-def GetFilename(frame):
-    """Get the full path and filename of ebuild"""
-    return frame.filename
 
 def SeparateVars(vars):
     """Separates variables into defaultVars and all others (vars)"""
@@ -458,7 +444,8 @@ def ExportEbuild(frame):
         # the user about the others.
         # Hmm, the multi-choice dialog does not allow to pre-select anything
         # I'd like to select all files by default, but I guess that needs a custom dialog then.
-        ebuild_content = frame.ebuildfile.editorCtrl.GetText()
+        #ebuild_content = frame.ebuildfile.editorCtrl.GetText()
+        ebuild_content = frame.ebuildfile.edNewFun.GetText()
         for f in auxfilelist:
             if re.search(f+"[^a-zA-Z0-9\-\.\?\*]", ebuild_content):
                 filelist.append(frame.env['FILESDIR']+"/"+f)
@@ -506,8 +493,26 @@ def ExportEbuild(frame):
     else:
         return 0
 
+def GetCatPackVer(frame):
+   """Get category package version: net-www/mozilla-1.0-r1"""
+   return "%s/%s" % (GetCategoryName(frame), GetP(frame))
+
 def GetEbuildDir(frame):
     return os.path.join (GetCategoryPath(frame), GetPackageName(frame))
+
+def GetFilename(frame):
+    """Get the full path and filename of ebuild"""
+    return frame.filename
+
+#def GetFilename(frame):
+#    """Get the full path and filename of ebuild"""
+#    return "%s/%s/%s.ebuild" % (GetCategoryPath(frame), GetPackageName(frame), GetCatPackVer(frame))
+ 
+def GetP(frame):
+    """ Returns P from the ebuild name"""
+    ebuild = frame.panelMain.EbuildFile.GetValue()
+    p = string.replace(ebuild, '.ebuild', '')
+    return p
 
 def GetCategoryPath(frame):
     """Return path to category of ebuild"""
@@ -974,7 +979,7 @@ def WriteEbuild(parent, temp=0):
     f.write('# Copyright 1999-2004 Gentoo Foundation\n')
     f.write('# Distributed under the terms of the GNU General Public License v2\n')
     # Heh. CVS fills this line in, have to trick it with:
-    f.write('# ' + '$' + 'Header:' + ' $\n')
+    f.write('# ' + '$' + 'Header:' + ' $\n\n')
 
     if parent.CVS:
         varDict = parent.panelMain.GetVars()
@@ -1005,10 +1010,6 @@ def WriteEbuild(parent, temp=0):
     #        f.write(parent.varOrder[n] + '=' + varList[parent.varOrder[n]].GetValue() + '\n')
 
     #Default variables
-    my_s = parent.panelMain.S.GetValue().strip()
-    # Never write S= ${WORKDIR}/${P} because its the default. Bugzilla #25708
-    if my_s != "${WORKDIR}/${P}" and my_s != '"${WORKDIR}/${P}"' and my_s != "'${WORKDIR}/${P}'":
-        f.write('S=' + parent.panelMain.S.GetValue() + '\n')
     f.write('DESCRIPTION=' + parent.panelMain.Desc.GetValue() + '\n')
     f.write('HOMEPAGE=' + parent.panelMain.Homepage.GetValue() + '\n')
     f.write('SRC_URI=' + parent.panelMain.URI.GetValue() + '\n')
@@ -1016,6 +1017,10 @@ def WriteEbuild(parent, temp=0):
     f.write('SLOT=' + parent.panelMain.Slot.GetValue() + '\n')
     f.write('KEYWORDS=' + parent.panelMain.Keywords.GetValue() + '\n')
     f.write('IUSE=' + parent.panelMain.USE.GetValue() + '\n')
+    my_s = parent.panelMain.S.GetValue().strip()
+    # Never write S= ${WORKDIR}/${P} because its the default. Bugzilla #25708
+    if my_s != "${WORKDIR}/${P}" and my_s != '"${WORKDIR}/${P}"' and my_s != "'${WORKDIR}/${P}'":
+        f.write('S=' + parent.panelMain.S.GetValue() + '\n')
 
     dlist = parent.panelDepend.elb1.GetStrings()
     depFirst = 1 # Do we write DEPEND or RDEPEND first?
@@ -1074,15 +1079,16 @@ def WriteEbuild(parent, temp=0):
     #parent.write("Saved %s" % filename)
     #TODO: Kludgy? It doesn't work on first save of new ebuild.
     try:
-        parent.ebuildfile.editorCtrl.SetReadOnly(0)
+        parent.ebuildfile.edNewFun.SetReadOnly(0)
     except:
         pass
+    #try:
+    parent.ebuildfile.edNewFun.SetText(open(filename, 'r').read())
+    #except:
+    #    print "Couldn't write to Output"
+    #    pass
     try:
-        parent.ebuildfile.editorCtrl.SetText(open(filename, 'r').read())
-    except:
-        pass
-    try:
-        parent.ebuildfile.editorCtrl.SetReadOnly(1)
+        parent.ebuildfile.edNewFun.SetReadOnly(1)
     except:
         pass
 
@@ -1132,7 +1138,7 @@ def AddToolbar(parent):
     editID = wxNewId()
     editBmp = ('/usr/share/pixmaps/abeni/edit.png')
     parent.tb.AddSimpleTool(editID, wxBitmap(editBmp, wxBITMAP_TYPE_PNG), \
-                            "Edit ebuild in external editor")
+                            "Edit ebuild in external editor F7")
     EVT_TOOL(parent, editID, parent.OnMnuEdit)
 
 

@@ -1,4 +1,5 @@
 from wxPython.wx import *
+from wxPython.help import *
 
 import utils
 
@@ -43,30 +44,35 @@ class EmergeDialog(wxDialog):
         box.Add(self.features, 1, wxALIGN_CENTRE|wxALL, 5)
 
         sizer.AddSizer(box, 0, wxGROW|wxALIGN_CENTER_VERTICAL|wxALL, 5)
-
         box = wxBoxSizer(wxHORIZONTAL)
-        cat_pack = "%s/%s" % (utils.GetCategoryName(parent), utils.GetPackageName(parent))
-        #TODO: Get arch from config, add arch as config option ;)
-        self.cmd = "ACCEPT_KEYWORDS='~x86' emerge %s" %  cat_pack
-        self.pretend_cmd = "FEATURES='%s' USE='%s' ACCEPT_KEYWORDS='~x86' emerge -pv %s" \
-                   % (self.features.GetValue(), self.use.GetValue(), cat_pack)
-        self.emerge = wxTextCtrl(self, -1, self.cmd, size=(560,-1))
+
+        self.cat_pack_ver = utils.GetCatPackVer(parent)
+
+        cmd = "emerge =%s"  % self.cat_pack_ver
+
+        pretend_cmd = "emerge -pv =%s"  % self.cat_pack_ver
+
+        self.emerge = wxTextCtrl(self, -1, cmd, size=(560,-1))
         self.emerge.SetHelpText("Enter any options for the emerge command.")
         box.Add(self.emerge, 1, wxALIGN_CENTRE|wxALL, 5)
         sizer.AddSizer(box, 0, wxGROW|wxALIGN_CENTER_VERTICAL|wxALL, 5)
         box = wxBoxSizer(wxHORIZONTAL)
         sizer.AddSizer(box, 0, wxGROW|wxALIGN_CENTER_VERTICAL|wxALL, 5)
         line = wxStaticLine(self, -1, size=(20,-1), style=wxLI_HORIZONTAL)
-        #text = wxStaticText(self, -1, "Enter CVS for CVS eclass template.")
-        #sizer.Add(text, 0, wxALIGN_CENTER|wxALL, 5)
         sizer.Add(line, 0, wxGROW|wxALIGN_CENTER_VERTICAL|wxRIGHT|wxTOP, 5)
         box = wxBoxSizer(wxHORIZONTAL)
-        btn = wxButton(self, wxID_OK, " Emerge ")
+
+        wxID_EMERGE = wxNewId()
+        btn = wxButton(self, wxID_EMERGE, " Emerge ")
         box.Add(btn, 0, wxALIGN_CENTRE|wxALL, 5)
+        EVT_BUTTON(btn, wxID_EMERGE, self.OnEmergeButton)
+
         wxID_PRETEND_EMERGE = wxNewId()
         btn = wxButton(self, wxID_PRETEND_EMERGE, " Pretend ")
         box.Add(btn, 0, wxALIGN_CENTRE|wxALL, 5)
         EVT_BUTTON(btn, wxID_PRETEND_EMERGE, self.OnPretendButton)
+
+
         btn = wxButton(self, wxID_CANCEL, " Cancel ")
         btn.SetDefault()
         box.Add(btn, 0, wxALIGN_CENTRE|wxALL, 5)
@@ -79,5 +85,14 @@ class EmergeDialog(wxDialog):
 
     def OnPretendButton(self, event):
         """ emerge -pv this ebuild """
-        utils.write(self, self.pretend_cmd)
-        utils.ExecuteInLog(self.parent, self.pretend_cmd)
+        pretend_cmd = "FEATURES='%s' USE='%s' emerge --nospinner -pv =%s" \
+                   % (self.features.GetValue(), self.use.GetValue(), self.cat_pack_ver)
+        utils.write(self.parent, ">>> %s" % pretend_cmd)
+        utils.ExecuteInLog(self.parent, pretend_cmd)
+
+    def OnEmergeButton(self, event):
+        """ emerge this ebuild """
+        cmd = "FEATURES='%s' USE='%s' emerge --nospinner =%s" \
+                   % (self.features.GetValue(), self.use.GetValue(), self.cat_pack_ver)
+        utils.write(self.parent, ">>> %s" % cmd)
+        utils.ExecuteInLog(self.parent, cmd)

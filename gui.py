@@ -1,6 +1,7 @@
 import os
 import urlparse
 import string
+import shutil
 
 from wxPython.lib.dialogs import wxScrolledMessageDialog
 from wxPython.wx import *
@@ -19,6 +20,8 @@ import GetURIDialog
 import MetadataDialog
 import AddFunctionDialog
 import FileCopyDialog
+import HelpFkeysDialog
+import HelpCVSDialog
 
 env = config(clone=settings).environ()
 portdir_overlay = env['PORTDIR_OVERLAY'].split(" ")[0]
@@ -213,13 +216,14 @@ class MyFrame(wxFrame):
     def OnMnuGetDeps(self, event):
         """Resolve 'lazy' dependencies to full version"""
         # i.e. dev-lang/python TO >=dev-lang/python-2.2.2
+        #TODO: This is duplicated in panels.py
         #DEPEND
         l = self.panelDepend.elb1.GetStrings()
-        new = self.ResolveDeps(l)
+        new = utils.ResolveDeps(self, l)
         self.panelDepend.elb1.SetStrings(new)
         #RDEPEND
         l = self.panelDepend.elb2.GetStrings()
-        new = self.ResolveDeps(l)
+        new = utils.ResolveDeps(self, l)
 
         self.panelDepend.elb2.SetStrings(new)
 
@@ -337,7 +341,6 @@ class MyFrame(wxFrame):
         dlg = wxScrolledMessageDialog(self, msg, "USE descriptions")
         dlg.Show(True)
 
-    #TODO: Hmmm. I see a pattern here...
     def OnMnuCreateDigest(self, event):
         """Run 'ebuild filename digest' on this ebuild"""
         if not self.editing:
@@ -345,6 +348,36 @@ class MyFrame(wxFrame):
         utils.write(self, '>>> Creating digest...')
         if utils.SaveEbuild(self):
             cmd = 'FEATURES="%s" USE="%s" /usr/sbin/ebuild %s digest' % \
+                (self.pref['features'], self.pref['use'], self.filename)
+            utils.ExecuteInLog(self, cmd)
+
+    def OnMnuUnpack(self, event):
+        """Run 'ebuild filename unpack' on this ebuild"""
+        if not self.editing:
+            return
+        utils.write(self, '>>> Unpacking...')
+        if utils.SaveEbuild(self):
+            cmd = 'FEATURES="%s" USE="%s" /usr/sbin/ebuild %s unpack' % \
+                (self.pref['features'], self.pref['use'], self.filename)
+            utils.ExecuteInLog(self, cmd)
+
+    def OnMnuCompile(self, event):
+        """Run 'ebuild filename compile' on this ebuild"""
+        if not self.editing:
+            return
+        utils.write(self, '>>> Compiling...')
+        if utils.SaveEbuild(self):
+            cmd = 'FEATURES="%s" USE="%s" /usr/sbin/ebuild %s compile' % \
+                (self.pref['features'], self.pref['use'], self.filename)
+            utils.ExecuteInLog(self, cmd)
+
+    def OnMnuClean(self, event):
+        """Run 'ebuild filename clean' on this ebuild"""
+        if not self.editing:
+            return
+        utils.write(self, '>>> Cleaning...')
+        if utils.SaveEbuild(self):
+            cmd = 'FEATURES="%s" USE="%s" /usr/sbin/ebuild %s clean' % \
                 (self.pref['features'], self.pref['use'], self.filename)
             utils.ExecuteInLog(self, cmd)
 
@@ -440,15 +473,19 @@ class MyFrame(wxFrame):
 
                 16) show diaglog (y/N): repoman commit -m "commit message"
                 """
+            cvs_dir = self.pref['cvsRoot']
+            if cvs_dir == portdir:
+                msg = "Abeni can't do repoman CVS commits if you\nuse your CVS dir as your PORTDIR.\n\nThe next version of Abeni will be able to handle that."
+                utils.MyMessage(self, msg, "PORTDIR == CVS Dir!", "error")
+                return
             #if (utils.MyMessage(self, msg, "Commit to CVS?", "info", cancel=1)):
             #    cvs = abeniCVS.CVS(self)
             #    cvs.FullCommit()
             #else:
             #    utils.write(self, "CVS commit Cancelled.")
-
-            cvs = abeniCVS.CVS(self)
-            cvs.FullCommit()
-            #utils.write(self, "   ")
+            if utils.SaveEbuild(self):
+                cvs = abeniCVS.CVS(self)
+                cvs.FullCommit()
 
     def OnMnuCVSupdate(self, event):
         """/usr/bin/cvs update"""
@@ -613,8 +650,7 @@ class MyFrame(wxFrame):
                                       'Load overlay ebuild', out, wxOK|wxCANCEL)
             if dlg.ShowModal() == wxID_OK:
                 e = dlg.GetStringSelection()
-                if self.editing:
-                    utils.ClearNotebook(self)
+                utils.ClearNotebook(self)
                 filename = "%s/%s" % (portdir_overlay, e)
                 utils.LoadEbuild(self, filename, portdir)
                 self.filehistory.AddFileToHistory(filename)
@@ -691,13 +727,20 @@ class MyFrame(wxFrame):
                 f.write('%s = %s\n' % (v, self.pref[v]))
             f.close()
 
+    def OnMnuHelpFkeys(self, event):
+        """List fkeys"""
+        about = HelpFkeysDialog.MyHelpFkeys(self)
+        about.ShowModal()
+        about.Destroy()
+
+    def OnMnuHelpCVS(self, event):
+        """Repoman CVS help for Gentoo devs"""
+        about = HelpCVSDialog.MyHelpCVS(self)
+        about.ShowModal()
+        about.Destroy()
+
     def OnMnuAbout(self, event):
         """Obligitory About me and my app screen"""
-        #msg = 'Abeni %s  is a Python and wxPython application\n' \
-        #      'by Rob Cakebread released under the GPL license.\n\n' \
-        #      'Contributors: Marius Mauch' % __version__
-        #title = 'About Abeni %s ' % __version__
-        #utils.MyMessage(self, msg, title)
         about = AboutDialog.MyAboutBox(self)
         about.ShowModal()
         about.Destroy()
@@ -789,26 +832,25 @@ class MyFrame(wxFrame):
         utils.write(self, "   ")
    
     def OnXtermInCVS(self, event):
-        """Launch xterm in ${CVS}"""
+        """Launch xterm in CVS dir"""
         if not self.editing:
             return
 
-        if not utils.CheckUnpacked(self):
-            msg = 'You need to unpack the package first.'
+        cvs_dir = self.pref['cvsRoot']
+        if not os.path.exists(cvs_dir):
+            msg = "Path doesn't exist: %s\n\nSet your CVS root in Dev Prefs." % cvs_dir
             utils.MyMessage(self, msg, "Error", "error")
+            return
+        cat = utils.GetCategoryName(self)
+        pn = utils.GetPackageName(self)
+        cvs_path = "%s/%s/%s" % (cvs_dir, cat, pn)
+        if not os.path.exists(cvs_path):
+            msg = "Path doesn't exist: %s" % cvs_path
+            utils.MyMessage(self, msg, "Error", "error")
+            return
         else:
             c = os.getcwd()
-            p = utils.GetP(self)
-            mys = utils.GetS(self)
-            if os.path.exists(self.s):
-                os.chdir(self.s)
-            elif os.path.exists(mys):
-                os.chdir(mys)
-            else:
-                try:
-                    os.chdir('%s/portage/%s/work/' % (portage_tmpdir, p))
-                except:
-                    pass
+            os.chdir(cvs_path)
             if self.pref['xterm']:
                 try:
                     os.system('%s &' % self.pref['xterm'])
@@ -898,11 +940,21 @@ class MyFrame(wxFrame):
             os.system('%s %s' % (self.pref['editor'], f))
             utils.LoadEbuild(self, f, portdir)
 
-    def OnMnuRepoman(self, event):
+    def OnMnuRepomanScan(self, event):
+        """Run repoman --pretend scan on this ebuild"""
+        if not self.editing:
+            return
+        utils.write(self, '>>> repoman --pretend scan')
+        utils.write(self, ">>> Ignore warnings about metadata.xml because we're in the overlay dir")
+        cmd = 'cd %s;/usr/bin/repoman --pretend scan' % self.ebuildDir
+        utils.ExecuteInLog(self, cmd)
+
+    def OnMnuRepomanFull(self, event):
         """Run repoman --pretend full on this ebuild"""
         if not self.editing:
             return
-        utils.write(self, '@>> repoman --pretend full')
+        utils.write(self, ">>> repoman --pretend full")
+        utils.write(self, ">>> Ignore warnings about metadata.xml because we're in the overlay dir")
         cmd = 'cd %s;/usr/bin/repoman --pretend full' % self.ebuildDir
         utils.ExecuteInLog(self, cmd)
 
@@ -912,7 +964,7 @@ class MyFrame(wxFrame):
         if not self.editing:
             return
         if utils.SaveEbuild(self):
-            win = dialogs.EmergeDialog(self, -1, "Enter emerge options", \
+            win = EmergeDialog.EmergeDialog(self, -1, "Enter emerge options", \
                                 size=wxSize(350, 350), \
                                 style = wxDEFAULT_DIALOG_STYLE \
                                 )
@@ -1026,7 +1078,7 @@ class MyFrame(wxFrame):
         menu_variable = wxMenu()
 
         mnuNewVariableID = wxNewId()
-        menu_variable.Append(mnuNewVariableID, "&New Variable\tF2", \
+        menu_variable.Append(mnuNewVariableID, "&New Variable\tF8", \
           "New Variable")
         EVT_MENU(self, mnuNewVariableID, self.OnMnuNewVariable)
 
@@ -1042,8 +1094,8 @@ class MyFrame(wxFrame):
         # Function
         menu_function = wxMenu()
         mnuNewFunctionID = wxNewId()
-        menu_function.Append(mnuNewFunctionID, "&New Function\tF3", \
-          "New Function")
+        menu_function.Append(mnuNewFunctionID, "&Add Function\tF9", \
+          "Add Function")
         EVT_MENU(self, mnuNewFunctionID, self.OnMnuNewFunction)
         mnuDelFunctionID = wxNewId()
         menu_function.Append(mnuDelFunctionID, "&Delete Function")
@@ -1058,29 +1110,47 @@ class MyFrame(wxFrame):
 
         # Tools
         menu_tools = wxMenu()
+
+        mnuDigestID = wxNewId()
+        menu_tools.Append(mnuDigestID, "&Create Digest in PORTDIR_OVERLAY\tF1")
+        EVT_MENU(self, mnuDigestID, self.OnMnuCreateDigest)
+
+        mnuUnpackID = wxNewId()
+        menu_tools.Append(mnuUnpackID, "&Unpack\tF2")
+        EVT_MENU(self, mnuUnpackID, self.OnMnuUnpack)
+
+        mnuCompileID = wxNewId()
+        menu_tools.Append(mnuCompileID, "Compi&le\tF3")
+        EVT_MENU(self, mnuCompileID, self.OnMnuCompile)
+
         mnuEbuildID = wxNewId()
         menu_tools.Append(mnuEbuildID, \
-          "Run &ebuild <this ebuild> <command>\tf4")
+          "Run &ebuild <this ebuild> <command>\tF4")
         EVT_MENU(self, mnuEbuildID, self.OnMnuEbuild)
+
+        mnuCleanID = wxNewId()
+        menu_tools.Append(mnuCleanID, "Clea&n\tF5")
+        EVT_MENU(self, mnuCleanID, self.OnMnuClean)
+
         mnuEmergeID = wxNewId()
-        menu_tools.Append(mnuEmergeID, "Run e&merge <args> <this ebuild>\tf5")
+        menu_tools.Append(mnuEmergeID, "Run e&merge <args> <this ebuild>\tF10")
         EVT_MENU(self, mnuEmergeID, self.OnMnuEmerge)
-        #mnuLintoolID = wxNewId()
+
         mnuGetDepsID = wxNewId()
         menu_tools.Append(mnuGetDepsID, "Fix la&zy R/DEPEND")
         EVT_MENU(self, mnuGetDepsID, self.OnMnuGetDeps)
         mnuEchangelogID = wxNewId()
-        #menu_tools.Append(mnuLintoolID, "Run &Lintool on this ebuild")
-        #EVT_MENU(self, mnuLintoolID, self.OnMnuLintool)
-        mnuRepomanID = wxNewId()
-        menu_tools.Append(mnuRepomanID, "Run &repoman --pretend full")
-        EVT_MENU(self, mnuRepomanID, self.OnMnuRepoman)
-        mnuDigestID = wxNewId()
-        menu_tools.Append(mnuDigestID, "&Create Digest in PORTDIR_OVERLAY\tf8")
-        EVT_MENU(self, mnuDigestID, self.OnMnuCreateDigest)
+
+        mnuRepoScanID = wxNewId()
+        menu_tools.Append(mnuRepoScanID, "Run repoman --pretend &scan")
+        EVT_MENU(self, mnuRepoScanID, self.OnMnuRepomanScan)
+
+        mnuRepoFullID = wxNewId()
+        menu_tools.Append(mnuRepoFullID, "Run repoman --pretend &full")
+        EVT_MENU(self, mnuRepoFullID, self.OnMnuRepomanFull)
 
         mnuFileCopyID = wxNewId()
-        menu_tools.Append(mnuFileCopyID, "$FILESDIR (copy/del/diff/edit)\tf6")
+        menu_tools.Append(mnuFileCopyID, "$FILESDIR (copy/del/diff/edit)\tF6")
         EVT_MENU(self, mnuFileCopyID, self.OnMnuFileCopy)
 
         menubar.Append(menu_tools, "&Tools")
@@ -1100,7 +1170,7 @@ class MyFrame(wxFrame):
         menu_xterm = wxMenu()
 
         mnuSdirID = wxNewId()
-        menu_xterm.Append(mnuSdirID, "Open Xterm in ${&S}")
+        menu_xterm.Append(mnuSdirID, "Open Xterm in ${&S}\tF12")
         EVT_MENU(self, mnuSdirID, self.OnXtermInS)
 
         mnuDdirID = wxNewId()
@@ -1117,64 +1187,49 @@ class MyFrame(wxFrame):
         menu_cvs = wxMenu()
         submenu_cvs = wxMenu()
 
-        #menuXtermID = wxNewId()
-        #menu_tools.Append(mnuXtermID, "x&term in CVS dir")
-        #EVT_MENU(self, mnuXtermID, self.OnMnuXtermCVS)
-
         #TODO: Only add CVS menu if dev preferences is filled in
         mnuFullCommitID = wxNewId()
-        menu_cvs.Append(mnuFullCommitID, "&commit ebuild to CVS (Use this)")
+        menu_cvs.Append(mnuFullCommitID, "repoman &commit ebuild to CVS (with scan, echangelog etc)")
         EVT_MENU(self, mnuFullCommitID, self.OnMnuFullCommit)
 
-        mnuMetadataEditID = wxNewId()
-        submenu_cvs.Append(mnuMetadataEditID, "edit/create metadata")
-        EVT_MENU(self, mnuMetadataEditID, self.OnMnuMetadataEdit)
+        #mnuMetadataEditID = wxNewId()
+        #submenu_cvs.Append(mnuMetadataEditID, "edit/create metadata")
+        #EVT_MENU(self, mnuMetadataEditID, self.OnMnuMetadataEdit)
 
-        mnuRepomanScanID = wxNewId()
-        submenu_cvs.Append(mnuRepomanScanID, "&repoman scan")
-        EVT_MENU(self, mnuRepomanScanID, self.OnMnuRepomanScan)
+        #mnuRepomanScanID = wxNewId()
+        #submenu_cvs.Append(mnuRepomanScanID, "&repoman scan")
+        #EVT_MENU(self, mnuRepomanScanID, self.OnMnuRepomanScan)
 
-        mnuCVSupdateID = wxNewId()
-        submenu_cvs.Append(mnuCVSupdateID, "cvs u&pdate")
-        EVT_MENU(self, mnuCVSupdateID, self.OnMnuCVSupdate)
+        #mnuCVSupdateID = wxNewId()
+        #submenu_cvs.Append(mnuCVSupdateID, "cvs u&pdate")
+        #EVT_MENU(self, mnuCVSupdateID, self.OnMnuCVSupdate)
 
-        mnuCopyEbuildID = wxNewId()
-        submenu_cvs.Append(mnuCopyEbuildID, "Cop&y ebuild to CVS dir")
-        EVT_MENU(self, mnuCopyEbuildID, self.OnMnuCopyFile)
+        #mnuCopyEbuildID = wxNewId()
+        #submenu_cvs.Append(mnuCopyEbuildID, "Cop&y ebuild to CVS dir")
+        #EVT_MENU(self, mnuCopyEbuildID, self.OnMnuCopyFile)
 
-        mnuDigestID = wxNewId()
-        submenu_cvs.Append(mnuDigestID, "&Create Digest in CVS dir")
-        EVT_MENU(self, mnuDigestID, self.OnMnuCreateCVSDigest)
+        #mnuDigestID = wxNewId()
+        #submenu_cvs.Append(mnuDigestID, "&Create Digest in CVS dir")
+        #EVT_MENU(self, mnuDigestID, self.OnMnuCreateCVSDigest)
 
-        mnuCVSaddID = wxNewId()
-        submenu_cvs.Append(mnuCVSaddID, "&cvs add ebuild")
-        EVT_MENU(self, mnuCVSaddID, self.OnMnuCVSaddEbuild)
+        #mnuCVSaddID = wxNewId()
+        #submenu_cvs.Append(mnuCVSaddID, "&cvs add ebuild")
+        #EVT_MENU(self, mnuCVSaddID, self.OnMnuCVSaddEbuild)
 
-        mnuCVSaddMetadataID = wxNewId()
-        submenu_cvs.Append(mnuCVSaddMetadataID, "&cvs add metadata.xml")
-        EVT_MENU(self, mnuCVSaddMetadataID, self.OnMnuCVSaddMetadata)
+        #mnuCVSaddMetadataID = wxNewId()
+        #submenu_cvs.Append(mnuCVSaddMetadataID, "&cvs add metadata.xml")
+        #EVT_MENU(self, mnuCVSaddMetadataID, self.OnMnuCVSaddMetadata)
 
-        mnuCVSaddDigestID = wxNewId()
-        submenu_cvs.Append(mnuCVSaddDigestID, "&cvs add digest")
-        EVT_MENU(self, mnuCVSaddDigestID, self.OnMnuCVSaddDigest)
+        #mnuCVSaddDigestID = wxNewId()
+        #submenu_cvs.Append(mnuCVSaddDigestID, "&cvs add digest")
+        #EVT_MENU(self, mnuCVSaddDigestID, self.OnMnuCVSaddDigest)
 
-        mnuCVSaddDirID = wxNewId()
-        submenu_cvs.Append(mnuCVSaddDirID, "&cvs add directory")
-        EVT_MENU(self, mnuCVSaddDirID, self.OnMnuCVSaddDir)
+        #mnuCVSaddDirID = wxNewId()
+        #submenu_cvs.Append(mnuCVSaddDirID, "&cvs add directory")
+        #EVT_MENU(self, mnuCVSaddDirID, self.OnMnuCVSaddDir)
 
-        #~ mnuClearLogID = wxNewId()
-        #~ submenu_cvs.Append(mnuEchangelogID, "Run ec&hangelog for this ebuild")
-        #~ EVT_MENU(self, mnuEchangelogID, self.OnMnuEchangelog)
-
-        #~ mnuGetDepsID = wxNewId()
-        #~ submenu_cvs.Append(mnuEchangelogID,"Edit ChangeLog in external editor")
-        #~ EVT_MENU(self, mnuEchangelogID, self.OnMnuEditChangeLog)
-
-        #~ mnuRepoCommitID = wxNewId()
-        #~ submenu_cvs.Append(mnuRepoScanID, "repoman com&mit")
-        #~ EVT_MENU(self, mnuRepoCommitID, self.OnMnuRepoCommit)
-        submenu_cvsID=wxNewId()
-        menu_cvs.AppendMenu(submenu_cvsID, "&manual CVS operations", submenu_cvs)
+        #submenu_cvsID=wxNewId()
+        #menu_cvs.AppendMenu(submenu_cvsID, "&manual CVS operations", submenu_cvs)
         menubar.Append(menu_cvs, "&CVS")
 
         # View
@@ -1183,16 +1238,16 @@ class MyFrame(wxFrame):
         menu_view.Append(mnuViewID, "en&vironment")
         EVT_MENU(self, mnuViewID, self.OnMnuViewEnvironment)
         mnuViewConfigureID = wxNewId()
-        menu_view.Append(mnuViewConfigureID, "configure")
+        menu_view.Append(mnuViewConfigureID, "&configure")
         EVT_MENU(self, mnuViewConfigureID, self.OnMnuViewConfigure)
         mnuViewMakefileID = wxNewId()
-        menu_view.Append(mnuViewMakefileID, "Makefile")
+        menu_view.Append(mnuViewMakefileID, "&Makefile")
         EVT_MENU(self, mnuViewMakefileID, self.OnMnuViewMakefile)
         mnuEditID = wxNewId()
-        menu_view.Append(mnuEditID, "This ebuild in e&xternal editor\tf7")
+        menu_view.Append(mnuEditID, "This &ebuild in external editor\tF7")
         EVT_MENU(self, mnuEditID, self.OnMnuEdit)
         mnuExploreDid = wxNewId()
-        menu_view.Append(mnuExploreDid, "File browser in ${D}")
+        menu_view.Append(mnuExploreDid, "&File browser in ${D}")
         EVT_MENU(self, mnuExploreDid, self.OnMnuExploreD)
         menubar.Append(menu_view, "Vie&w")
         # Log window
@@ -1201,13 +1256,13 @@ class MyFrame(wxFrame):
 
         mnuLogBottomID = wxNewId()
         self.mnuLogBottomID = wxNewId()
-        self.menu_log.Append(self.mnuLogBottomID, "Log at bottom", \
+        self.menu_log.Append(self.mnuLogBottomID, "Log at &bottom", \
                              "", wxITEM_RADIO)
         EVT_MENU(self, self.mnuLogBottomID, self.OnMnuLogBottom)
 
         self.mnuLogWindowID = wxNewId()
         self.menu_log.Append(self.mnuLogWindowID, \
-                             "Log in separate window", "", wxITEM_RADIO)
+                             "Log in &separate window", "", wxITEM_RADIO)
         EVT_MENU(self, self.mnuLogWindowID, self.OnMnuLogWindow)
 
         mnuClearLogID = wxNewId()
@@ -1230,7 +1285,7 @@ class MyFrame(wxFrame):
         # Help
         menu_help = wxMenu()
         mnuHelpID = wxNewId()
-        menu_help.Append(mnuHelpID,"&Contents\tF1")
+        menu_help.Append(mnuHelpID,"&Contents")
         EVT_MENU(self, mnuHelpID, self.OnMnuHelp)
         mnuHelpRefID = wxNewId()
         menu_help.Append(mnuHelpRefID,"&Ebuild Quick Reference")
@@ -1241,10 +1296,21 @@ class MyFrame(wxFrame):
         mnuUseID = wxNewId()
         menu_help.Append(mnuUseID, "View &USE descriptions")
         EVT_MENU(self, mnuUseID, self.OnMnuUseHelp)
+
+        mnuFKEYS_ID = wxNewId()
+        menu_help.Append(mnuFKEYS_ID,"List &F-keys")
+        EVT_MENU(self, mnuFKEYS_ID, self.OnMnuHelpFkeys)
+
+        mnuCVS_ID = wxNewId()
+        menu_help.Append(mnuCVS_ID,"repoman C&VS commit")
+        EVT_MENU(self, mnuCVS_ID, self.OnMnuHelpCVS)
+
         mnuAboutID = wxNewId()
         menu_help.Append(mnuAboutID,"&About")
         EVT_MENU(self, mnuAboutID, self.OnMnuAbout)
+
         menubar.Append(menu_help,"&Help")
+
         self.SetMenuBar(menubar)
 
 

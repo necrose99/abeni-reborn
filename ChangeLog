@@ -1,5 +1,22 @@
 Abeni ChangeLog
 
+0.0.11 -------------
+
+Full repoman CVS commit with echangelog dialog etc
+
+Added $FILESDIR dialog to copy, edit, diff, delete files
+
+Nice new Add Function dialog thanks to Tim Cera.
+
+Removed Project Manager. Will fork off to a separate product named Overlord.
+
+Improved emerge dialog with pretend button.
+
+Toolbar/Fkeys to open xterms in CVS dir or ${D}
+
+Major refactoring. abeni.py was split into gui.py utils.py and main.py
+
+
 0.0.10 -------------
 
 Aug 30, 2003:
