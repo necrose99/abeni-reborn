@@ -340,12 +340,12 @@ class CVS:
         self.SyncExecute(cmd)
 
     def Execute(self, cmd):
-        su_cmd = "su %s -c '. ~%s/.keychain/localhost-sh; %s'" % (self.userName, self.userName, cmd)
+        su_cmd = '''su %s -c ". ~%s/.keychain/localhost-sh; %s"''' % (self.userName, self.userName, cmd)
         utils.write(self.parent, "))) Executing:\n)))  %s" % su_cmd)
         utils.ExecuteInLog(self.parent, su_cmd)
 
     def SyncExecute(self, cmd, ret=0, strip_color=0):
-        su_cmd = "su %s -c '. ~%s/.keychain/localhost-sh; %s'" % (self.userName, self.userName, cmd)
+        su_cmd = '''su %s -c ". ~%s/.keychain/localhost-sh; %s"''' % (self.userName, self.userName, cmd)
         utils.write(self.parent, "))) Executing:\n)))  %s" % su_cmd)
         a = popen2.Popen4(su_cmd , 1)
         inp = a.fromchild

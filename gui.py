@@ -5,8 +5,8 @@ import urlparse
 import string
 import shutil
 import sys
-from wx.lib.evtmgr import eventManager
 
+#from wx.lib.evtmgr import eventManager
 from wxPython.lib.dialogs import wxMultipleChoiceDialog
 from wxPython.lib.dialogs import wxScrolledMessageDialog
 from wxPython.wx import *
@@ -329,7 +329,7 @@ class MyFrame(wxFrame):
         self.Layout()
         # end wxGlade
 
-        eventManager.Register(self.OnSetFocus, wx.EVT_SET_FOCUS, self.STCeditor)
+        #eventManager.Register(self.OnSetFocus, wx.EVT_SET_FOCUS, self.STCeditor)
 
         if os.getuid() != 0:
             utils.MyMessage(self, "You must be root, or running Abeni with 'sudo'.",\
@@ -543,7 +543,6 @@ class MyFrame(wxFrame):
 
     def OnSetFocus(self, evt):
         self.STCeditor.SetSTCFocus(1)
-        print "focus"
         evt.Skip()
 
     def OnMnuExportEbuild(self, event):
