@@ -22,16 +22,14 @@ class main(wxPanel):
         self.pref = pref
         self.parent=parent
         self.sb = sb
-
-        #Custom variable globals
-        self.varList = {}
+        #Custom variables
+        #self.varDict['MY_P'] = [wxStaticText instance, wxTextCtrl instance]
+        self.varDict = {}
         self.vrow = 160
-
         row = 20
         col = 130
         width = 260
         self.group1_ctrls = []
-
         text0 = wxStaticText(self, -1, "Package")
         self.Package = wxTextCtrl(self, wxNewId(), "", wxPoint(0,0), wxSize(250, 20))
         row+=30
@@ -129,11 +127,15 @@ class main(wxPanel):
         self.boxv = wxStaticBox( self, -1, "Other Variables", wxPoint(400, 132), wxSize(390, 40))
         #EVT_TEXT(self, stext.GetId(), self.EvtText)
 
+    def DeleteVars(self):
+        self.varDict = {}
+        self.vrow = 160
+
     def AddVar(self, var, val):
         """Add custom variable"""
         t = wxStaticText(self, wxNewId(), var, wxPoint(410, self.vrow))
         v = wxTextCtrl(self, wxNewId(), val, wxPoint(525, self.vrow), wxSize(250, 20))
-        self.varList[var] = v
+        self.varDict[var] = [t, v]
         v.SetFocus()
         self.vrow +=30
         self.boxv.Destroy()
@@ -176,7 +178,7 @@ class main(wxPanel):
 
     def GetVars(self):
         """Return dictionary of variable controls"""
-        return self.varList
+        return self.varDict
 
     def PopulateDefault(self):
         """Set default variables in new ebuild"""
@@ -228,10 +230,9 @@ class depend(wxPanel):
         self.pref = pref
         self.parent=parent
         self.elb1 = wxEditableListBox(self, -1, "DEPEND",
-                                     (10,10), (250, 150),)
-
+                                     (10, 10), (450, 170),)
         self.elb2 = wxEditableListBox(self, -1, "RDEPEND",
-                                     (290,10), (250, 150),)
+                                     (10, 184), (450, 170),)
 
 
 class changelog(wxPanel):
@@ -256,13 +257,13 @@ class changelog(wxPanel):
         self.edChangelog.SetMarginType(1, wxSTC_MARGIN_NUMBER)
         self.edChangelog.SetMarginWidth(1, 25)
 
-    def Populate(self, filename):
+    def Populate(self, filename, portdir):
         """Add Changelog template for new ebuilds"""
 
         if os.path.exists(filename):
             self.edChangelog.SetText(open(filename).read())
         else:
-            filename='/usr/portage/skel.ChangeLog'
+            filename= '%s/skel.ChangeLog' % portdir
             self.edChangelog.SetText(open(filename).read())
 
 

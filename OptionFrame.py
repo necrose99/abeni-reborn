@@ -27,7 +27,7 @@ class OptionFrame(wxFrame):
         width = 260
 
         row = row + 30
-        wxStaticText(panel, -1, "Web Browser", wxPoint(15, row), wxSize(145, 20))
+        wxStaticText(panel, -1, "Web browser", wxPoint(15, row), wxSize(145, 20))
         self.browser = wxTextCtrl(panel, wxNewId(), "", wxPoint(col, row), wxSize(width, 20))
         self.browser.SetValue(self.pref['browser'])
 
@@ -37,9 +37,14 @@ class OptionFrame(wxFrame):
         self.xterm.SetValue(self.pref['xterm'])
 
         row = row + 30
-        wxStaticText(panel, -1, "diff Program", wxPoint(15, row), wxSize(145, 20))
+        wxStaticText(panel, -1, "GUI diff program", wxPoint(15, row), wxSize(145, 20))
         self.diff = wxTextCtrl(panel, wxNewId(), "", wxPoint(col, row), wxSize(width, 20))
         self.diff.SetValue(self.pref['diff'])
+
+        row = row + 30
+        wxStaticText(panel, -1, "External editor", wxPoint(15, row), wxSize(145, 20))
+        self.editor = wxTextCtrl(panel, wxNewId(), "", wxPoint(col, row), wxSize(width, 20))
+        self.editor.SetValue(self.pref['editor'])
 
 
     def OnOK(self, event):
@@ -48,6 +53,7 @@ class OptionFrame(wxFrame):
         f.write('browser = %s\n' % self.browser.GetValue())
         f.write('xterm = %s\n' % self.xterm.GetValue())
         f.write('diff = %s\n' % self.diff.GetValue())
+        f.write('editor = %s\n' % self.editor.GetValue())
         f.close()
         self.Close(true)
 

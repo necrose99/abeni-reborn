@@ -24,6 +24,9 @@ class Options:
             if string.find(line, 'diff') != -1:
                 self.diff = string.strip(string.split(line, '=')[1])
 
+            if string.find(line, 'editor') != -1:
+                self.editor = string.strip(string.split(line, '=')[1])
+
             line = f.readline()
         f.close()
 
@@ -34,5 +37,6 @@ class Options:
         pref['browser'] = self.browser
         pref['xterm'] = self.xterm
         pref['diff'] = self.diff
+        pref['editor'] = self.editor
 
         return pref
