@@ -1,5 +1,9 @@
 Abeni 0.0.9
 
+Add checkbox for ACCEPT_KEYWORDS="~x86" in emerge dialog
+
+Allow user to view private functions in /usr/lib/portage/bin such as dobin, insinto etc.
+
 Search dialog for configure/Makefiles
 
 If people have multiple overlay directories, put an option in the Preferences
@@ -23,11 +27,12 @@ keyword list for highlighting and auto-completion
 Project Manager can get tweaked if ebuilds are in the wrong directory
 (/usr/local/portage/duh.ebuild for example)
 
-The first entry in the MRU list is shown without the path, the other entries
+The first entry in the Most-Recently-Used list is shown without the path, the other entries
 contain the full path
 
 When user cancels download, popup dialog letting them know there is a bug
 in ebuild command and they must cancel wget manually. Verify this?
+(Add menu option do delete partial download from DISTFILES)
 
 Make New Function descripts more clear i.e.
  src_compile ./configure && make
@@ -35,8 +40,10 @@ Make New Function descripts more clear i.e.
 
 Add a submit button to ProjMan to submit new ebuilds to bugzilla (we
 should exclude the bugzilla stuff to its own class)
+(Worked in 0.9 needs testing in 0.10 in case bugs.g.o has changed)
 
 seperate the GUI code from the backend code
+(done in 0.10 pretty much)
 
 better format for TODO :)
 
@@ -49,18 +56,12 @@ confirmation msgs.
 
 Bugs:
 
-    CRITICAL:
-
-    Pango font errors with gtk2.
-    Fix: USE='-gtk2' when compiling wxGTK and wxPython
-    gtk2 is just plain terrible with wxPython as of version 2.4.1.2
-
     MISC:
 
-
-    If opening ${PORTDIR} ebuild, copy files in ${FILESDIR} to
+    (0.10 ) If opening ${PORTDIR} ebuild, copy files in ${FILESDIR} to
 	PORTDIR_OVERLAY/${FILESDIR} when user saves.
-
+    
+    (0.10) Use --pretend full - 
     Watch to see if/when repoman gets patched for users so I can stop using
     my custom repoman-safe.py:
     http://bugs.gentoo.org/show_bug.cgi?id=23072
@@ -69,7 +70,7 @@ Bugs:
 
     COSMETIC:
 
-
+    (0.10) Seems to be fixed in portage
     Although I always set FEATURES='notitles', some escape codes are still
 	sent in emerge:
      http://bugs.gentoo.org/show_bug.cgi?id=21430
@@ -132,4 +133,6 @@ Add Features:
     cheese-0.0.2.ebuild is created in PORTDIR_OVERLAY/app-admin/cheese/
     The digest is updated. cheese-0.0.2.ebuild is ready to emerge.
 
-     Do something to make patches with ease.
+    (0.11) Do something to make patches and view diffs with ease.
+
+    (0.11) Finish up CVS utils for gentoo devs, follow gpg signing discussions
