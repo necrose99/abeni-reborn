@@ -897,22 +897,28 @@ class MyFrame(wxFrame):
             filelist += auxfilelist
             
             filelist = [f.replace(self.GetCategory()+"/", "") for f in filelist]
-			
-            # TODO: let the user select different compression formats
+            
             tarballname = self.GetP()+".tar.bz2"
-            filedlg = wxFileDialog(self, "Export ebuild to tarball", "", tarballname, "BZipped tarball (*.tar.bz2)|*.tar.bz2|All files|*", wxSAVE|wxOVERWRITE_PROMPT)
+            filemask = "BZipped tarball (*.tar.bz2)|*.tar.bz2|GZipped tarball (*.tar.gz)|*.tar.gz|Uncompressed tarball (*.tar)|*.tar|All files|*"
+            filedlg = wxFileDialog(self, "Export ebuild to tarball", "", tarballname, filemask, wxSAVE|wxOVERWRITE_PROMPT)
             if filedlg.ShowModal() == wxID_OK:
                 tarballname = filedlg.GetPath()
                 filedlg.Destroy()
             else:
                 filedlg.Destroy()
                 return 0
-			
-            tarcmd = "tar -cvjf " + tarballname + " -C " + self.GetCategory() + " " + reduce(lambda a,b: a+" "+b, filelist)
-            self.ExecuteInLog(tarcmd)
+            
+            if tarballname[-8:] == ".tar.bz2":
+                taroptions = "-cvjf"
+            elif tarballname[-7:] == ".tar.gz":
+                taroptions = "-cvzf"
+            else:
+                taroptions = "-cvf"
+
+            self.ExecuteInLog("tar "+taroptions+" "+tarballname+" -C "+self.GetCategory()+" "+reduce(lambda a,b: a+" "+b, filelist))
             
             # FUTURE: once we have python-2.3 we can use the following:
-			#os.chdir(self.GetCategory())
+            #os.chdir(self.GetCategory())
             #tarball = tarfile.open(tarballname, "w:bz2")
             #for f in filelist:
             #    tarball.add(f)
