@@ -5,6 +5,7 @@ import urlparse
 import string
 import shutil
 import sys
+import tempfile
 
 import wx
 import wx.stc
@@ -37,7 +38,7 @@ class MyFrame(wx.Frame):
     def __init__(self, *args, **kwds):
 
         # begin wxGlade: MyFrame.__init__
-        kwds["style"] = wx.CAPTION|wx.MINIMIZE_BOX|wx.MAXIMIZE_BOX|wx.SYSTEM_MENU|wx.RESIZE_BORDER
+        kwds["style"] = wx.DEFAULT_FRAME_STYLE
         wx.Frame.__init__(self, *args, **kwds)
         self.panel_1 = wx.Panel(self, -1)
         self.splitter = wx.SplitterWindow(self.panel_1, -1, style=wx.SP_3D|wx.SP_BORDER)
@@ -48,7 +49,7 @@ class MyFrame(wx.Frame):
         self.window_1_pane_2 = wx.Panel(self.window_1, -1)
         self.window_1_pane_1 = wx.Panel(self.window_1, -1)
         self.panel_log = wx.Panel(self.notebook_1, -1)
-        self.panel_1_copy = wx.Panel(self.panel_1, -1)
+        self.panel_cpvr = wx.Panel(self.panel_1, -1)
         
         # Menu Bar
         self.menubar = wx.MenuBar()
@@ -104,58 +105,58 @@ class MyFrame(wx.Frame):
         self.fileMenu.Append(mnuExportID, "&Export ebuild and aux files to tar", "", wx.ITEM_NORMAL)
         self.fileMenu.Append(exitID, "E&xit\tAlt-X", "", wx.ITEM_NORMAL)
         self.menubar.Append(self.fileMenu, "&File")
-        wx.glade_tmp_menu = wx.Menu()
-        wx.glade_tmp_menu.Append(mnuFindID, "&Find\tCtrl-F", "", wx.ITEM_NORMAL)
-        wx.glade_tmp_menu.Append(mnuFindAgainID, "Find a&gain\tCtrl-g", "", wx.ITEM_NORMAL)
-        self.menubar.Append(wx.glade_tmp_menu, "&Edit")
-        wx.glade_tmp_menu = wx.Menu()
-        wx.glade_tmp_menu.Append(mnuAddFuncID, "&Function\tF6", "", wx.ITEM_NORMAL)
-        wx.glade_tmp_menu.Append(mnuLicenseID, "&License", "", wx.ITEM_NORMAL)
-        self.menubar.Append(wx.glade_tmp_menu, "&Insert")
-        wx.glade_tmp_menu = wx.Menu()
-        wx.glade_tmp_menu.Append(mnuCleanID, "&Clean\tShift-F1", "", wx.ITEM_NORMAL)
-        wx.glade_tmp_menu.Append(mnuDigestID, "&Digest\tF1", "", wx.ITEM_NORMAL)
-        wx.glade_tmp_menu.Append(mnuUnpackID, "&Unpack\tF2", "", wx.ITEM_NORMAL)
-        wx.glade_tmp_menu.Append(mnuCompileID, "C&ompile\tF3", "", wx.ITEM_NORMAL)
-        wx.glade_tmp_menu.Append(mnuInstallID, "&Install\tF4", "", wx.ITEM_NORMAL)
-        wx.glade_tmp_menu.Append(wx.NewId(), "&Qmerge\tF5", "", wx.ITEM_NORMAL)
-        wx.glade_tmp_menu.Append(mnuEbuildID, "&ebuild <this ebuild> command\tF9", "", wx.ITEM_NORMAL)
-        wx.glade_tmp_menu.Append(mnuEmergeID, "e&merge <opts><this ebuild>\tF10", "", wx.ITEM_NORMAL)
-        wx.glade_tmp_menu.Append(mnuRepoScanID, "&Repoman scan", "", wx.ITEM_NORMAL)
-        wx.glade_tmp_menu.Append(mnuPatchID, "Create patch from source in ${S}", "", wx.ITEM_NORMAL)
-        wx.glade_tmp_menu.Append(mnuImportID, "&Import existing patch", "", wx.ITEM_NORMAL)
-        wx.glade_tmp_menu.Append(mnuDiffID, "diff of this ebuild against PORTDIR version", "", wx.ITEM_NORMAL)
-        wx.glade_tmp_menu.Append(mnuRepoFullID, "repoman full", "", wx.ITEM_NORMAL)
-        wx.glade_tmp_menu.Append(mnuFileCopyID, "${FILESDIR} copy/diff/edit/del\tF8", "", wx.ITEM_NORMAL)
-        wx.glade_tmp_menu.Append(mnuXtermSID, "xterm in ${S}\tF12", "", wx.ITEM_NORMAL)
-        wx.glade_tmp_menu.Append(mnuXtermDID, "xterm in ${D}", "", wx.ITEM_NORMAL)
-        wx.glade_tmp_menu.Append(mnuXtermCVSID, "xterm in CVS dir\tShift-F12", "", wx.ITEM_NORMAL)
-        self.menubar.Append(wx.glade_tmp_menu, "&Tools")
-        wx.glade_tmp_menu = wx.Menu()
-        wx.glade_tmp_menu.Append(self.mnuFullCommitID, "repoman cvs commit", "", wx.ITEM_NORMAL)
-        self.menubar.Append(wx.glade_tmp_menu, "&CVS")
-        wx.glade_tmp_menu = wx.Menu()
-        wx.glade_tmp_menu.Append(mnuEditID, "&ebuild in external editor\tF7", "", wx.ITEM_NORMAL)
-        wx.glade_tmp_menu.Append(mnuViewMetadataID, "metadata.&xml", "", wx.ITEM_NORMAL)
-        wx.glade_tmp_menu.Append(mnuViewChangeLogID, "Change&Log", "", wx.ITEM_NORMAL)
-        self.menubar.Append(wx.glade_tmp_menu, "&View")
+        wxglade_tmp_menu = wx.Menu()
+        wxglade_tmp_menu.Append(mnuFindID, "&Find\tCtrl-F", "", wx.ITEM_NORMAL)
+        wxglade_tmp_menu.Append(mnuFindAgainID, "Find a&gain\tCtrl-g", "", wx.ITEM_NORMAL)
+        self.menubar.Append(wxglade_tmp_menu, "&Edit")
+        wxglade_tmp_menu = wx.Menu()
+        wxglade_tmp_menu.Append(mnuAddFuncID, "&Function\tF6", "", wx.ITEM_NORMAL)
+        wxglade_tmp_menu.Append(mnuLicenseID, "&License", "", wx.ITEM_NORMAL)
+        self.menubar.Append(wxglade_tmp_menu, "&Insert")
+        wxglade_tmp_menu = wx.Menu()
+        wxglade_tmp_menu.Append(mnuCleanID, "&Clean\tShift-F1", "", wx.ITEM_NORMAL)
+        wxglade_tmp_menu.Append(mnuDigestID, "&Digest\tF1", "", wx.ITEM_NORMAL)
+        wxglade_tmp_menu.Append(mnuUnpackID, "&Unpack\tF2", "", wx.ITEM_NORMAL)
+        wxglade_tmp_menu.Append(mnuCompileID, "C&ompile\tF3", "", wx.ITEM_NORMAL)
+        wxglade_tmp_menu.Append(mnuInstallID, "&Install\tF4", "", wx.ITEM_NORMAL)
+        wxglade_tmp_menu.Append(wx.NewId(), "&Qmerge\tF5", "", wx.ITEM_NORMAL)
+        wxglade_tmp_menu.Append(mnuEbuildID, "&ebuild <this ebuild> command\tF9", "", wx.ITEM_NORMAL)
+        wxglade_tmp_menu.Append(mnuEmergeID, "e&merge <opts><this ebuild>\tF10", "", wx.ITEM_NORMAL)
+        wxglade_tmp_menu.Append(mnuRepoScanID, "&Repoman scan", "", wx.ITEM_NORMAL)
+        wxglade_tmp_menu.Append(mnuPatchID, "Create patch from source in ${S}", "", wx.ITEM_NORMAL)
+        wxglade_tmp_menu.Append(mnuImportID, "&Import existing patch", "", wx.ITEM_NORMAL)
+        wxglade_tmp_menu.Append(mnuDiffID, "diff of this ebuild against PORTDIR version", "", wx.ITEM_NORMAL)
+        wxglade_tmp_menu.Append(mnuRepoFullID, "repoman full", "", wx.ITEM_NORMAL)
+        wxglade_tmp_menu.Append(mnuFileCopyID, "${FILESDIR} copy/diff/edit/del\tF8", "", wx.ITEM_NORMAL)
+        wxglade_tmp_menu.Append(mnuXtermSID, "xterm in ${S}\tF12", "", wx.ITEM_NORMAL)
+        wxglade_tmp_menu.Append(mnuXtermDID, "xterm in ${D}", "", wx.ITEM_NORMAL)
+        wxglade_tmp_menu.Append(mnuXtermCVSID, "xterm in CVS dir\tShift-F12", "", wx.ITEM_NORMAL)
+        self.menubar.Append(wxglade_tmp_menu, "&Tools")
+        wxglade_tmp_menu = wx.Menu()
+        wxglade_tmp_menu.Append(self.mnuFullCommitID, "repoman cvs commit", "", wx.ITEM_NORMAL)
+        self.menubar.Append(wxglade_tmp_menu, "&CVS")
+        wxglade_tmp_menu = wx.Menu()
+        wxglade_tmp_menu.Append(mnuEditID, "&ebuild in external editor\tF7", "", wx.ITEM_NORMAL)
+        wxglade_tmp_menu.Append(mnuViewMetadataID, "metadata.&xml", "", wx.ITEM_NORMAL)
+        wxglade_tmp_menu.Append(mnuViewChangeLogID, "Change&Log", "", wx.ITEM_NORMAL)
+        self.menubar.Append(wxglade_tmp_menu, "&View")
         self.menu_options = wx.Menu()
         self.menu_options.Append(mnuClearLogID, "&Clear log window\tF11", "", wx.ITEM_NORMAL)
         self.menubar.Append(self.menu_options, "Lo&g")
-        wx.glade_tmp_menu = wx.Menu()
-        wx.glade_tmp_menu.Append(mnuPrefID, "&Preferences", "", wx.ITEM_NORMAL)
-        self.menubar.Append(wx.glade_tmp_menu, "&Options")
-        wx.glade_tmp_menu = wx.Menu()
-        wx.glade_tmp_menu.Append(mnuHelpID, "&Contents", "", wx.ITEM_NORMAL)
-        wx.glade_tmp_menu.Append(mnuHelpRefID, "Ebuild &Quick Reference", "", wx.ITEM_NORMAL)
-        wx.glade_tmp_menu.Append(mnuEclassID, "&eclasses", "", wx.ITEM_NORMAL)
-        wx.glade_tmp_menu.Append(mnuPrivID, "&Portage private functions", "", wx.ITEM_NORMAL)
-        wx.glade_tmp_menu.Append(mnuUseID, "USE variables", "", wx.ITEM_NORMAL)
-        wx.glade_tmp_menu.Append(mnulocalUseID, "&local USE variables", "", wx.ITEM_NORMAL)
-        wx.glade_tmp_menu.Append(mnuFKEYS_ID, "List &Fkeys", "", wx.ITEM_NORMAL)
-        wx.glade_tmp_menu.Append(mnuCVS_ID, "Gentoo repoman &CVS help", "", wx.ITEM_NORMAL)
-        wx.glade_tmp_menu.Append(mnuAboutID, "&About Abeni", "", wx.ITEM_NORMAL)
-        self.menubar.Append(wx.glade_tmp_menu, "&Help")
+        wxglade_tmp_menu = wx.Menu()
+        wxglade_tmp_menu.Append(mnuPrefID, "&Preferences", "", wx.ITEM_NORMAL)
+        self.menubar.Append(wxglade_tmp_menu, "&Options")
+        wxglade_tmp_menu = wx.Menu()
+        wxglade_tmp_menu.Append(mnuHelpID, "&Contents", "", wx.ITEM_NORMAL)
+        wxglade_tmp_menu.Append(mnuHelpRefID, "Ebuild &Quick Reference", "", wx.ITEM_NORMAL)
+        wxglade_tmp_menu.Append(mnuEclassID, "&eclasses", "", wx.ITEM_NORMAL)
+        wxglade_tmp_menu.Append(mnuPrivID, "&Portage private functions", "", wx.ITEM_NORMAL)
+        wxglade_tmp_menu.Append(mnuUseID, "USE variables", "", wx.ITEM_NORMAL)
+        wxglade_tmp_menu.Append(mnulocalUseID, "&local USE variables", "", wx.ITEM_NORMAL)
+        wxglade_tmp_menu.Append(mnuFKEYS_ID, "List &Fkeys", "", wx.ITEM_NORMAL)
+        wxglade_tmp_menu.Append(mnuCVS_ID, "Gentoo repoman &CVS help", "", wx.ITEM_NORMAL)
+        wxglade_tmp_menu.Append(mnuAboutID, "&About Abeni", "", wx.ITEM_NORMAL)
+        self.menubar.Append(wxglade_tmp_menu, "&Help")
         # Menu Bar end
         self.statusbar = self.CreateStatusBar(2, 0)
         
@@ -198,12 +199,12 @@ class MyFrame(wx.Frame):
         self.toolbar.AddLabelTool(self.StopID, "stop", wx.Bitmap("/usr/share/pixmaps/abeni/stop.png", wx.BITMAP_TYPE_ANY), wx.NullBitmap, wx.ITEM_NORMAL, "Interrupt process running in log window", "")
         # Tool Bar end
         self.static_line_2 = wx.StaticLine(self, -1)
-        self.button_Category = wx.Button(self.panel_1_copy, -1, "Category")
-        self.text_ctrl_Category = wx.TextCtrl(self.panel_1_copy, -1, "", style=wx.TE_PROCESS_ENTER|wx.TE_PROCESS_TAB)
-        self.label_PN = wx.StaticText(self.panel_1_copy, -1, "$PN")
-        self.text_ctrl_PN = wx.TextCtrl(self.panel_1_copy, -1, "", style=wx.TE_PROCESS_ENTER|wx.TE_PROCESS_TAB)
-        self.label_PVR = wx.StaticText(self.panel_1_copy, -1, "$PVR")
-        self.text_ctrl_PVR = wx.TextCtrl(self.panel_1_copy, -1, "", style=wx.TE_PROCESS_ENTER|wx.TE_PROCESS_TAB)
+        self.button_Category = wx.Button(self.panel_cpvr, -1, "Category")
+        self.text_ctrl_Category = wx.TextCtrl(self.panel_cpvr, -1, "")
+        self.label_PN = wx.StaticText(self.panel_cpvr, -1, "$PN")
+        self.text_ctrl_PN = wx.TextCtrl(self.panel_cpvr, -1, "")
+        self.label_PVR = wx.StaticText(self.panel_cpvr, -1, "$PVR")
+        self.text_ctrl_PVR = wx.TextCtrl(self.panel_cpvr, -1, "")
         self.static_line_3 = wx.StaticLine(self.panel_1, -1)
         self.STCeditor = GentooSTC(self.splitter, -1)
         self.text_ctrl_log = wx.TextCtrl(self.panel_log, -1, "", style=wx.TE_MULTILINE|wx.TE_READONLY)
@@ -271,11 +272,11 @@ class MyFrame(wx.Frame):
         sizer_7.Add(self.text_ctrl_PVR, 0, 0, 0)
         sizer_5.Add(sizer_7, 1, wx.EXPAND, 0)
         sizer_3.Add(sizer_5, 1, wx.ALL, 6)
-        self.panel_1_copy.SetAutoLayout(True)
-        self.panel_1_copy.SetSizer(sizer_3)
-        sizer_3.Fit(self.panel_1_copy)
-        sizer_3.SetSizeHints(self.panel_1_copy)
-        sizer_2.Add(self.panel_1_copy, 0, wx.EXPAND, 0)
+        self.panel_cpvr.SetAutoLayout(True)
+        self.panel_cpvr.SetSizer(sizer_3)
+        sizer_3.Fit(self.panel_cpvr)
+        sizer_3.SetSizeHints(self.panel_cpvr)
+        sizer_2.Add(self.panel_cpvr, 0, wx.EXPAND, 0)
         sizer_2.Add(self.static_line_3, 0, wx.EXPAND, 0)
         sizer_4.Add(self.text_ctrl_log, 1, wx.EXPAND, 0)
         self.panel_log.SetAutoLayout(True)
@@ -297,7 +298,7 @@ class MyFrame(wx.Frame):
         self.window_1_pane_2.SetSizer(sizer_11)
         sizer_11.Fit(self.window_1_pane_2)
         sizer_11.SetSizeHints(self.window_1_pane_2)
-        self.window_1.SplitVertically(self.window_1_pane_1, self.window_1_pane_2, 300)
+        self.window_1.SplitVertically(self.window_1_pane_1, self.window_1_pane_2, 267)
         sizer_9.Add(self.window_1, 1, wx.EXPAND, 0)
         self.panel_explorer.SetAutoLayout(True)
         self.panel_explorer.SetSizer(sizer_9)
@@ -311,10 +312,10 @@ class MyFrame(wx.Frame):
         self.panel_environment.SetSizer(sizer_13)
         sizer_13.Fit(self.panel_environment)
         sizer_13.SetSizeHints(self.panel_environment)
-        self.notebook_1.AddPage(self.panel_log, "Log")
-        self.notebook_1.AddPage(self.panel_explorer, "Explorer")
+        self.notebook_1.AddPage(self.panel_log, "Output")
+        self.notebook_1.AddPage(self.panel_explorer, "Files")
         self.notebook_1.AddPage(self.panel_environment, "Environment")
-        self.splitter.SplitHorizontally(self.STCeditor, self.notebook_1, 311)
+        self.splitter.SplitHorizontally(self.STCeditor, self.notebook_1)
         sizer_2.Add(self.splitter, 1, wx.EXPAND, 0)
         self.panel_1.SetAutoLayout(True)
         self.panel_1.SetSizer(sizer_2)
@@ -324,12 +325,13 @@ class MyFrame(wx.Frame):
         self.SetAutoLayout(True)
         self.SetSizer(sizer_1)
         self.Layout()
+        self.Centre()
         # end wxGlade
 
-
-        if os.getuid() != 0:
-            utils.MyMessage(self, "You must be root, or running Abeni with 'sudo'.",\
-                           "You must be root.", "error")
+        if os.getuid() == 0:
+            utils.MyMessage(self, "You no longer need run Abeni as root.\
+                                   Setup your regular user to use sudo.",\
+                           "You must NOT be root.", "error")
             sys.exit(1)
 
         wx.EVT_TREE_SEL_CHANGED(self, treeID, self.OnTreeActivate)
@@ -444,8 +446,10 @@ class MyFrame(wx.Frame):
         self.window_1_pane_2.Hide()
 
         #TODO: Add option to save current screen size when exiting
-        #screenWidth =  wx..wx.SystemSettings_GetSystemMetric(wx..wx.SYS_SCREEN_X)
-        #screenHeight = wx..wx.SystemSettings_GetSystemMetric(wx..wx.SYS_SCREEN_Y)
+        self.SetSize((882, 696))
+        #screenWidth =  wx.SystemSettings.GetMetric(wx.SYS_SCREEN_X)
+        #screenHeight = wx.SystemSettings.GetMetric(wx.SYS_SCREEN_Y)
+        #print screenHeight, screenWidth
         #Prevent splitter windows from becoming un-split
         self.splitter.SetMinimumPaneSize(20)
         #SashPosition(230)
@@ -455,6 +459,7 @@ class MyFrame(wx.Frame):
         # Are we in the process of editing an ebuild?
         self.editing = 0
 
+        self.busywriting = 0
         #Load recently accessed ebuilds
         abeniDir = os.path.expanduser('~/.abeni')
         bookmarks = '%s/recent.txt' % abeniDir
@@ -492,6 +497,10 @@ class MyFrame(wx.Frame):
         # Action performed during external commands
         self.action = None
         self.STCeditor.Hide()
+        
+        points = self.text_ctrl_log.GetFont().GetPointSize()  # get the current size
+        f = wx.Font(points, wx.MODERN, wx.NORMAL, True)
+        self.text_ctrl_log.SetDefaultStyle(wx.TextAttr("BLACK", wx.NullColour, f))
         wx.Log_SetActiveTarget(MyLog(self.text_ctrl_log))
         utils.write(self, "))) PORTDIR_OVERLAY=%s\n\n\n" % portdir_overlay)
         if not self.pref['editor']:
@@ -501,7 +510,7 @@ class MyFrame(wx.Frame):
 
         self.SetTitle("Abeni - The ebuild Builder " + __version__.version)
         self.finddata = wx.FindReplaceData()
-        self.ExternalControlListen()
+        #self.ExternalControlListen()
         self.ApplyPrefs()
         self.menubar.Enable(self.mnuFullCommitID, False)
         #Load ebuild if specified on command line, by filename or by
@@ -667,6 +676,7 @@ class MyFrame(wx.Frame):
                 self.button_edit.Enable(True)
                 self.button_patch.Enable(False)
                 self.button_delete.Enable(True)
+                self.explorer.SetPath(f)
                 self.explorer.ExpandPath(f)
             else:
                 self.window_1_pane_2.Hide()
@@ -728,16 +738,24 @@ class MyFrame(wx.Frame):
         """Call idle handler every second to update log window"""
         self.HandleIdle()
 
-    def OnIdle(self, event):
-        """Called after the GUI stops being idle (mouse or key events)"""
-        self.HandleIdle()
+    #def OnIdle(self, event):
+    #    """Called after the GUI stops being idle (mouse or key events)"""
+    #    self.HandleIdle()
 
     def HandleIdle(self):
+        if self.busywriting:
+            print "busy"
+            return
         if self.process is not None:
             stream = self.process.GetInputStream()
             if stream.CanRead():
                 t = stream.readline()
                 utils.write(self, t)
+            stream = self.process.GetErrorStream()
+            if stream.CanRead():
+                t = stream.readline()
+                utils.write(self, t)
+
 
     def OnFileHistory(self, event):
         """Load ebuild on FileHistory event"""
@@ -775,16 +793,11 @@ class MyFrame(wx.Frame):
 
     def LaunchBrowser(self, url):
         """launch web browser"""
-        if self.pref['userName']:
-            if self.pref['browser']:
-                #os.system("xhost + localhost")
-                cmd = self.pref['browser'] + " " + url + " &"
-                os.system("su %s %s" % (self.pref['userName'], cmd))
-            else:
-                utils.MyMessage(self, "You need to define a browser in preferences.", \
-                  "Error", "error")
+        if self.pref['browser']:
+            cmd = self.pref['browser'] + " " + url
+            os.system("%s &" % cmd)
         else:
-            utils.MyMessage(self, "You need to set your username to run your web browser as, under Developer preferences.", \
+            utils.MyMessage(self, "You need to define a browser in preferences.", \
               "Error", "error")
 
     def OnMnuHelp(self, event):
@@ -948,10 +961,9 @@ class MyFrame(wx.Frame):
         if not utils.VerifySaved(self):
             self.action = "digest"
             logMsg = '))) Creating digest...'
-            cmd = 'FEATURES="%s" USE="%s" /usr/sbin/ebuild %s digest' % (self.pref['features'], self.pref['use'], self.filename)
-
+            #cmd = 'FEATURES="%s" USE="%s" sudo /usr/sbin/ebuild %s digest' % (self.pref['features'], self.pref['use'], self.filename)
+            cmd = 'sudo /usr/sbin/ebuild %s digest' % self.filename
             utils.ExecuteInLog(self, cmd, logMsg)
-
 
     def OnToolbarCompile(self, event):
         """ebuild <this ebuild> compile"""
@@ -962,8 +974,10 @@ class MyFrame(wx.Frame):
             if not utils.VerifySaved(self):
                 self.action = "compile"
                 logMsg = '))) Compiling...'
-                cmd = 'FEATURES="%s" USE="%s" /usr/sbin/ebuild %s compile' % \
-                    (self.pref['features'], self.pref['use'], self.filename)
+                #cmd = 'FEATURES="%s" USE="%s" sudo /usr/sbin/ebuild %s compile' % \
+                #    (self.pref['features'], self.pref['use'], self.filename)
+                cmd = '''xterm -e "sudo sh -c 'export USE='%s';sudo ebuild %s compile 2>&1| tee /var/tmp/abeni/emerge_log'"''' \
+                         % (self.pref['use'], self.filename)
                 utils.ExecuteInLog(self, cmd, logMsg)
 
     def OnMnuClean(self, event):
@@ -972,8 +986,9 @@ class MyFrame(wx.Frame):
             return
         logMsg = '))) Cleaning...'
         self.action = "clean"
-        cmd = 'FEATURES="%s" USE="%s" /usr/sbin/ebuild %s clean' % \
-              (self.pref['features'], self.pref['use'], self.filename)
+        #cmd = 'FEATURES="%s" USE="%s" sudo /usr/sbin/ebuild %s clean' % \
+        #      (self.pref['features'], self.pref['use'], self.filename)
+        cmd = 'sudo /usr/sbin/ebuild %s clean' % self.filename
         utils.ExecuteInLog(self, cmd, logMsg)
 
     def OnToolbarEdit(self, event):
@@ -989,8 +1004,9 @@ class MyFrame(wx.Frame):
             if not utils.VerifySaved(self):
                 self.action = 'unpack'
                 logMsg = '))) Unpacking...'
-                cmd = 'FEATURES="%s" USE="%s" /usr/sbin/ebuild %s unpack' % \
-                    (self.pref['features'], self.pref['use'], self.filename)
+                #cmd = 'FEATURES="%s" USE="%s" sudo /usr/sbin/ebuild %s unpack' % \
+                #    (self.pref['features'], self.pref['use'], self.filename)
+                cmd = 'sudo /usr/sbin/ebuild %s unpack' % self.filename
                 utils.ExecuteInLog(self, cmd, logMsg)
 
     def OnToolbarInstall(self, event):
@@ -1003,8 +1019,9 @@ class MyFrame(wx.Frame):
             if not utils.VerifySaved(self):
                 self.action = 'install'
                 logMsg = '))) Installing...'
-                cmd = 'FEATURES="%s" USE="%s" /usr/sbin/ebuild %s install' % \
-                    (self.pref['features'], self.pref['use'], self.filename)
+                #cmd = 'FEATURES="%s" USE="%s" sudo /usr/sbin/ebuild %s install' % \
+                #    (self.pref['features'], self.pref['use'], self.filename)
+                cmd = 'sudo /usr/sbin/ebuild %s install' % self.filename
                 utils.ExecuteInLog(self, cmd, logMsg)
 
     def OnToolbarQmerge(self, event):
@@ -1017,8 +1034,15 @@ class MyFrame(wx.Frame):
             if not utils.VerifySaved(self):
                 self.action = 'qmerge'
                 logMsg = '))) Qmerging...'
-                cmd = 'FEATURES="%s" USE="%s" /usr/sbin/ebuild %s qmerge' % \
-                    (self.pref['features'], self.pref['use'], self.filename)
+                #cmd = 'FEATURES="%s" USE="%s" sudo /usr/sbin/ebuild %s qmerge' % \
+                #    (self.pref['features'], self.pref['use'], self.filename)
+                cmd = '''xterm -e "sudo sh -c 'export USE='%s';sudo ebuild %s qmerge 2>&1|tee /var/tmp/abeni/emerge_log'"''' \
+                         % (self.pref['use'], self.filename)
+
+                #cmd = """sudo sh -c 'export USE='%s';sudo ebuild %s qmerge 2>&1|\
+                #         tee /var/tmp/abeni/emerge_log'""" \
+                #         % (self.pref['use'], self.filename)
+                #cmd = 'sudo /usr/sbin/ebuild %s qmerge' % self.filename
                 utils.write(self, cmd)
                 utils.ExecuteInLog(self, cmd, logMsg)
 
@@ -1078,10 +1102,14 @@ class MyFrame(wx.Frame):
                 return
         f = utils.GetFilesDir(self)
         #copy file to /var/tmp
-        tmpdir = "/var/tmp/abeni"
-        tmp_patch = "%s/%s" % (tmpdir, "tmp_patch")
-        if not os.path.exists(tmpdir):
-            os.mkdir(tmpdir)
+        fdir = utils.GetFilesDir(self)
+        os.system("sudo chown root:portage %s" % fdir)
+        os.system("sudo chmod 775 %s" % fdir)
+        print fdir
+        tmpdir = tempfile.mkdtemp(suffix='', prefix='tmp', dir=None)
+        tmp_patch = os.path.join(tmpdir, "tmp_patch")
+        #if not os.path.exists(tmpdir):
+        #    os.system("mkdir %s" % tmpdir)
         base = os.path.basename(orig[0])
         shutil.copy(orig[0], tmpdir)
         out = os.path.join(tmpdir, base)
@@ -1098,6 +1126,10 @@ class MyFrame(wx.Frame):
 
         dest = "%s/%s" % (f, pname)
         shutil.copy(tmp_patch, dest)
+        try:
+            os.unlink(tmp_patch)
+        except:
+            pass
 
         #insert inheirt eutils:
         p = self.STCeditor.FindText(0, self.LastPos(), "^inherit", wx.stc.STC_FIND_REGEXP)
@@ -1113,7 +1145,7 @@ class MyFrame(wx.Frame):
             b = self.STCeditor.GetLineEndPosition(2)
             self.STCeditor.InsertText(b+1, "\ninherit eutils\n")
             utils.write(self, "))) Added 'inherit eutils' in order to use epatch")
-        epatch = "epatch ${FILESDIR}/%s" % pname
+        epatch = "epatch ${FILESDIR}/%s || die 'epatch failed on %s'" % (pname, pname)
 
         self.SrcUnpackEpatch(epatch)
 
@@ -1416,8 +1448,6 @@ class MyFrame(wx.Frame):
             self.pref['editor'] = win.text_ctrl_editor.GetValue()
             self.pref['use'] = win.text_ctrl_USE.GetValue()
             self.pref['features'] = win.text_ctrl_FEATURES.GetValue()
-            self.pref['userName'] = win.text_ctrl_userName.GetValue()
-            self.pref['devUserName'] = win.text_ctrl_devUserName.GetValue()
             self.pref['cvsRoot'] = win.text_ctrl_cvs_root.GetValue()
             self.pref['stripHeader'] = win.checkbox_strip_header.GetValue()
             self.pref['externalControl'] = win.checkbox_external_control.GetValue()
@@ -1464,12 +1494,12 @@ class MyFrame(wx.Frame):
         #self.ExternalControlListen()
 
 
-    def ExternalControlListen(self):
-        """Start timer to call ipc to get external vim commands"""
-        ID_Timer = wx.NewId()
-        self.extTimer = wx.Timer(self, ID_Timer)
-        wx.EVT_TIMER(self,  ID_Timer, self.OnExtTimer)
-        self.extTimer.Start(2000)
+    #def ExternalControlListen(self):
+    #    """Start timer to call ipc to get external vim commands"""
+    #    ID_Timer = wx.NewId()
+    #    self.extTimer = wx.Timer(self, ID_Timer)
+    #    wx.EVT_TIMER(self,  ID_Timer, self.OnExtTimer)
+    #    self.extTimer.Start(1000)
 
     def OnExtTimer(self, evt):
         mq = pyipc.MessageQueue(100)
@@ -1534,11 +1564,12 @@ class MyFrame(wx.Frame):
 
     def KillProc(self, event):
         """Kill processes when stop button clicked"""
-        os.system("kill %s" % self.pid)
+        os.system("sudo kill %s" % self.pid)
         utils.write(self, "Killed %s" % self.pid)
         try:
+            #Critical: This won't work
             pid = open("/var/run/abeni_proc.pid", "r").read().strip()
-            os.system("kill %s" % pid)
+            os.system("sudo kill %s" % pid)
             utils.write(self, "sub pid %s killed" % pid)
         except:
             pass
@@ -1561,8 +1592,6 @@ class MyFrame(wx.Frame):
         action = self.action
         self.action = None
         utils.PostAction(self, action)
-        #This assures the log window positions at the bottom:
-        utils.write(self, "   ")
 
     def GetCVScatPN(self):
         """returns CVSroot/category/PN"""
@@ -1698,6 +1727,8 @@ class MyFrame(wx.Frame):
             utils.MyMessage(self, "No editor defined in perferences", \
                             "Error: no editor defined", "error")
             return
+        #TOOD: Copy this to file, chown to regular user then edit
+        # so we don't have to run editor as root.
         os.system('%s %s &' % (self.pref['editor'], f))
 
     def OnMnuEdit(self, event=None, save=1, filename=''):
@@ -1744,10 +1775,9 @@ class MyFrame(wx.Frame):
             win.CenterOnScreen()
             val = win.ShowModal()
             if val == wx.ID_OK:
-                #cmd = "ACCEPT_KEYWORDS='%s' FEATURES='%s' USE='%s' emerge --nospinner =%s" \
-                cmd = "ACCEPT_KEYWORDS='%s' FEATURES='%s' USE='%s' %s" \
-                      % (win.kw.GetValue(), win.features.GetValue(), win.use.GetValue(),\
-                      win.emerge.GetValue())
+                self.action = "emerge"
+                cmd = '''xterm -e "sudo sh -c 'export USE='%s';%s | tee /var/tmp/abeni/emerge_log'"''' \
+                         % (win.use.GetValue(), win.emerge.GetValue())
                 logMsg = "))) %s" % cmd
                 utils.ExecuteInLog(self, cmd, logMsg)
 
@@ -1772,11 +1802,11 @@ class MyFrame(wx.Frame):
         if not utils.VerifySaved(self):
             if opt == 'setup':
                 self.action = 'setup'
-            cmd = 'USE="%s" FEATURES="%s" /usr/sbin/ebuild %s %s' % \
+            cmd = 'USE="%s" FEATURES="%s" sudo /usr/sbin/ebuild %s %s' % \
               (self.pref['use'], self.pref['features'], self.filename, opt)
             logMsg = "))) Executing:\n"
             logMsg += ")))   USE='%s' FEATURES='%s'\n" % (self.pref['use'], self.pref['features'])
-            logMsg += ")))   ebuild %s %s" % (self.filename, opt)
+            logMsg += ")))   sudo ebuild %s %s" % (self.filename, opt)
             utils.ExecuteInLog(self, cmd, logMsg)
 
 

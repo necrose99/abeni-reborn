@@ -12,22 +12,20 @@ class Options:
         self.pref['clearLog'] = 1
         self.pref['checkSyntax'] = 1
         self.pref['logfile'] = 0
-        self.pref['logFilename'] = "/root/.abeni/log.txt"
+        self.pref['logFilename'] = os.path.expanduser("~/.abeni/log.txt")
         self.pref['font'] = "Courier,12"
         self.pref['highlighting'] = 1
         self.pref['show_whitespace'] = 0
         self.pref['tabsize'] = 4
         self.pref['gentooHighlight'] = 1
         self.pref['externalControl'] = 0
-        self.pref['browser'] = '/usr/bin/firebird'
+        self.pref['browser'] = '/usr/bin/firefox'
         self.pref['xterm'] = '/usr/X11R6/bin/xterm'
         self.pref['diff'] = '/usr/bin/gtkdiff'
         self.pref['editor'] = ''
         self.pref['use'] = ''
         self.pref['features'] = 'noauto'
-        self.pref['userName'] = ''
         self.pref['cvsRoot'] = ''
-        self.pref['devUserName'] = ''
         self.Read_apprc()
 
     def Read_apprc(self):

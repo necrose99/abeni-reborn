@@ -18,17 +18,19 @@
 # Free Software Foundation, Inc., 59 Temple Place - Suite 330,
 # Boston, MA 02111-1307, USA.
 
-__author__ = 'Rob Cakebread'
-__email__ = 'pythonhead@gentoo.org'
-__changelog_ = 'http://abeni.sourceforge.net/ChangeLog'
+# Author: Rob Cakebread
+# email : pythonhead@gentoo.org
+# ChangeLog : http://abeni.sourceforge.net/ChangeLog
 
 
 import sys
 import os
 import shutil
 
-from portage import config, settings
+import wxversion
+wxversion.select("2.5")
 import wx
+from portage import config, settings
 
 import gui
 import __version__

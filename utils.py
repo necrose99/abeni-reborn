@@ -1,3 +1,5 @@
+import commands
+import pwd
 import os
 import string
 import sys
@@ -142,6 +144,7 @@ def LogBottom(parent, log):
 
 def WriteText(parent, text):
     """Send text to log window after colorizing"""
+    parent.busywriting = 1
     #TODO: No idea why this is output at the end of every ExecuteInLog:
     #TODO: Log file to disk code can go here 
     if string.find(text, "md5 src_uri") == 4:
@@ -171,6 +174,9 @@ def WriteText(parent, text):
     text = text.replace("\x1b[35;01m", '')
     text = text.replace("\x1b[36;01m", '')
     text = text.replace("\x1b[36;06m", '')
+    # For the [ok]'s
+    text = text.replace("\x1b[A", '')
+    text = text.replace("\x1b[-7G", '')
 
     pref = text[0:3]
     if pref == ">>>" or pref == "<<<" or pref == "---" \
@@ -185,6 +191,7 @@ def WriteText(parent, text):
     else:
         wx.LogMessage(text)
 
+    parent.busywriting = 0
 
 def log_color(parent, color):
     """Set color of text sent to log window"""
@@ -209,13 +216,32 @@ def PostAction(parent, action):
         PostUnpack(parent)
         parent.RefreshExplorer()
     if action == 'install':
+        PostInstall(parent)
+        #log_to_output(parent)
         parent.RefreshExplorer()
+        write(parent, "))) install finished")
     if action == 'digest':
         parent.RefreshExplorer()
     if action == 'compile':
         parent.RefreshExplorer()
+        log_to_output(parent)
+        write(parent, "))) compile finished")
+    if action == 'qmerge':
+        parent.RefreshExplorer()
+        log_to_output(parent)
+        write(parent, "))) qmerge finished")
     if action:
         parent.statusbar.SetStatusText("%s done." % action, 0)
+    if action == 'emerge':
+        parent.RefreshExplorer()
+        log_to_output(parent)
+        write(parent, "))) emerge finished")
+
+def log_to_output(parent):
+    """Get logfile text and display in output tab"""
+    #TODO: Run through WriteText or something to get color/filter esc codes
+    t = commands.getoutput("sudo cat /var/tmp/abeni/emerge_log")
+    parent.text_ctrl_log.AppendText("%s\n" % t)
 
 def ExportEbuild(parent):
     """Export ebuild directory to tar file"""
@@ -280,10 +306,24 @@ def ExportEbuild(parent):
     else:
         return 0
 
+def PostInstall(parent):
+    """Change group perms of files in ${D} so we can read them"""
+    p = getP(parent)
+    d = '%s/portage/%s/image' % (portage_tmpdir, p)
+    os.system("sudo chmod +g+r -R %s" %  d)
+    os.system("sudo chmod +g+xr %s" %  d)
+
 def PostUnpack(parent):
     """Report what directories were unpacked, try to set S if necessary"""
     p = getP(parent)
     d = '%s/portage/%s/work' % (portage_tmpdir, p)
+    d1 = '%s/portage/%s' % (portage_tmpdir, p)
+    uname = pwd.getpwuid(os.getuid())[0]
+    #Yay! Can we say 'kludge'?
+    #print uname, d
+    #os.system("sudo chown %s -R %s" % (uname, d1))
+    os.system("sudo chmod +g+xrw -R %s" % d1)
+    #print "done"
     try:
         lines = os.listdir(d)
     except:
@@ -333,10 +373,13 @@ def ExecuteInLog(parent, cmd, logMsg=''):
     parent.process.Redirect();
     pyCmd = "python -u %s/doCmd.py %s" % (modulePath, cmd)
     parent.pid = wx.Execute(pyCmd, wx.EXEC_ASYNC, parent.process)
+    #parent.pid = wx.Execute("sh -c '%s'" % cmd, wx.EXEC_ASYNC, parent.process)
+    #TODO: Maybe add option to show commands as they execute
+    #write(parent, cmd)
     ID_Timer = wx.NewId()
     parent.timer = wx.Timer(parent, ID_Timer)
     wx.EVT_TIMER(parent,  ID_Timer, parent.OnTimer)
-    parent.timer.Start(10)
+    parent.timer.Start(20)
 
 def Reset(parent):
     """Reset abeni for new/loaded ebuild"""
@@ -586,7 +629,8 @@ def GetS(parent):
 
 def CheckUnpacked(parent):
     """Return 1 if they have unpacked"""
-    if os.path.exists('%s/portage/%s/.unpacked' % (portage_tmpdir, getP(parent))):
+    #if os.path.exists('%s/portage/%s/.unpacked' % (portage_tmpdir, getP(parent))):
+    if not os.system('sudo ls %s/portage/%s/.unpacked >& /dev/null' % (portage_tmpdir, getP(parent))):
         return 1
     else:
         return 0
