@@ -133,7 +133,7 @@ class MyFrame(wxFrame):
         """Switch ouput log to bottom"""
         if not self.editing or self.pref['log'] == 'bottom':
             return
-        if self.pref['log'] == 'tab':
+        if self.pref['log'] == 'window':
             self.logWin.Close()
         else:
             self.splitter.SplitHorizontally(self.nb, self.log, 400)
@@ -153,19 +153,19 @@ class MyFrame(wxFrame):
         self.log.ShowPosition(self.log.GetLastPosition())
         self.pref['log'] = 'bottom'
 
-    def LogTab(self):
-        #Show log window in separate tab
+    def LogWindow(self):
+        #Show log in separate window
         self.splitter.Unsplit()
         self.logWin=panels.LogWindow(self)
         self.logWin.Show(True)
         self.log.Show(True)
-        self.pref['log'] = 'tab'
+        self.pref['log'] = 'window'
 
-    def OnMnuLogTab(self, event):
-        """Switch ouput log to tab"""
-        if not self.editing or self.pref['log'] == 'tab':
+    def OnMnuLogWindow(self, event):
+        """Switch ouput log to separate window"""
+        if not self.editing or self.pref['log'] == 'window':
             return
-        self.LogTab()
+        self.LogWindow()
         #self.log.ShowPosition(self.log.GetLastPosition())
 
     def OnNoAuto(self, event):
@@ -825,8 +825,8 @@ class MyFrame(wxFrame):
             if val == wxID_OK and self.URI:
                 self.ClearNotebook()
                 self.AddPages()
-                if self.pref['log'] == 'tab':
-                    self.LogTab()
+                if self.pref['log'] == 'window':
+                    self.LogWindow()
                 self.panelMain.PopulateDefault()
                 self.write(self.URI)
                 if self.URI == "CVS" or self.URI == "cvs":
@@ -851,7 +851,7 @@ class MyFrame(wxFrame):
                 if self.URI == "CVS" or self.URI == "cvs":
                     self.OnMnuEclassCVS(-1)
                 self.DoTitle()
-                if self.pref['log'] == 'tab':
+                if self.pref['log'] == 'window':
                     self.nb.SetSelection(1)
 
     def DoTitle(self):
@@ -891,6 +891,13 @@ class MyFrame(wxFrame):
         """Exits and closes application"""
         self.OnClose(-1)
 
+    def OnMnuUseHelp(self, event):
+        """View PORTDIR/profiles/use.desc file"""
+        f = "%s/profiles/use.desc" % portdir
+        msg = open(f, "r").read()
+        dlg = wxScrolledMessageDialog(self, msg, "USE descriptions")
+        dlg.Show(True)
+
     def OnMnuEclassHelp(self, event):
         """View an eclass file"""
         #TODO: This is a modal dialog, use a wxFrame maybe?
@@ -909,6 +916,8 @@ class MyFrame(wxFrame):
         else:
             dlg.Destroy()
             return
+
+
 
     def OnMnuPref(self, event):
         """Modify preferences"""
@@ -1363,9 +1372,9 @@ class MyFrame(wxFrame):
         self.mnuLogBottomID = wxNewId()
         self.menu_options.Append(self.mnuLogBottomID, "Log at &bottom\tf9", "", wxITEM_RADIO)
         EVT_MENU(self, self.mnuLogBottomID, self.OnMnuLogBottom)
-        mnuLogTabID = wxNewId()
-        self.menu_options.Append(mnuLogTabID, "Log in separate &tab\tf10", "", wxITEM_RADIO)
-        EVT_MENU(self, mnuLogTabID, self.OnMnuLogTab)
+        mnuLogWindowID = wxNewId()
+        self.menu_options.Append(mnuLogWindowID, "Log in separate &window\tf10", "", wxITEM_RADIO)
+        EVT_MENU(self, mnuLogWindowID, self.OnMnuLogWindow)
         self.menu_options.AppendSeparator()
 
         menubar.Append(self.menu_options, "&Options")
@@ -1380,6 +1389,9 @@ class MyFrame(wxFrame):
         mnuEclassID = wxNewId()
         menu_help.Append(mnuEclassID, "&View eclass files")
         EVT_MENU(self, mnuEclassID, self.OnMnuEclassHelp)
+        mnuUseID = wxNewId()
+        menu_help.Append(mnuUseID, "&View USE descriptions")
+        EVT_MENU(self, mnuUseID, self.OnMnuUseHelp)
         mnuAboutID = wxNewId()
         menu_help.Append(mnuAboutID,"&About")
         EVT_MENU(self, mnuAboutID, self.OnMnuAbout)

@@ -259,7 +259,7 @@ class main(wxPanel):
 class LogWindow(wxFrame):
 
     def __init__(self, parent):
-        wxFrame.__init__(self, parent, -1, "Log", size=wxSize(900, 300))
+        wxFrame.__init__(self, parent, -1, "Abeni Log", size=wxSize(900, 300))
         self.parent=parent
         self.panel = LogPanel(self, parent.log)
         EVT_CLOSE(self, self.OnClose)

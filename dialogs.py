@@ -189,7 +189,7 @@ class Preferences(wxDialog):
         (wxStaticText(self, -1, "FEATURES"), 0, wxALIGN_LEFT),
         (self.features, 0, wxALIGN_RIGHT),
 
-        (wxStaticText(self, -1, "Log window (bottom/tab)"), 0, wxALIGN_LEFT),
+        (wxStaticText(self, -1, "Log (bottom/window)"), 0, wxALIGN_LEFT),
         (self.log, 0, wxALIGN_RIGHT),
 
         (btnOK, 0, wxALIGN_CENTER),
