@@ -2,6 +2,8 @@ import os
 
 import wx.html
 
+from options import Options
+
 class MyURILink(wx.html.HtmlWindow):
 
     """URI widget for homepage in Notes tab"""
@@ -12,8 +14,13 @@ class MyURILink(wx.html.HtmlWindow):
         self.set_uri()
 
     def OnLinkClicked(self, linkinfo):
-        print linkinfo.GetHref()
-        os.system("firefox %s &" % linkinfo.GetHref())
+        myOptions = Options()
+        p = myOptions.Prefs()
+        browser = p['browser']
+        if browser:
+            os.system("%s %s &" % (browser, linkinfo.GetHref()))
+        else:
+            print "!!! Error: No web browser set in preferences."
 
     def set_uri(self, uri="", link_text=""):
         """Set URI and render"""

@@ -879,10 +879,12 @@ class MyFrame(wx.Frame):
 
     def launch_bugz(self, event):
         """Launch browser to bugzilla nbr in Notes tab"""
-        #http://bugs.gentoo.org/show_bug.cgi?id=
         bugz = self.text_ctrl_bugz.GetValue()
         if bugz:
-            self.LaunchBrowser("http://bugs.gentoo.org/show_bug.cgi?id=%s" % bugz)
+            uri = "http://bugs.gentoo.org/show_bug.cgi?id=%s" % bugz
+        else:
+            uri = "http://bugs.gentoo.org/query.cgi"
+        self.LaunchBrowser(uri)
         
     def strip_opts(self, cmd):
         """Strip any options from commands"""

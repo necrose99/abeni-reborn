@@ -393,6 +393,7 @@ def Reset(parent):
     """Reset abeni for new/loaded ebuild"""
     parent.text_ctrl_notes.SetValue('')
     parent.text_ctrl_bugz.SetValue('')
+    parent.window_3.set_uri(None, None)
     parent.button_Category.Enable(True)
     parent.text_ctrl_Category.Enable(True)
     parent.text_ctrl_PN.Enable(True)
