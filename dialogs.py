@@ -14,16 +14,11 @@ import os, gadfly
 ] = map(lambda _init_ctrls: wxNewId(), range(9))
 
 class SubmitEbuild(wxDialog):
-    def _init_utils(self):
-        # generated method, don't edit
-        pass
 
     def _init_ctrls(self, prnt):
-        # generated method, don't edit
         wxDialog.__init__(self, id=wxID_SUBMITEBUILD, name='SubmitEbuild',
               parent=prnt, pos=wxPoint(267, 105), size=wxSize(548, 457),
               style=wxDEFAULT_DIALOG_STYLE, title='Submit Bug to Bugzilla')
-        self._init_utils()
         self.SetClientSize(wxSize(548, 457))
 
         self.staticBox1 = wxStaticBox(id=wxID_SUBMITEBUILDSTATICBOX1,
@@ -61,8 +56,9 @@ class SubmitEbuild(wxDialog):
               label='Cancel', name='Cancelbutton', parent=self, pos=wxPoint(392,
               416), size=wxSize(80, 22), style=0)
 
-    def __init__(self, prnt, parent):
+    def __init__(self, prnt, parent, bugNbr):
         self._init_ctrls(prnt)
+        self.bugNbr = bugNbr
         s = "%s (New Package)" % parent.GetP()
         self.SummarytextCtrl.SetValue(s)
         desc = parent.panelMain.Desc.GetValue()
@@ -104,10 +100,11 @@ class SubmitEbuild(wxDialog):
         dlg.Update(count, "Loging in to bugs.gentoo.org...")
         a.Login()
         count += 33
-        dlg.Update(count, "Entering new bug...")
-        a.EnterNewBug()
-        count += 33
-        self.bugNbr = a.bugNbr
+        if not self.bugNbr:
+            dlg.Update(count, "Entering new bug...")
+            a.EnterNewBug()
+            count += 33
+            self.bugNbr = a.bugNbr
         if self.bugNbr:
             dlg.Update(count, "Uploading attachment...")
             a.UploadAttachment()
@@ -138,16 +135,12 @@ class SubmitEbuild(wxDialog):
 ] = map(lambda _init_ctrls: wxNewId(), range(9))
 
 class BugzQuery(wxDialog):
-    def _init_utils(self):
-        # generated method, don't edit
-        pass
 
     def _init_ctrls(self, prnt):
         # generated method, don't edit
         wxDialog.__init__(self, id=wxID_BUGZQUERY, name='BugzQuery',
               parent=prnt, pos=wxPoint(254, 170), size=wxSize(330, 284),
               style=wxDEFAULT_DIALOG_STYLE, title='Bugzilla Query')
-        self._init_utils()
         self.SetClientSize(wxSize(330, 284))
 
         self.BugNbrbutton = wxButton(id=wxID_BUGZQUERYBUGNBRBUTTON,
@@ -396,7 +389,10 @@ class BugzillaDialog(wxDialog):
 
     def OnSubmitButton(self, event):
             import time
-            win = SubmitEbuild(self, self.parent)
+            bugNbr = self.BugNbr.GetValue()
+            if not bugNbr:
+                bugNbr = 0
+            win = SubmitEbuild(self, self.parent, bugNbr)
             win.ShowModal()
             win.Destroy()
             if win.bugNbr:
