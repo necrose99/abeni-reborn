@@ -5,7 +5,7 @@ Released under the terms of the GNU Public License v2"""
 
 __author__ = 'Rob Cakebread'
 __email__ = 'robc@myrealbox.com'
-__version__ = '0.0.6'
+__version__ = '0.0.7'
 __changelog_ = 'http://abeni.sf.net/ChangeLog'
 
 print "Importing portage config, wxPython, Python and Abeni modules..."
@@ -25,8 +25,22 @@ for p in sys.path:
 env = config().environ()
 distdir = env['DISTDIR']
 portdir = env['PORTDIR']
-#You can specify multiple overlay directories, we use the first one:
-portdir_overlay = env['PORTDIR_OVERLAY'].split(" ")[0]
+
+#Exit if they don't have PORTDIR_OVERLAY defined in /etc/make.conf
+# or if defined but directory doesn't exist.
+try:
+    #Users may specify multiple overlay directories, we use the first one:
+    portdir_overlay = env['PORTDIR_OVERLAY'].split(" ")[0]
+except:
+    print "ERROR: You must define PORTDIR_OVERLAY in your /etc/make.conf"
+    print "You can simply uncomment this line:"
+    print "#PORTDIR_OVERLAY='/usr/local/portage'"
+    print "Then: mkdir /usr/local/portage"
+    sys.exit(1)
+if not portdir_overlay:
+    print "ERROR: Please create the directory defined in /etc/make.conf as PORTDIR_OVERLAY"
+    sys.exit(1)
+
 portage_tmpdir = env['PORTAGE_TMPDIR']
 arch = '~%s' % env['ACCEPT_KEYWORDS'].split(' ')[0].replace('~', '')
 
@@ -330,12 +344,12 @@ class MyFrame(wxFrame):
     def OnMnuEdit(self, event):
         """Launch external editor then reload ebuild after editor exits"""
         if self.editing:
-            if not self.VerifySaved():
-                self.ClearNotebook()
-                #Don't run sudo, we want user owner/perms on ebuild files in PORTDIR_OVERLAY
-                wxSafeYield()
-                os.system('%s %s' % (self.pref['editor'], self.filename))
-                LoadEbuild(self, self.filename, portdir)
+            self.SaveEbuild()
+            self.ClearNotebook()
+            #Don't run sudo, we want user owner/perms on ebuild files in PORTDIR_OVERLAY
+            wxSafeYield()
+            os.system('%s %s' % (self.pref['editor'], self.filename))
+            LoadEbuild(self, self.filename, portdir)
 
     def OnMnuDiff(self, event):
         """Run diff program on original vs. saved ebuild"""
