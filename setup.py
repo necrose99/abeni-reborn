@@ -15,8 +15,3 @@ setup(name="abeni",
       data_files=[('share/pixmaps/abeni', glob("Images/*.png"))]
       )
 
-"""
-I added nulloutput.py to /usr/lib/python2.2/site-packages for
-repoman-safe.py. Need to install that here somehow.
-Need to credit D. Robbins for ouput.py too.
-"""

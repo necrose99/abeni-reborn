@@ -16,6 +16,10 @@ import os, string, sys, urlparse, time
 import dialogs, panels
 from utils import *
 
+for p in sys.path:
+    if os.path.basename(p) == 'site-packages':
+        modulePath = "%s/abeni" % p
+
 distdir = config().environ()['DISTDIR']
 portdir = config().environ()['PORTDIR']
 portdir_overlay = config().environ()['PORTDIR_OVERLAY']
@@ -411,7 +415,7 @@ class MyFrame(wxFrame):
         self.tb.EnableTool(self.toolStopID, True)
         self.process = wxProcess(self)
         self.process.Redirect();
-        pyCmd = "python -u doCmd.py %s" % cmd
+        pyCmd = "python -u %s/doCmd.py %s" % (modulePath, cmd)
         self.pid = wxExecute(pyCmd, wxEXEC_ASYNC, self.process)
         #self.write('"%s" pid: %s\n' % (cmd, pid))
 
