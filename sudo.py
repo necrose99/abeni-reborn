@@ -11,8 +11,7 @@ sudo.py
 import sys
 import commands
 
-__revision__ = 0.3
-
+__revision__ = "$Id: sudo.py,v 1.3 2004/12/26 03:24:57 robc Exp $"
 
 def cmd(args):
     """Execute command via sudo"""

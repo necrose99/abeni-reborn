@@ -65,7 +65,8 @@ class MyAboutBox(wx.Dialog):
         wx.Dialog.__init__(self, parent, -1, 'About Abeni',)
         html = wx.html.HtmlWindow(self, -1, size=(420, -1))
         py_version = sys.version.split()[0]
-        html.SetPage(self.text % (__version__.version, py_version, wx.VERSION_STRING))
+        html.SetPage(self.text % \
+                     (__version__.version, py_version, wx.VERSION_STRING))
         btn = html.FindWindowById(wx.ID_OK)
         btn.SetDefault()
         ir = html.GetInternalRepresentation()

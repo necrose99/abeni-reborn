@@ -35,10 +35,12 @@ class CVS:
     def __init__(self, parent):
         self.parent = parent
         self.cvsRoot = self.parent.pref['cvsRoot']
-        self.category = utils.GetCategoryName(self.parent)
-        self.package = utils.GetPN(self.parent)
+        self.category = utils.get_category_name(self.parent)
+        self.package = utils.get_pn(self.parent)
         self.cvsEbuildDir = self.QueryPath()
-        self.ebuild = utils.GetEbuildFileBase(self.parent)
+        #CRITICAL!!!
+        #TODO: check this
+        self.ebuild = utils.make_olay_ebuild_filename(self.parent)
         #full path to PORTDIR_OVERLAY ebuild:
         self.overlay_file = self.parent.filename
         self.overlay_dir = os.path.dirname(self.overlay_file)
@@ -181,7 +183,7 @@ class CVS:
         msg = "Happy with repoman full?\nDo you want to run:\n \
               /usr/bin/repoman --pretend commit -m " + self.cmsg
 
-        if (utils.MyMessage(self.parent, msg, "repoman --pretend commit", "info", 1)):
+        if (utils.my_message(self.parent, msg, "repoman --pretend commit", "info", 1)):
             busy = wxBusyInfo("Running repoman --pretend commit...")
  
             txt = self.SyncExecute(('''PORTDIR_OVERLAY=%s /usr/bin/repoman --pretend commit -m "%s"''' % (self.cvsEbuildDir, self.cmsg)), 1, 1)
@@ -197,7 +199,7 @@ class CVS:
               /usr/bin/repoman commit -m "%s"\n\n \
               WARNING: This will actually COMMIT to CVS with repoman!' % self.cmsg
 
-        if (utils.MyMessage(self.parent, msg, "repoman commit", "info", 1)):
+        if (utils.my_message(self.parent, msg, "repoman commit", "info", 1)):
             busy = wxBusyInfo("Running repoman commit...")
             self.SyncExecute('PORTDIR_OVERLAY=%s /usr/bin/repoman commit -m "%s"' % (self.cvsEbuildDir, self.cmsg))
             busy=None
@@ -213,7 +215,7 @@ class CVS:
 
     def DoFilesdir(self):
         """Copy files from overlay ${FILESDIR} to CVS ${FILESDIR} """
-        p = '%s/files' % utils.GetEbuildDir(self.parent)
+        p = '%s/files' % utils.get_ebuild_dir(self.parent)
         if not os.path.exists(p):
             return 0
         files = os.listdir(p)

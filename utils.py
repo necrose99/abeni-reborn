@@ -677,8 +677,18 @@ def run_ext_cmd(cmd):
 
 def get_options(parent):
     """Global options from abenirc file"""
-    my_options = options.Options()
-    parent.pref = my_options.Prefs()
+    parent.pref = options.Options().Prefs()
+
+def set_notes(parent, filename):
+    """Load notes, set uri handler in notes for ${HOMEPAGE}"""
+    set_homepage(parent)
+    if parent.db:
+        load_db_record(parent)
+
+def set_homepage(parent):
+    """Set uri handler for homepage in notes tab"""
+    v = parent.FindVar("HOMEPAGE")
+    parent.window_3.set_uri(v, v)
 
 def load_ebuild(parent, filename):
     """Load ebuild from filename"""
@@ -716,7 +726,7 @@ def load_ebuild(parent, filename):
     parent.ebuild_file = s[len(s)-1]
 
     category = s[len(s)-3]
-    parent.ebuildDir = string.replace(filename, parent.ebuild_file, '')
+    parent.ebuild_dir = string.replace(filename, parent.ebuild_file, '')
     p = parent.ebuild_file[:-7]
     my_ebuild = open(filename, 'r').read()
     parent.STCeditor.SetText(my_ebuild)
@@ -738,14 +748,9 @@ def load_ebuild(parent, filename):
     parent.ApplyPrefs()
     view_environment(parent)
     get_status(parent)
-    v = parent.FindVar("HOMEPAGE")
-    parent.window_3.set_uri(v, v)
-    if parent.db:
-        load_db_record(parent)
-    f = "%s/files/" % os.path.split(filename)[0]
-
+    set_notes(parent, filename)
     parent.filesDir.clearList()
-
+    f = "%s/files/" % os.path.split(filename)[0]
     parent.filesDir.populate(f)
     s = get_s(parent)
     if s:
@@ -766,22 +771,37 @@ def load_ebuild(parent, filename):
         parent.button_filesdir_download.Enable(False)
         parent.button_filesdir_delete.Enable(False)
 
-    enable_browser_buttons(parent)
+    enable_browser_buttons(parent, olay = is_overlay(parent.filename))
 
-def enable_browser_buttons(parent):
+def enable_browser_buttons(parent, olay):
     """Enable all the file browser buttons"""
-    parent.button_filesdir_view.Enable(True)
-    parent.button_filesdir_edit.Enable(True)
-    parent.button_filesdir_new.Enable(True)
-    parent.button_filesdir_download.Enable(True)
-    parent.button_filesdir_rename.Enable(True)
-    parent.button_filesdir_delete.Enable(True)
-    parent.button_filesdir_refresh.Enable(True)
-    parent.button_s_view.Enable(True)
-    parent.button_s_edit.Enable(True)
-    parent.button_s_delete.Enable(True)
-    parent.button_s_patch.Enable(True)
-    parent.button_s_refresh.Enable(True)
+    if olay:
+        parent.button_filesdir_view.Enable(True)
+        parent.button_filesdir_edit.Enable(True)
+        parent.button_filesdir_new.Enable(True)
+        parent.button_filesdir_download.Enable(True)
+        parent.button_filesdir_rename.Enable(True)
+        parent.button_filesdir_delete.Enable(True)
+        parent.button_filesdir_refresh.Enable(True)
+        parent.button_s_view.Enable(True)
+        parent.button_s_edit.Enable(True)
+        parent.button_s_delete.Enable(True)
+        parent.button_s_patch.Enable(True)
+        parent.button_s_refresh.Enable(True)
+    else:
+        parent.button_filesdir_view.Enable(False)
+        parent.button_filesdir_edit.Enable(False)
+        parent.button_filesdir_new.Enable(False)
+        parent.button_filesdir_download.Enable(False)
+        parent.button_filesdir_rename.Enable(False)
+        parent.button_filesdir_delete.Enable(False)
+        parent.button_filesdir_refresh.Enable(False)
+        parent.button_s_view.Enable(False)
+        parent.button_s_edit.Enable(False)
+        parent.button_s_delete.Enable(False)
+        parent.button_s_patch.Enable(False)
+        parent.button_s_refresh.Enable(False)
+
 
 def load_db_record(parent):
     """Load db record for current ebuild"""
@@ -795,38 +815,72 @@ def load_db_record(parent):
     except:
         pass
 
-def get_ebuild_filebase(parent):
-    """Returns ebuild file base from form: foo-1.0.ebuild"""
-    return os.path.join(parent.ebuildDir, "%s-%s.ebuild" % \
+def make_ebuild_pathname(parent):
+    """Returns full path to overlay ebuild"""
+    return os.path.join(parent.ebuild_dir, "%s-%s.ebuild" % \
            (parent.text_ctrl_PN.GetValue(), parent.text_ctrl_PVR.GetValue()))
+
+def create_ebuild_paths(parent):
+    """Make dirs for new ebuild in PORTDIR_OVERLAY"""
+    status = 0
+    cat_dir = get_category_path(parent)
+    if not os.path.exists(cat_dir):
+        status = create_dir(parent, cat_dir, verbose = 1)
+        if status == -1:
+            return -1
+    if not os.path.exists(parent.ebuild_dir):
+        status = create_dir(parent, parent.ebuild_dir, verbose = 1)
+        if status == -1:
+            return -1
+
+def create_dir(parent, path, verbose = 0):
+    """Create a directory, or fail show dialog, return -1"""
+    try:
+        os.mkdir(path)
+        if verbose:
+            parent.Write("))) Created %s" % path)
+    except IOError, msg:
+        my_message(parent, msg, "Failed to create ebuild in overlay.", \
+                   icon_type="error", cancel=0)
+        return -1
+
+def overwrite(parent, filename):
+    """If file exists and user wants to overwrite return 1"""
+    dlg = wx.MessageDialog(parent, \
+                           'File exists in overlay.\n' \
+                           'Overwrite overlay version with PORTDIR ebuild?\n', \
+                           'Overwrite ebuild?', wx.YES_NO \
+                           | wx.ICON_INFORMATION)
+    val = dlg.ShowModal()
+    if val == wx.ID_YES:
+        return 1
 
 def write_ebuild(parent, temp=0):
     """Write ebuild file in PORTDIR_OVERLAY"""
     #TODO: temp variable is unused
+    new_ebuild = 0
     cat_dir = get_category_path(parent)
-    if not os.path.exists(cat_dir):
-        os.mkdir(cat_dir)
-        parent.Write("))) Created %s" % cat_dir)
-    parent.ebuildDir = get_ebuild_dir(parent)
-    if not os.path.exists(parent.ebuildDir):
-        os.mkdir(parent.ebuildDir)
-        parent.Write("))) Created %s" % parent.ebuildDir)
-    filename = get_ebuild_filebase(parent)
+    parent.ebuild_dir = get_ebuild_dir(parent)
+    filename = make_ebuild_pathname(parent)
+
+    print parent.filename
+    if not is_overlay(parent.filename):
+        new_ebuild = 1
+        if not os.path.exists(filename):
+            if create_ebuild_paths(parent) == -1:
+                return
+
+    if os.path.exists(filename):
+        if new_ebuild:
+            if not overwrite(parent, filename):
+                return
+
     set_filename(parent, filename)
     parent.filehistory.AddFileToHistory(filename.strip())
-    if parent.pref['stripHeader'] == 1:
-        parent.FindReplace("# $Header", '# ' + '$' + 'Header' + ': $')
-    txt = parent.STCeditor.GetText()
-    # strip trailing whitespace
-    out = '\n'.join([t.rstrip() for t in txt.splitlines() if t != '\n'])
-    out += '\n'
-    if txt != out:
-        parent.Write("))) Stripped trailing whitespace.")
-        parent.STCeditor.SetText(out)
-    if parent.FindReplace("S=${WORKDIR}/${P}", "") != -1:
-        parent.Write("))) removed S=${WORKDIR}/${P} from ebuild (its not necessary)")
+    strip_cvs_header(parent)
+    txt = strip_whitespace(parent)
     f_out = open(filename, 'w')
-    f_out.write(out)
+    f_out.write(txt)
     f_out.close()
     parent.STCeditor.EmptyUndoBuffer()
     parent.STCeditor.SetSavePoint()
@@ -835,7 +889,31 @@ def write_ebuild(parent, temp=0):
     if parent.db:
         db_write_record(parent)
     #TODO: Add option in prefs to show this optionally:
-    parent.Write("))) Saved %s" % filename)
+    if new_ebuild:
+        parent.Write("))) Saved %s" % filename)
+        enable_browser_buttons(parent, olay=1)
+    #print os.path.join(parent.ebuild_dir, "files")
+    filesdir = os.path.join(parent.ebuild_dir, "files")
+    if not os.path.exists(filesdir):
+        create_dir(parent, filesdir, verbose = 1)
+    parent.filesDir.populate(filesdir)
+
+def strip_cvs_header(parent):
+    """Strip down cvs header."""
+    if parent.pref['stripHeader'] == 1:
+        parent.FindReplace("# $Header", '# ' + '$' + 'Header' + ': $')
+
+def strip_whitespace(parent):
+    """Strip trailing whitespace editor, update editor with text."""
+    txt = parent.STCeditor.GetText()
+    out = '\n'.join([t.rstrip() for t in txt.splitlines() if t != '\n'])
+    out = "%s\n" % out
+    if txt != out:
+        parent.Write("))) Stripped trailing whitespace.")
+        #TODO: Get cursor position and move back there after this:
+        #Currently it moves cursor to top row
+        parent.STCeditor.SetText(out)
+    return out
 
 def db_write_record(parent):
     """Write Notes tab to db backend"""

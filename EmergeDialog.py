@@ -44,7 +44,7 @@ class EmergeDialog(wx.Dialog):
         sizer.Add(box, 0, wx.GROW|wx.ALIGN_CENTER_VERTICAL|wx.ALL, 5)
         box = wx.BoxSizer(wx.HORIZONTAL)
 
-        self.cat_pack_ver = utils.GetCatPackVer(parent)
+        self.cat_pack_ver = utils.get_cpvr(parent)
 
         cmd = "emerge --oneshot --nospinner =%s"  % self.cat_pack_ver
 

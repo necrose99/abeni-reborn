@@ -148,9 +148,9 @@ class MyBrowser(AbstractFileWindow):
         # Explicitly make the filenames column bigger
         self.list.SetColumnWidth(0, 200)
 
-    def populate(self, myDir):
-        if os.path.exists(myDir):
-            self.setDir(myDir)
+    def populate(self, my_dir):
+        if os.path.exists(my_dir):
+            self.setDir(my_dir)
             self.last_listing = None
             self.updateListing(self.getDir())
 

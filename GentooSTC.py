@@ -4,7 +4,7 @@ import wx
 
 import __version__
 import options
-from utils import GetP
+from utils import get_p
 
 class GentooSTC(wx.stc.StyledTextCtrl):
 
@@ -86,10 +86,10 @@ class GentooSTC(wx.stc.StyledTextCtrl):
     def DoTitle(self):
         """Set application's titlebar"""
         if self.GetModify():
-            self.frame.SetTitle("*" + GetP(self.frame) + " - Abeni " + __version__.version)
+            self.frame.SetTitle("*" + get_p(self.frame) + " - Abeni " + __version__.version)
             self.toolbar.EnableTool(self.toolbarId, True)
         else:
-            self.frame.SetTitle(GetP(self.frame) + " - Abeni " + __version__.version)
+            self.frame.SetTitle(get_p(self.frame) + " - Abeni " + __version__.version)
             self.toolbar.EnableTool(self.toolbarId, False)
         
     def UnsavedTitle(self, evt):
