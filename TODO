@@ -1,4 +1,4 @@
-Abeni 0.0.2
+Abeni 0.0.4
 
 
 There are minor bugs/new features needed noted in the software with #TODO
@@ -27,21 +27,17 @@ Bugs:
 
     Need to check if people have saved/changed ebuilds before loading/creating new one
 
-    Comments not inside functions are not being saved in loaded ebuilds, except for headers.
-
     Editors (wxStyledTextCtrl) needs work on syntax and keyword highlighting.
         * Need 'all' Gentoo public/private functions added (panels.py)
         * Syntax highlighting is buggy for multi-line variables, see RDEPENDS/DEPENDS
 
     Order of funtions is not kept when importing, then saving. This is a cosmetic problem
     only. It'd be nice to order them logically: src_unpack, src_compile, src_install etc.
-        * Got the importing done, need to fix saving
+        * Got the importing done, need to fix saving. Note: Doesn't affect performance, just cosmetic.
 
     When you delete a notebook page, the control gets screwy looking. I'm sure
     this is a wxPython bug, but I may be able to .refresh() the window to fix it?
         * Seems to be a wxPython 2.4.0.7 bug. Who shall release first, Abeni 1.0 or wxpython 2.4.0.8?
-
-    If DEPEND is not set or empty, set it to = {$RDEPEND} for clarity and to make lintool happy
 
 
 Add Features:
@@ -59,17 +55,15 @@ Add Features:
         * Create digest after saving <yes/no>
 
     Create diff of ebuild
-        * Gentoo prefers diffs of previous ebuild with user-submitted ebuild
-        * Its good to see how Abeni changes original ebuild
-        * Got it working, saves in ~/.abeni, but needs sanity checking to see what they
-          are diffing against. Need dialog to verify 'diff x y' or let them choose.
-          Right now it diffs PORTDIR/{$P} against PORTDIR_OVERLAY/{$P}
+        Need dialog to verify 'diff filex filey' or let them choose.
+        Right now it diffs current ebuild vs last loaded.
 
     Feature to check online to see if there is a newer version of Abeni available
 
     Eclass templates for the most common secnarios:
         * Python distutils
         * KDE etc.
+        * Done: distutils, CVS eclasses
 
     View /usr/portage/skel.ebuild for reference
 
