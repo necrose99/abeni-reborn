@@ -1,10 +1,12 @@
+Abeni 0.0.2
+
 
 There are minor bugs/new features needed noted in the software with #TODO
 
 
 Documentation:
 
-    1) Tutorials:
+    Tutorials:
         * Show how to make ebuild for:
             + Basic C - configure && make
 
@@ -12,64 +14,64 @@ Documentation:
                 - Python with distutils
                 - KDE
 
-    2) Convert online help to Gentoo documentation templates
+    Convert online help to Gentoo documentation XML templates
 
-    3) Show actual ebuilds in portage that are good examples for specific scenarios
-    4) Link to Daniel Robbins Bash/ebuild tutorial
+    Show actual ebuilds in portage that are good examples for specific scenarios
+
+    Link to Daniel Robbins Bash/ebuild tutorial
     	* http://www-106.ibm.com/developerworks/library/bash3.html
+
 
 Bugs:
 
-    1) Need to parse /etc/make.conf. Right now I'm using default locations such
-       as /usr/portage and /usr/local/portage (PORTDIR_OVERLAY)
 
-    2) Variables are not kept in order when imported
+    Need to check if people have saved/changed ebuilds before loading/creating new one
 
-    3) Need to check if people have saved changed ebuilds before loading/creating new one
+    Comments not inside functions are not being saved in loaded ebuilds, except for headers.
 
-    4) Comments not inside functions are not being saved in imported ebuilds
-
-    5) Only Netscape/Mozilla/Firebird works for help
-        * I think this is a bug in Gentoo's Firebird shell script that opens Firebird
-          when using Python's webbrowser module.
-
-    6) Editors (wxStyledTextCtrl) needs work on syntax and keyword highlighting.
+    Editors (wxStyledTextCtrl) needs work on syntax and keyword highlighting.
         * Need 'all' Gentoo public/private functions added (panels.py)
         * Syntax highlighting is buggy for multi-line variables, see RDEPENDS/DEPENDS
 
-    7) Order of funtions is not kept when importing, then saving. This is a cosmetic problem
-       only. It'd be nice to order them logically: src_unpack, src_compile, src_install etc.
+    Order of funtions is not kept when importing, then saving. This is a cosmetic problem
+    only. It'd be nice to order them logically: src_unpack, src_compile, src_install etc.
+        * Got the importing done, need to fix saving
+
+    When you delete a notebook page, the control gets screwy looking. I'm sure
+    this is a wxPython bug, but I may be able to .refresh() the window to fix it?
+        * Seems to be a wxPython 2.4.0.7 bug. Who shall release first, Abeni 1.0 or wxpython 2.4.0.8?
+
+    If DEPEND is not set or empty, set it to = {$RDEPEND} for clarity and to make lintool happy
 
 
 Add Features:
 
-    1) Options screen:
-        * diff program (xterm -e diff, kompare etc.)
-        * Default browser for help files (Konqueror, Firebird etc.)
-        * Run lintool after importing ebuild <yes/no>
+    Add option to run ebuild/emerge without checking for password when people have commands setup with sudo.
+
+    Options screen:
+        Not sure if I should add these:
+        * Run lintool after loading ebuild <yes/no>
         * Run lintool after saving <yes/no>
         * Create digest after saving <yes/no>
 
-    2) Create diff of ebuild
+    Create diff of ebuild
         * Gentoo prefers diffs of previous ebuild with user-submitted ebuild
         * Its good to see how Abeni changes original ebuild
+        * Got it working, saves in ~/.abeni, but needs sanity checking to see what they
+          are diffing against. Need dialog to verify 'diff x y' or let them choose.
+          Right now it diffs PORTDIR/{$P} against PORTDIR_OVERLAY/{$P}
 
-    3) Add 'ebuild' command to menu with option to pass any command:
-        * ebuild <current ebuild file> digest
+    Feature to check online to see if there is a newer version of Abeni available
 
-    4) Add 'emerge' command to menu with option to pass any args:
-        * ebuild -<args> <current ebuild file>
-
-    5) Feature to check online to see if there is a newer version of Abeni available
-
-    6) Eclass templates for the most common secnarios:
+    Eclass templates for the most common secnarios:
         * Python distutils
         * KDE etc.
 
-    7) View /usr/portage/skel.ebuild for reference
+    View /usr/portage/skel.ebuild for reference
+
+    Download, unpack and view Makefile/configure from source tarball
 
 
 Misc:
 
-    1) Create abeni-cvs ebuild for testing nightly builds
-
+    Create abeni-cvs ebuild for testing nightly builds
