@@ -1,7 +1,5 @@
-import sys
 import os
 import string
-import shutil
 
 class Options:
     def __init__(self):
@@ -31,8 +29,8 @@ class Options:
 
     def Read_apprc(self):
         """Read and parse abenirc"""
-        file = os.path.expanduser('~/.abeni/abenirc')
-        f = open(file)
+        fname = os.path.expanduser('~/.abeni/abenirc')
+        f = open(fname)
         l = f.readline()
         while l:
             if string.find(l, '=') != -1:
@@ -43,13 +41,13 @@ class Options:
                 if val == '0' or val == 'False':
                     val = 0
                 if val == '2':
-                    val == 2
+                    val = 2
                 if val == '3':
-                    val == 3
+                    val = 3
                 if val == '4':
-                    val == 4
+                    val = 4
                 if val == '5':
-                    val == 5
+                    val = 5
                 self.pref[var] = val
             l = f.readline()
         f.close()
