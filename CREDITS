@@ -4,6 +4,10 @@ repoman-local.py is a modified version of repoman.py, which is copyright Gentoo,
 
 nulloutput.py is drobbins' output.py with the color taken out
 
+I snarfed a few functions from liquidx@gentoo.org's excellent etcat
+
+
+
 
 
 
