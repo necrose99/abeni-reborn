@@ -1,0 +1,27 @@
+
+  11 Jul 2004; Rob Cakebread <pythonhead@gentoo.org>:
+  gui.py: Added diff PORTDIR vs current ebuild in Tools
+  utils.py: Re-ordered ebuild (See Abeni_Style_Guide.txt)
+  docs/Style_Guide.html: Added to CVS
+
+  10 Jul 2004; Rob Cakebread <pythonhead@gentoo.org>:
+  utils.py: Remove copying of ChangeLog. It should only be touched by echangelog.
+  utils.py: Filter '\b\b' emerge puts in but --nospinner doesn't catch.
+  utils.py: Add blue color for lines starting with ' * '
+
+*abeni-0.0.10 (10 Jul 2004)
+
+  10 Jul 2004; Rob Cakebread <pythonhead@gentoo.org>:
+  Version bump. Switch to new ChangeLog format.
+
+  9 Jul 2004; Rob Cakebread <pythonhead@gentoo.org>:
+  Full repoman CVS commit ability. New Add Function dialog from
+  Tim Cera <timc@earthlink.net>. Thanks Tim!
+
+  8 Jul 2004; Rob Cakebread <pythonhead@gentoo.org>:
+  Too many bug fixes to list in this new ChangeLog
+
+*abeni-0.0.9 (02 Sep 2003)
+
+  02 Sep 2003; Rob Cakebread <pythonhead@gentoo.org>:
+  First version in portage.
