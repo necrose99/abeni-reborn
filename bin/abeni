@@ -1,8 +1,6 @@
 #!/bin/bash
 
-export PYTHONPATH=/usr/lib/python2.4/site-packages/wxpython2.5
-export LD_LIBRARY_PATH=/usr/lib/wxpy/2.5/lib
-
+export FEATURES="notitles"
 export NOCOLOR="yes"
 exec /usr/bin/python -c 'import abeni.main'
 
