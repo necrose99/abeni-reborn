@@ -1,3 +1,74 @@
+*abeni-0.0.18 (Jul 22 2004)
+  22 Jul 2004; Rob Cakebread <pythonhead@gentoo.org>:
+  Version bump
+  Complete re-write of GUI code using wxGlade.
+  Let the bug reports roll
+
+*abeni-0.0.16 (Jul 15 2004)
+
+  15 Jul 2004; Rob Cakebread <pythonhead@gentoo.org>:
+  Version bump
+  Fixed nasty bug with multiple variables defined in ebuilds
+
+*abeni-0.0.15 (Jul 15 2004)
+
+  15 Jul 2004; Rob Cakebread <pythonhead@gentoo.org>:
+  Version bump
+  gui.py: Added option to import patch files, not just create them.
+  gui.py: Added view local USE file to View menu
+  EmergeDialog.py: gets the right arch, it was always ~x86 by default
+  gui.py: Fixed bug if you had no src_unpack when creating patches
+  EmergeDialog.py: Added ACCEPT_KEYWORDS txtCntrl
+  gui.py: Removed ability to open filename on CLI till switches in TODO are implemented
+  gui.py: Made width of app wider due to new icon in toolbar
+
+*abeni-0.0.14 (14 Jul 2004)
+  
+  14 Jul 2004; Rob Cakebread <pythonhead@gentoo.org>:
+  Version bump
+  utils.py: Multiple defines of all variables handled properly
+  utils.py: New icon on toolbar to open ebuild from OVERLAY
+  GetIUSEDialog.py: New dialog handles multiple defines of IUSE (Mozilla, xchat)
+  gui.py: Added "" "" around SRC_URI value in main panel
+  utils.py: Load recent files in reverse order when starting abeni
+  utils.py: Ordering of comments kept, statements outside of functions detected better
+  Try net-irc/xchat or mozilla for examples.
+  gui.py: Added view metadata.xml to View menu
+  EmergeDialog.py: Fixed segfault on exit, moved code to gui.py
+  panels.py:Removed ChangeLog panel, moved to View menu. Fixed bug that showed ChangeLog
+  in output window sometimes.
+  utils.py: New icons for ebuild cmd toobal 
+  gui.py: Re-arranged fome fkeys
+
+*abeni-0.0.13 (12 Jul 2004)
+
+  12 Jul 2004; Rob Cakebread <pythonhead@gentoo.org>:
+  Version bump.
+  Fixed bug in Templates.py and MyTemplates.py
+
+*abeni-0.0.12 (10 Jul 2004)
+
+  12 Jul 2004; Rob Cakebread <pythonhead@gentoo.org>:
+  Version bump.
+  utils.py, gui.py: File option to delete ebuild in PORTDIR_OVERLAY
+  gui.py: View portage private functions from help menu
+  utils.py: Remove non-existant files from recently-used file list
+  utils.py: Made Templates.py overwrite each emerge, MyTemplates.py for user modification
+  utils.py: New functions: GetEditor and AddToFunc
+
+  11 Jul 2004; Rob Cakebread <pythonhead@gentoo.org>:
+  utils.py: Added AddInherit() to sanely add inherits
+  gui.py: Added 'Create patch in $S' option in Tools menu
+  EmergeDialog: destroy dialog after pressing emerge button
+  utils.py: New func GetFilesDir()
+  gui.py: Removed forced save when doing repoman commit
+  FileCopyDialog: Added error dialog in case $FILESDIR doesn't exist
+  gui.py: Removed logo panel if you specify package on command line
+  utils.py: Added wxBusyInfo when loading ebuild to keep gui updated
+  utils.py Moved ECVS_* vars above inherit
+  utils.py Remove double linefeeds when writing ebuild
+
+*abeni-0.0.11 (10 Jul 2004)
 
   11 Jul 2004; Rob Cakebread <pythonhead@gentoo.org>:
   Version bump.

@@ -1,65 +1,64 @@
+This is the TODO file for Abeni.
 
-Abeni 0.0.11
+If you are interested in working on any of these, please
+email pythonhead AT gentoo DOT org
 
-Incorporate genone's ebuild.py
+* Website:
 
-Create patches and view diffs with ease.
+  - Needs make-over
 
-When you inherit an eclass, scan the functions and add them to Scintilla's
-keyword list for highlighting and auto-completion
+* General:
 
-Prune recent files list if files no longer exist
+ - Option to sort functions: src_unpack then src_compile, src_install etc.
+   (See ebuild.py by genone, it can probably do that easily)
+ - Need to check if external apps exist every time someone tries to launch
+   the external editor, web browser etc.
+ - When you inherit an eclass, scan the functions and add them to Scintilla's
+   keyword list for highlighting and auto-completion
+ - Get dev email from env var ECHANGELOG_USER="Rob Cakebread <pythonhead@gentoo.org>"
+   then fill in option in dev prefs.
+ - Disable menus when not in edit mode
+ - Improve find / search&replace dialog, "whole word", "match case" don't work
+ - Lowercase PN when given URI on new ebuilds in GetURIDialog.py
+ - Launch browser to HOMEPAGE url (Need function to extract variables from editor)
+ - Don't let user edit current ebuild through Explorer
 
-Option to delete ${A} in distfiles in case download was aborted etc.
+* Repoman/CVS:
 
-Add options to clear log when loading new file, write log to disk
+ - Check FEATURES for manifest signing (can't get password)
+ - Don't allow CVS operations if ssh-agent isn't running  
+ - Option to rm -rf CVS/cat/PN then 'cvs update' in CVS/cat
 
-Option to view private functions in /usr/lib/portage/bin such as dobin, insinto etc.
+* Dialogs:
 
-Search dialog for configure/Makefiles
+ - Add Notes dialog with bugzilla bug# field, launch browser to bug#. When committing 
+   to CVS we can include bug# automatically.
+ - metadata.xml templates to choose from, for all the herds you belong to
+ - When deleting ebuild, offer to rm -rf package dir when there are no more ebuilds
 
-Need to check if external apps exist every time someone tries to launch
-the editor, web browser etc.
+* Syntax checking/formatting ebuilds:
 
-The first entry in the Most-Recently-Used list is shown without the path, the other entries
-contain the full path (wxPython/wxGTK quirk?)
+ - Validate metadata.xml
+ - Remove trailing spaces on save. 
+ - Warn on leading whitespace or try to convert to tabs
+ - Give warning if /usr/local is in ${D}
+ - Give warning when SLOTS are not numeric. Dynamic slots like in 
+   mod_php are a bad thing because portage can't detect them.
+ - Give warning if inherit isn't first thing in ebuild, unless CVS
+ - Check Common Ebuild Mistakes, see if we can auto-fix any
 
-Add menu option do delete partial download from DISTFILES
+* Documentation:
 
-Add a submit button to ProjMan to submit new ebuilds to bugzilla 
-(Worked in 0.9 needs testing in 0.10 in case bugs.g.o has changed)
+ - Its out of date, website needs big makeover
 
-better format for TODO :)
-
----------
-
-There are minor bugs and new features needed noted in the source code with
-#TODO. Mostly these are message dialogs that need to be created for error and
-confirmation msgs.
-
-
-    COSMETIC:
-
-    (0.10) Seems to be fixed in portage
-    Although I always set FEATURES='notitles', some escape codes are still
-	sent in emerge:
-     http://bugs.gentoo.org/show_bug.cgi?id=21430
-
-    Order of funtions should be logical no matter the sequence created:
-        src_unpack, src_compile, src_install etc.
-
-Add Features:
-
-  Add command line options:
-    * As of 0.0.5 you can 'abeni <filename>|<package name>' to load an
-      ebuild. Need to add these:
+* Command line options:
 
     * -c, --create <src_uri>            Create ebuild using src_uri to determine package and filename
     * -e, --eclass <eclass name>        Add inherit and appropriate functions for eclass, used with --created
     * -v, --variable <x=val, y=val...>  Add variable(s) and their value(s)
     * -f, --function <func1, func2...>  Add function name(s)
     * -h, --help                        Show list of command line options
-    * -b, --bump                        Bump the given ebuild up one version
+    * -b, --bump <version>              Bump the given ebuild up to <version>
     * -d, --digest                      Create digest. Used with --bump
     * -t, --category <category>         Set package category
     * -l, --license <license>           Set LICENSE
@@ -94,3 +93,13 @@ Add Features:
 
     cheese-0.0.2.ebuild is created in PORTDIR_OVERLAY/app-admin/cheese/
     The digest is updated. cheese-0.0.2.ebuild is ready to emerge.
+
+* Known problems:
+
+ - The first entry in the Most-Recently-Used list is shown without the path,
+   the other entries contain the full path (seems to be wxPython/wxGTK bug)
+
+ - I've had problems with the cursor vanishing in the editor when it
+   loses focus and you focus it again. Seems to only be problem with
+   gtk2?
+
