@@ -1,0 +1,12 @@
+<html>
+<body>
+<font size=+4>dodir</font><br>
+<br>
+<b>Description:</b><br>
+Create a directory in ${D}<br>
+<br>
+<b>Example:</b><br>
+dodir /usr/include/foo<br>
+</body>
+</html>
+
