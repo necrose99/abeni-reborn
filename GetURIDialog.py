@@ -16,7 +16,7 @@ class GetURIDialog(wx.Dialog):
         self.combo_box_1 = wx.ComboBox(self, -1, choices=[], style=wx.CB_DROPDOWN|wx.CB_READONLY|wx.CB_SORT)
         self.static_line_2 = wx.StaticLine(self, -1)
         self.button_cancel = wx.Button(self, wx.ID_CANCEL, "Cancel")
-        self.button_ok = wx.Button(self, wx.ID_OK, "Ok")
+        self.button_ok = wx.Button(self, wx.ID_OK, "")
 
         self.__set_properties()
         self.__do_layout()
@@ -25,6 +25,7 @@ class GetURIDialog(wx.Dialog):
     def __set_properties(self):
         # begin wxGlade: GetURIDialog.__set_properties
         self.SetTitle("Enter URI for package")
+        self.SetSize((407, 146))
         self.URI.SetSize((304, 22))
         self.combo_box_1.SetSelection(0)
         self.button_ok.SetDefault()
@@ -47,10 +48,8 @@ class GetURIDialog(wx.Dialog):
         sizer_4.Add((20, 20), 0, 0, 0)
         sizer_4.Add(self.button_ok, 0, 0, 0)
         sizer_1.Add(sizer_4, 0, wx.ALL|wx.EXPAND, 12)
-        self.SetAutoLayout(1)
+        self.SetAutoLayout(True)
         self.SetSizer(sizer_1)
-        sizer_1.Fit(self)
-        sizer_1.SetSizeHints(self)
         self.Layout()
         # end wxGlade
 
