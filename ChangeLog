@@ -4,9 +4,15 @@ Abeni ChangeLog
 
 Aug 26, 2003:
 
+Better support for detecting proper Source Forge URI's
+
+Added "browse ${D} with file manager" in view menu
+
 make the abeni status list configurable
 
-Aug 25, 2003 Changed File menu/Load from overlay hotkey to 'o'
+Aug 25, 2003 
+
+Changed File menu/Load from overlay hotkey to 'o'
 
 Added Marius Mauch to credits
 

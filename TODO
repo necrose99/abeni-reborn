@@ -1,7 +1,5 @@
 Abeni 0.0.9
 
-After doing ebuild install, have option to list files in ${D}
-
 Search dialog for configure/Makefiles
 
 If people have multiple overlay directories, put an option in the Preferences
