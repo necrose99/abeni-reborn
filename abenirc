@@ -3,8 +3,8 @@ xterm = /usr/X11R6/bin/xterm
 diff = /usr/kde/3.1/bin/kompare
 editor = /usr/bin/gedit
 autoTabs = no
-fileBrowser = Not Implented, leave this as is.
+fileBrowser = kfmclient -exec
 use =
-features = notitles sandbox
+features = notitles sandbox ccache
 log = bottom
 

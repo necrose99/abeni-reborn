@@ -403,7 +403,7 @@ class MyFrame(wxFrame):
         return p
 
     def OnToolbarXterm(self, event):
-        """Launch xterm in PORTAGE_TMPDIR/portage/P/"""
+        """Launch xterm in ${S}"""
         if not self.editing:
             return
         if not self.CheckUnpacked():
@@ -419,12 +419,35 @@ class MyFrame(wxFrame):
             elif os.path.exists(mys):
                 os.chdir(mys)
             else:
-                os.chdir('%s/portage/%s/work/' % (portage_tmpdir, p))
+                try:
+                    os.chdir('%s/portage/%s/work/' % (portage_tmpdir, p))
+                except:
+                    pass
             if self.pref['xterm']:
-                os.system('%s &' % self.pref['xterm'])
-                os.chdir(c)
+                try:
+                    os.system('%s &' % self.pref['xterm'])
+                    os.chdir(c)
+                except:
+                    pass
             else:
                 self.MyMessage("Set xterm in preferences", "Error - no xterm", "error")
+
+    def OnMnuExploreD(self, event):
+        """Launch file manager in ${D}"""
+        if not self.editing:
+            return
+
+        p = self.GetP()
+        D = '%s/portage/%s/image' % (portage_tmpdir, p)
+        if not os.path.exists(D):
+            self.MyMessage("${D} hasn't been created. Run src_install()", "Error", "error")
+            return
+        else:
+            os.chdir(D)
+            if self.pref['fileBrowser']:
+                os.system('%s %s &' % (self.pref['fileBrowser'], D))
+            else:
+                self.MyMessage("Set file manager in preferences", "Error", "error")
 
     def OnMnuNewVariable(self, event):
         """Dialog for adding new variable"""
@@ -1512,9 +1535,9 @@ class MyFrame(wxFrame):
         mnuEditID = wxNewId()
         menu_view.Append(mnuEditID, "This ebuild in e&xternal editor\tf7")
         EVT_MENU(self, mnuEditID, self.OnMnuEdit)
-        #mnuExploreWorkdirID = wxNewId()
-        #menu_view.Append(mnuExploreWorkdirID, "File browser in ${WORKDIR}")
-        #EVT_MENU(self, mnuExploreWorkdirID, self.ExploreWorkdir)
+        mnuExploreDid = wxNewId()
+        menu_view.Append(mnuExploreDid, "File browser in ${D}")
+        EVT_MENU(self, mnuExploreDid, self.OnMnuExploreD)
         menubar.Append(menu_view, "Vie&w")
         # Options
         self.menu_options = wxMenu()
