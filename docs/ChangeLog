@@ -1,3 +1,17 @@
+  28 Jan 2004; Rob Cakebread <pythonhead@gentoo.org>:
+  Fixed abex unpack function not returning tuple
+  MyFrame: Added import FileCopyDialog
+  Changed emerge F10 to Shift-F9 because it acted as Alt-F
+  Print every cmd abex does to stdout
+
+  27 Jan 2004; Rob Cakebread <pythonhead@gentoo.org>:
+  /usr/sbin/abex is run as sudo and handles all root activity
+  Tabs on editors can be repositioned
+  Output log can be moved in four different positions in GUI
+  Preference dialog ass tab/log position options 
+
+*abeni-1.0_pre4 (Jan 27 2004)
+
   22 Jan 2004; Rob Cakebread <pythonhead@gentoo.org>:
   Fixed misplaced .abenirc 
   Added ability to open ebuild from command line by path

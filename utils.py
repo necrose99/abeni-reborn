@@ -65,7 +65,7 @@ def get_arch():
 def launch_browser(parent, url):
     """launch web browser"""
     if not cmd_exists(parent.pref['browser']):
-        my_message(parent, "You need to define a browser in preferences.", \
+        parent.MyMessage("You need to define a browser in preferences.", \
                    "Error", "error")
         return
     cmd = parent.pref['browser'] + " " + url
@@ -75,22 +75,6 @@ def scroll_text_dlg(parent, filename, title):
     """Display text of filename in scrolled dialog"""
     dlg = ScrolledDialog.MyScrolledDialog(parent, filename, title)
     
-def my_message(parent, msg, title, icon_type="info", cancel=0):
-    """Simple informational dialog"""
-    if icon_type == "info":
-        icon = wx.ICON_INFORMATION
-    elif icon_type == "error":
-        icon = wx.ICON_ERROR
-    if cancel:
-        dlg = wx.MessageDialog(parent, msg, title, wx.OK | wx.CANCEL | icon)
-    else:
-        dlg = wx.MessageDialog(parent, msg, title, wx.OK | icon)
-    if (dlg.ShowModal() == wx.ID_OK):
-        return 1
-    else:
-        dlg.Destroy()
-        return 0
-
 def refresh_d(parent):
     """Refresh ${D} file browser"""
     d_dir = get_d(parent)
@@ -129,7 +113,7 @@ def post_action(parent, action):
         refresh_s(parent)
 
     if action == "clean":
-        parent.Write("))) All clean.")
+        parent.Write("))) All clean.\n")
         parent.filesDir.onRefresh(-1)
         parent.sDir.clearList()
         parent.dDir.clearList()
@@ -149,7 +133,7 @@ def post_action(parent, action):
     if action == 'compile':
         refresh_s(parent)
         log_to_output(parent)
-        parent.Write("))) compile finished")
+        parent.Write("))) compile finished\n")
         set_status(parent)
 
     if action == 'install':
@@ -157,31 +141,32 @@ def post_action(parent, action):
         log_to_output(parent)
         refresh_s(parent)
         refresh_d(parent)
-        parent.Write("))) install finished")
+        parent.Write("))) install finished\n")
         set_status(parent)
 
     if action == 'qmerge':
         refresh_s(parent)
         refresh_d(parent)
         log_to_output(parent)
-        parent.Write("))) qmerge finished")
+        parent.Write("))) qmerge finished\n")
         set_status(parent)
 
     if action == 'emerge':
         refresh_s(parent)
         refresh_d(parent)
         parent.filesDir.onRefresh(-1)
-        log_to_output(parent)
-        parent.Write("))) emerge finished")
+        log_to_output(parent, "emerge")
+        parent.Write("))) emerge finished\n")
         set_status(parent)
     parent.statusbar.SetStatusText("%s done." % action, 0)
 
-def log_to_output(parent):
+def log_to_output(parent, action = None):
     """Get logfile text and display in output tab"""
-    #TODO: Run through WriteText or something to get color/filter esc codes
-    tmp_log = os.path.expanduser("~/.abeni/tmp_log")
-    txt = open(tmp_log, "r").read()
-    parent.text_ctrl_log.AppendText("%s\n" % txt)
+    #TODO: filter colors
+    if action == "emerge" or parent.pref['extOutput'] == 1:
+        tmp_log = os.path.expanduser("~/.abeni/tmp_log")
+        txt = open(tmp_log, "r").read()
+        parent.text_ctrl_log.AppendText("%s\n" % txt)
 
 def export_ebuild(parent):
     """Export ebuild directory to tar file"""
@@ -203,7 +188,7 @@ def export_ebuild(parent):
         for f in auxflist:
             if re.search(f + "[^a-zA-Z0-9\-\.\?\*]", ebuild_content):
                 flist.append(fdir + "/" + f)
-                parent.Write("auto adding file: " + f)
+                parent.Write("auto adding file: %s\n" % f)
                 auxflist.remove(f)
         if len(auxflist) > 0:
             msg = "Select the files you want to include in the " + \
@@ -258,13 +243,11 @@ def export_ebuild(parent):
 
 
 def exec_sudo(cmd):
-    (status, output) = commands.getstatusoutput("sudo /usr/sbin/abex %s" % cmd)
-    print status, output
+    (status, output) = commands.getstatusoutput('su /usr/sbin/abex %s' % cmd)
     return (status, output)
     
-def get_status(parent):
+def get_status(p):
     """Let us know if ebuild has been unpacked, comiled and installed"""
-    p = get_p(parent)
     d = '%s/portage/%s' % (PORTAGE_TMPDIR, p)
     if not os.path.exists(d):
         return
@@ -281,7 +264,7 @@ def set_status(parent, page = None):
     """Set unpack/compile/install status"""
     if not page:
         page = parent.ed_shown
-    status = get_status(parent)
+    status = get_status(get_p(parent))
     if status:
         parent.label_filename.SetLabel("%s    %s" % (parent.filename[page], \
                                        status))
@@ -303,28 +286,28 @@ def post_unpack(parent):
         return
     dirs = []
     #logColor(parent, "RED")
-    parent.Write("))) These directory(s) are in ${WORKDIR}:")
+    parent.Write("))) These directory(s) are in ${WORKDIR}:\n")
     for l in lines:
         if os.path.isdir("%s/%s" % (d, l)):
-            parent.Write(" * %s" % l)
+            parent.Write(" * %s\n" % l)
             dirs.append(l)
     if len(dirs) == 1:
         #We know we have S. Otherwise there were multiple directories unpacked
         p = dirs[0]
         if p == get_p(parent):
-            parent.Write("))) S=${WORKDIR}/${P}")
+            parent.Write("))) S=${WORKDIR}/${P}\n")
             if parent.FindReplace("S=${WORKDIR}/${P}", "") != -1:
                 set_s(parent, p)
                 parent.Write("))) removed S=${WORKDIR}/${P} from ebuild" + \
-                             "(its not necessary)")
+                             "(its not necessary)\n")
         else:
             ep = get_s(parent)
             if ep == "${WORKDIR}/${P}":
-                parent.Write("S=${WORKDIR}/%s" % p)
+                parent.Write("S=${WORKDIR}/%s\n" % p)
                 set_s(parent, p)
     else:
         if get_s(parent) == "${WORKDIR}/${P}":
-            parent.Write("))) More than one directory unpacked, you get to guess what ${S} is.")
+            parent.Write("))) More than one directory unpacked, you get to guess what ${S} is.\n")
     #parent.log_color("BLACK")
 
 def set_s(parent, myp):
@@ -384,7 +367,7 @@ def verify_saved(parent, buffer = None):
                 status = 1
                 dlg.Destroy()
                 msg = "Check your category, package name and package version."
-                my_message(parent, msg, "Can't save", "error")
+                parent.MyMessage(msg, "Can't save", "error")
                 return status
             write_ebuild(parent)
             status = 0
@@ -403,7 +386,7 @@ def delete_ebuild(parent):
         reset(parent)
     except:
         msg = "Couldn't delete %s" % filename
-        my_message(parent, msg, "Error", "error")
+        parent.MyMessage(msg, "Error", "error")
         return
 
     pkg_dir = os.path.split(filename)[0]
@@ -432,7 +415,7 @@ def save_ebuild(parent):
         return 1
     else:
         title = 'Abeni: Error Saving'
-        my_message(parent, msg, title, "error")
+        parent.MyMessage(msg, title, "error")
         return 0
 
 def get_filename(parent):
@@ -444,8 +427,6 @@ def set_filename(parent, filename):
     #Keep last file for viewing and creating diffs(future feature)
     #parent.lastFile = parent.filename[parent.ed_shown]
     parent.filename[parent.ed_shown] = filename
-    #parent.statusbar.SetStatusText(filename, 1)
-    #DoTitle(parent)
 
 def get_cpvr(parent):
     """Get category package version: net-www/mozilla-1.0-r1"""
@@ -627,7 +608,7 @@ def ebuild_exists(parent, filename):
     if os.path.exists(filename):
         return 1
     else:
-        parent.Write("File not found: " + filename)
+        parent.Write("File not found: %s\n" % filename)
         dlg = wx.MessageDialog(parent, "The file " + filename + " does not exist",
                               "File not found", wx.OK | wx.ICON_ERROR)
         dlg.ShowModal()
@@ -650,6 +631,11 @@ def get_portdir_path(parent):
         return os.path.join(cat_dir, get_pn(parent))
     except:
         return None
+
+def validate_category(cat):
+    cats = get_categories()
+    if cat in cats:
+        return True
 
 def get_categories():
     """Get list of all valid categories"""
@@ -716,7 +702,7 @@ def is_open(parent, filename):
     """Check if ebuild is already open in editor """
     #file is already opened
     if filename in parent.filename:
-        parent.Write("!!! Ebuild already open.")
+        parent.Write("!!! Ebuild already open.\n")
         return True
 
 def load_ebuild(parent, filename):
@@ -796,7 +782,6 @@ def enable_browser_olay(parent, filename):
         parent.button_filesdir_new.Enable(False)
         parent.button_filesdir_download.Enable(False)
         parent.button_filesdir_delete.Enable(False)
-        #parent.Write("))) Save ebuild to copy it to your overlay.")
     enable_browser_buttons(parent, olay = is_overlay(parent.filename[parent.ed_shown]))
 
 
@@ -886,10 +871,10 @@ def create_dir(parent, path, verbose = 0):
     try:
         os.mkdir(path)
         if verbose:
-            parent.Write("))) Created %s" % path)
+            parent.Write("))) Created %s\n" % path)
     #except IOError, msg:
     except OSError, msg:
-        my_message(parent, msg, "Failed to create ebuild in overlay.", \
+        parent.MyMessage(msg, "Failed to create ebuild in overlay.", \
                    icon_type="error", cancel=0)
         return -1
 
@@ -936,7 +921,7 @@ def write_ebuild(parent):
         my_msg = "\nMake sure your regular user owns overlay ebuilds:\n\n" + \
                  "find %s -name '*.ebuild'|xargs chown %s" % \
                  (PORTDIR_OVERLAY, user)
-        my_message(parent, "%s\n%s" % (msg, my_msg), "Error", "error")
+        parent.MyMessage("%s\n%s" % (msg, my_msg), "Error", "error")
         return
         
     f_out.write(txt)
@@ -948,7 +933,7 @@ def write_ebuild(parent):
     if parent.db:
         db_write_record(parent)
     if new_ebuild:
-        parent.Write("))) Saved %s" % filename)
+        parent.Write("))) Saved %s\n" % filename)
         enable_browser_buttons(parent, olay=1)
     filesdir = os.path.join(parent.ebuild_dir, "files")
     if not os.path.exists(filesdir):
@@ -968,7 +953,7 @@ def strip_whitespace(parent):
     out = '\n'.join([t.rstrip() for t in txt.splitlines() if t != '\n'])
     out = "%s\n" % out
     if txt != out:
-        parent.Write("))) Stripped trailing whitespace.")
+        parent.Write("))) Stripped trailing whitespace.\n")
         #TODO: Get cursor position and move back there after this:
         #Currently it moves cursor to top row
         parent.ThisEd().SetText(out)

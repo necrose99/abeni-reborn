@@ -34,6 +34,8 @@ if os.getuid() != 0:
     print "You must be root to run this."
     sys.exit(1)
 
+debug = 1
+
 def get_overlay():
     """Returns PORTAGE_TMPDIR from /etc/make.conf"""
     cmd = "source /etc/make.conf;echo ${PORTDIR_OVERLAY}"
@@ -54,20 +56,28 @@ PORTAGE_TMPDIR = get_tmpdir()
 def check_bad_dirs(my_dir):
     #TODO: Check p for ".." ?
     if not os.path.exists(my_dir):
+        print "Dir does not exist: %s" % my_dir
         return 1
     if not os.path.isdir(my_dir):
+        print "%s is not a directory!" % my_dir
         return 1
 
 def do_ebuild(args):
     """ebuild <filename> <cmd>"""
-    filename, cmd = args.split(",")
-    os.system("ebuild %s %s" % (filename, cmd))
+    if debug:
+        print "abex do_ebuild: %s" % args
+    filename, ebuild_cmd = args.split(",")
+    cmd = "ebuild %s %s" % (filename, ebuild_cmd)
+    if debug:
+        print "abex do_ebuild:", cmd
+    os.system(cmd)
 
 def do_xterm_emerge(args):
     use, pkg = args.split(",")
     tmp_log = os.path.expanduser("~/.abeni/tmp_log")
     cmd = '''sh -c "export USE='%s';emerge %s 2>&1| tee %s"''' \
           % (use, pkg, tmp_log)
+    print "abex:", cmd
     os.system(cmd)
 
 def do_xterm_ebuild(args):
@@ -75,6 +85,7 @@ def do_xterm_ebuild(args):
     tmp_log = os.path.expanduser("~/.abeni/tmp_log")
     cmd = '''sh -c "export %s;export USE='%s';ebuild %s %s 2>&1| tee %s"''' \
           % (noauto, use, filename, cmd, tmp_log)
+    print "abex:", cmd
     os.system(cmd)
 
 def rm_filesdir(args):
@@ -88,8 +99,9 @@ def rm_filesdir(args):
     filesdir_file = "%s/files/%s" % (olay_pkg_dir, filename)
     if not os.path.exists(filesdir_file):
         return 1
-
-    commands.getstatusoutput("rm %s" % filesdir_file)
+    cmd = "rm %s" % filesdir_file
+    print "abex:", cmd
+    commands.getstatusoutput(cmd)
 
 def rm_pkg_dir(args):
     """rm -rf olay/cat/pkgdir and olay/cat if pkgdir is empty"""
@@ -98,27 +110,33 @@ def rm_pkg_dir(args):
 
     if check_bad_dirs(olay_pkg_dir):
         return 1
-
-    commands.getstatusoutput("rm -r %s" % olay_pkg_dir)
+    cmd = "rm -r %s" % olay_pkg_dir
+    print "abex:", cmd
+    commands.getstatusoutput(cmd)
 
     #See if category dir is empty, if not delete it
     cat_dir = os.path.abspath("%s/.." % olay_pkg_dir)
     if not os.listdir(cat_dir):
-        commands.getstatusoutput("rmdir %s" % cat_dir)
+        cmd = "rmdir %s" % cat_dir
+        print "abex:", cmd
+        commands.getstatusoutput(cmd)
 
 def chmod_unpacked_dir(p):
     """chmod +g+xrw -R ${WORKDIR}/ for normal user permissions"""
     if not p:
-        return 1
+        return 1, None
     workdir = '%s/portage/%s/work' % (PORTAGE_TMPDIR, p)
 
     if check_bad_dirs(workdir):
-        return 1
-
-    status, output = commands.getstatusoutput("chmod +g+rx -R %s" %  workdir)
+        return 1, None
+    cmd = "chmod +g+rx -R %s" %  workdir
+    print "abex:", cmd
+    status, output = commands.getstatusoutput(cmd)
     if status:
         return (status, output)
-    status, output = commands.getstatusoutput("chmod +g+rx %s" %  workdir)
+    cmd = "chmod +g+rx %s" %  workdir
+    print "abex:", cmd
+    status, output = commands.getstatusoutput(cmd)
     return (status, output)
 
 optParser = OptionParser()

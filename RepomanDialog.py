@@ -9,7 +9,7 @@ import os
 import wx
 
 from FileBrowser import CvsBrowser
-from MyLog import MyLog
+#from MyLog import MyLog
 import MetadataXMLDialog
 import utils
 import cvs_utils
@@ -91,7 +91,7 @@ class MyFrame(wx.Frame):
         _icon = wx.EmptyIcon()
         _icon.CopyFromBitmap(wx.Bitmap("/usr/share/pixmaps/abeni/abeni_logo16.png", wx.BITMAP_TYPE_ANY))
         self.SetIcon(_icon)
-        self.SetSize((891, 618))
+        self.SetMinSize((891, 618))
         self.repoman_console_statusbar.SetStatusWidths([-1])
         # statusbar fields
         repoman_console_statusbar_fields = [""]
@@ -168,7 +168,7 @@ class MyFrame(wx.Frame):
         self.text_ctrl_log.SetDefaultStyle(wx.TextAttr("BLACK",
                                                        wx.NullColour, f)
                                            )
-        wx.Log_SetActiveTarget(MyLog(self.text_ctrl_log))
+        #wx.Log_SetActiveTarget(MyLog(self.text_ctrl_log))
         self.Write("))) Repoman console ready.")
 
         self.cvs_root = self.GetParent().pref["cvsRoot"]
@@ -414,8 +414,8 @@ class MyFrame(wx.Frame):
         """Send text to log window after colorizing"""
         #self.logfile.write(text + "\n")
 
-        if text[-1:] == '\n':
-            text = text[:-1]
+        #if text[-1:] == '\n':
+        #    text = text[:-1]
         #Remove color and other esc codes
         text = text.replace('\b', '')
         # For the [ok]'s
@@ -426,14 +426,17 @@ class MyFrame(wx.Frame):
         if pref == ">>>" or pref == "<<<" or pref == "---" \
              or pref == ")))" or  pref == " * ":
             self.LogColor("BLUE")
-            wx.LogMessage(text)
+            self.text_ctrl_log.AppendText("%s\n" % text)
+            #wx.LogMessage(text)
             self.LogColor("BLACK")
         elif pref == "!!!":
             self.LogColor("RED")
-            wx.LogMessage(text)
+            #wx.LogMessage(text)
+            self.text_ctrl_log.AppendText("%s\n" % text)
             self.LogColor("BLACK")
         else:
-            wx.LogMessage(text)
+            self.text_ctrl_log.AppendText("%s\n" % text)
+            #wx.LogMessage(text)
 
     def LogColor(self, color):
         """Set color of text sent to log window"""

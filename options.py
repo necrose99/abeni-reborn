@@ -24,16 +24,18 @@ class Options:
         self.pref['highlighting'] = 1
         self.pref['show_whitespace'] = 0
         self.pref['tabsize'] = 4
-        self.pref['gentooHighlight'] = 1
         self.pref['externalControl'] = 0
         self.pref['browser'] = '/usr/bin/firefox'
-        self.pref['xterm'] = '/usr/X11R6/bin/xterm'
+        self.pref['xterm'] = '/usr/bin/xterm'
         self.pref['diff'] = '/usr/bin/gtkdiff'
+        self.pref['tabPlacement'] = 0
+        self.pref['logPlacement'] = 0
         self.pref['editor'] = ''
         self.pref['use'] = ''
         self.pref['features'] = 'noauto'
         self.pref['cvsRoot'] = ''
         self.pref['db'] = 0
+        self.pref['extOutput'] = 1
         self.rc_create()
         self.Read_apprc()
 
@@ -44,8 +46,11 @@ class Options:
             print "Creating ~/.abeni"
             os.mkdir(abeniDir)
         if not os.path.exists(os.path.expanduser("~/.abeni/emerge_log")):
-            os.system("touch %s/emerge_log" % os.path.expanduser("~/.abeni/"))
-
+            try:
+                os.system("touch %s/emerge_log" % os.path.expanduser("~/.abeni/"))
+            except:
+                print "!!! This file must be owned by you: %s" % os.path.expanduser("~/.abeni/emerge_log")
+                sys.exit(1)
         rcfile = '%s/abenirc' % abeniDir
         if not os.path.exists(rcfile):
             print "Creating ~/.abeni/abenirc"

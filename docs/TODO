@@ -1,7 +1,24 @@
 This is the TODO file for Abeni.
 
-Immediate:
+Immediate, to be done before next release:
 
+* General, top priority:
+
+  abex: chmod +x only dirs, +r regular files
+
+  *wxglade****: 
+  Fix or use different F10 key
+
+  *wxglade****:
+  text_ctrl log needs horiz scrollbars when right/left position
+
+  Try colorizing output grabbed from ~/.abeni/tmp_log, see if fast enough
+
+  When copying ebuild from PORTDIR to PORTDIR_OVERLAY, check if
+  non-digest files in PORTDIR/FILESDIR and warn, tell them to press 
+  F8 to copy them if needed.
+
+  Add FEATURES from Prefs dialog to all ebuild cmds and emerge
 
 * repoman console:
 
@@ -9,6 +26,9 @@ Immediate:
 
   After copying ebuild from overlay-> cvs, notify if
   non-digest in overlay/files exist that don't exist in cvs
+  (when manually copying, file not red when entering filesdir)
+
+  cvs add doesn't work in filesdir!
 
   confirm deletion in repoconsole
 
@@ -18,8 +38,8 @@ Immediate:
 
   warn if ebuild has epatch but files in $FILESDIR not added to cvs?
 
-  cp ebuild to cvs in repoman menu option, in case they don't want to use 
-  repoman console
+  cp ebuild to cvs in Files menu option, in case they don't want to use 
+  repoman console for multiple copies
 
 When copying ebuild from PORTDIR to PORTDIR_OVERLAY, check if non-digest files 
 in PORTDIR/FILESDIR and warn, tell them to press F8 to copy them if needed.
@@ -28,27 +48,32 @@ Convert files from unicode to ascii before displaying in
 vanilla text viewer, or use wxStyledTxtCtrl if that doesn't
 crash on unicode.
 
+The following are non-critical:
 _____________________________________________________________________________
 If you are interested in working on any of these, please
 email pythonhead AT gentoo DOT org
 
 * Ideas:
  - Option to archive ebuild in archive directory or sql db instead of just deleting it
+ - Scan bugzilla for critical/blocker bugs for each herd we're in
+ - "TODO" listing of current ebuilds we're interested in
+ - Option to archive ${WORKDIR} when its .compiled with ability to restore
+   (Would need to compare ebuild stored in env dir to existing and show diff)
 
 * General:
+ - View Changelog only shows portdir, not cvs
+   (Alter menu to mention this, or add cvs option if they don't use cvs as portdir?)
+ - set default browser using webbrowser module
+ - Add qpkg -l output option, separate window and treeview of ${D} browser
  - Flash Stop button when executing background'ed command, like launching
    web browser so we know something is happening.
  - Improve open from overlay dialog to use notebook and let you choose from
-   multiple overlays
+   multiple overlays. This'll require some major work do to PORTDIR_OVERLAY global
  - Option to use different overlay directories for saving ebuilds to by default
  - When you inherit an eclass, scan the functions and add them to Scintilla's
    keyword list for highlighting and auto-completion
  - Improve find / search&replace dialog: "whole word", "match case" not implemented
  - Don't let user edit current ebuild through Files tab
-
-* Repoman/CVS:
- - Don't allow CVS operations if ssh-agent/gpg-agent isn't running 
-   Future: When gpg-agent is stable
 
 * Website:
 
@@ -101,4 +126,32 @@ email pythonhead AT gentoo DOT org
     abeni --bump app-admin/cheese-0.0.1 0.0.2
     cheese-0.0.1.ebuild will be bumped up to cheese-0.0.2.ebuild
     (new ebuild created with digest)
+
+
+_------------------------------------
+uncaught exceptions:
+clicking on view in filesdir, refresh seemed to fix it?
+0 
+Traceback (most recent call last):
+  File "/home/rob/abeni/MyFrame.py", line 969, in OnFilesdirView
+    utils.scroll_text_dlg(self, self.filesDir.getFilename(),
+  File "/home/rob/abeni/FileBrowser.py", line 185, in getFilename
+    file = file_utils.get_column_text(self.list, selected[0], 0)
+IndexError: list index out of range
+
+
+Crap. FILESDIR contains sub-dirs
+docutils glep dir:
+Traceback (most recent call last):
+  File "/home/rob/abeni/FileCopyDialog.py", line 115, in OnButton1Button
+    shutil.copy(src, dest)
+  File "/usr/lib/python2.4/shutil.py", line 81, in copy
+    copyfile(src, dst)
+  File "/usr/lib/python2.4/shutil.py", line 47, in copyfile
+    fsrc = open(src, 'rb')
+IOError: [Errno 21] Is a directory
+
+
+Interesting cvs.ebuild info to add to docs:
+http://forums.gentoo.org/viewtopic.php?t=246460&sid=7ff627e72cb740e75687765c4f56c796
 
