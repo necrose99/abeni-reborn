@@ -36,7 +36,7 @@ class CVS:
         self.parent = parent
         self.cvsRoot = self.parent.pref['cvsRoot']
         self.category = utils.GetCategoryName(self.parent)
-        self.package = utils.getPN(self.parent)
+        self.package = utils.GetPN(self.parent)
         self.cvsEbuildDir = self.QueryPath()
         self.ebuild = utils.GetEbuildFileBase(self.parent)
         #full path to PORTDIR_OVERLAY ebuild:

@@ -376,7 +376,7 @@ class MyFrame(wx.Frame):
 
         wx.EVT_TREE_SEL_CHANGED(self, treeID, self.OnTreeActivate)
         wx.EVT_TREE_SEL_CHANGED(self, self.explorer.GetTreeCtrl().GetId(), self.OnFileSelect)
-        wx.EVT_BUTTON(self, self.button_bugzilla.GetId(), self.launch_bugz) 
+        wx.EVT_BUTTON(self, self.button_bugzilla.GetId(), self.LaunchBugz) 
         wx.EVT_BUTTON(self, self.button_env_refresh.GetId(), self.ViewEnvironment)
         wx.EVT_BUTTON(self, self.button_view.GetId(), self.OnViewButton)
         wx.EVT_BUTTON(self, self.button_edit.GetId(), self.OnEditButton)
@@ -470,7 +470,7 @@ class MyFrame(wx.Frame):
 
         wx.EVT_CLOSE(self, self.OnClose)
         wx.EVT_END_PROCESS(self, -1, self.OnProcessEnded)
-        self.Bind(wx.EVT_TOGGLEBUTTON, self.on_noauto, self.button_1)
+        self.Bind(wx.EVT_TOGGLEBUTTON, self.OnNoauto, self.button_1)
         self.noauto = "FEATURES='noauto'"
         self.database = None
         self.process = None
@@ -567,7 +567,7 @@ class MyFrame(wx.Frame):
             print "Checking for package: %s" % f
             #Draw GUI before we start the slow search
             utils.LoadByPackage(self, f)
-        self.enable_toolbar(False)
+        self.EnableToolbar(False)
 
 
     def Write(self, txt):
@@ -616,19 +616,19 @@ class MyFrame(wx.Frame):
         pref = text[0:3]
         if pref == ">>>" or pref == "<<<" or pref == "---" \
              or pref == ")))" or  pref == " * ":
-            self.log_color("BLUE")
+            self.LogColor("BLUE")
             wx.LogMessage(text)
-            self.log_color("BLACK")
+            self.LogColor("BLACK")
         elif pref == "!!!":
-            self.log_color("RED")
+            self.LogColor("RED")
             wx.LogMessage(text)
-            self.log_color("BLACK")
+            self.LogColor("BLACK")
         else:
             wx.LogMessage(text)
 
         self.busywriting = 0
 
-    def log_color(self, color):
+    def LogColor(self, color):
         """Set color of text sent to log window"""
         self.text_ctrl_log.SetDefaultStyle(wx.TextAttr(wx.NamedColour(color)))
 
@@ -656,23 +656,23 @@ class MyFrame(wx.Frame):
         wx.EVT_TIMER(self,  ID_Timer, self.OnTimer)
         self.timer.Start(100)
 
-    def enable_toolbar(self, state):
+    def EnableToolbar(self, state):
         """Disable icons not applicable when ebuild not saved"""
         ids = [TB_SAVE_ID,TB_EDIT_ID, TB_FUNC_ID, TB_CLEAN_ID, TB_DIGEST_ID, TB_UNPACK_ID, TB_COMPILE_ID, TB_INSTALL_ID, TB_QMERGE_ID,TB_EBUILD_ID, TB_EMERGE_ID,TB_XTERM_ID]
         for id in ids:
             self.toolbar.EnableTool(id, state)
 
-    def enable_save_toolbar(self, state):
+    def EnableSaveToolbar(self, state):
         self.toolbar.EnableTool(TB_SAVE_ID, state)
 
-    def on_noauto(self, event):
+    def OnNoauto(self, event):
         """Toggle noauto button"""
         if self.noauto:
             self.noauto = "FEATURES='-noauto'"
         else:
             self.noauto = "FEATURES='noauto'"
 
-    def focus_output(self):
+    def FocusOutput(self):
         """Switch to Output notebook page"""
         self.notebook_1.SetSelection(0)
 
@@ -942,7 +942,7 @@ class MyFrame(wx.Frame):
         """Display html help file"""
         self.LaunchBrowser("http://abeni.sf.net/docs/ebuild-quick-reference.html")
 
-    def launch_bugz(self, event):
+    def LaunchBugz(self, event):
         """Launch browser to bugzilla nbr in Notes tab"""
         bugz = self.text_ctrl_bugz.GetValue()
         if bugz:
@@ -951,15 +951,15 @@ class MyFrame(wx.Frame):
             uri = "http://bugs.gentoo.org/query.cgi"
         self.LaunchBrowser(uri)
         
-    def strip_opts(self, cmd):
+    def StripOpts(self, cmd):
         """Strip any options from commands"""
         return cmd.split(" ")[0]
      
-    def command_exists(self, cmd):
+    def CommandExists(self, cmd):
         """Return True if command exists"""
         if not cmd:
             return
-        cmd = self.strip_opts(cmd)
+        cmd = self.StripOpts(cmd)
         if cmd[0] == "/":
             if os.path.exists(cmd):
                 return True
@@ -970,7 +970,7 @@ class MyFrame(wx.Frame):
 
     def LaunchBrowser(self, url):
         """launch web browser"""
-        if not self.command_exists(self.pref['browser']):
+        if not self.CommandExists(self.pref['browser']):
             utils.MyMessage(self, "You need to define a browser in preferences.", \
               "Error", "error")
             return
@@ -1007,14 +1007,14 @@ class MyFrame(wx.Frame):
             return
         utils.SaveEbuild(self)
 
-    def get_name(self, uri):
+    def GetName(self, uri):
         """return file name minus extension from src_uri"""
         path = urlparse.urlparse(uri)[2]
         path = string.split(path, '/')
-        file = self.stripext(path[len(path)-1])
+        file = self.StripExt(path[len(path)-1])
         return file
 
-    def stripext(self, file):
+    def StripExt(self, file):
         file = string.replace(file, ".zip", "")
         file = string.replace(file, ".tgz", "")
         file = string.replace(file, ".tar.gz", "")
@@ -1057,7 +1057,7 @@ class MyFrame(wx.Frame):
                     #utils.GetPN(self).lower())
             if val == wx.ID_OK and uri:
                 # foo-1.0.tgz
-                p = self.get_name(uri)
+                p = self.GetName(uri)
                 if not p:
                     return
                 psplit = pkgsplit(p)
@@ -1172,7 +1172,7 @@ class MyFrame(wx.Frame):
             if not utils.IsOverlay(self, self.filename):
                 utils.MyMessage(self, "You need to save the ebuild first.", "error")
                 return 0
-            self.focus_output()
+            self.FocusOutput()
             if not utils.VerifySaved(self):
                 self.action = 'unpack'
                 #cmd = 'FEATURES="%s" USE="%s" sudo /usr/sbin/ebuild %s unpack' % \
@@ -1187,7 +1187,7 @@ class MyFrame(wx.Frame):
                 utils.MyMessage(self, "You need to save the ebuild first.", "error")
                 return 0
 
-            self.focus_output()
+            self.FocusOutput()
             if not utils.VerifySaved(self):
                 self.action = 'install'
                 logMsg = '))) Installing...'
@@ -1207,7 +1207,7 @@ class MyFrame(wx.Frame):
                 utils.MyMessage(self, "You need to save the ebuild first.", "error")
                 return 0
 
-            self.focus_output()
+            self.FocusOutput()
             if not utils.VerifySaved(self):
                 self.action = 'qmerge'
                 logMsg = '))) Qmerging...'
@@ -1571,8 +1571,8 @@ class MyFrame(wx.Frame):
             return
 
         cat = utils.GetCategoryName(self)
-        pn = utils.getPN(self)
-        ebuild = "%s.ebuild" % utils.getP(self)
+        pn = utils.GetPN(self)
+        ebuild = "%s.ebuild" % utils.GetP(self)
         orig_ebuild = "%s/%s/%s/%s" % (PORTDIR, cat, pn, ebuild)
         this_ebuild = utils.GetFilename(self)
 
@@ -1598,7 +1598,7 @@ class MyFrame(wx.Frame):
 
         fdir_overlay = utils.GetEbuildDir(self)
         cat = utils.GetCategoryName(self)
-        pn = utils.getPN(self)
+        pn = utils.GetPN(self)
         fdir_port = "%s/%s/%s" % (PORTDIR, cat, pn)
 
         fdir = "%s/files" % fdir_overlay
@@ -1660,7 +1660,7 @@ class MyFrame(wx.Frame):
         else:
             self.text_ctrl_notes.Enable(True)
             self.text_ctrl_bugz.Enable(True)
-            utils.load_db_record(self)
+            utils.LoadDbRecord(self)
         face, size = self.pref['font'].split(",")
         self.STCeditor.SetMyStyle() 
         self.STCeditor.StyleSetFontAttr(0, string.atoi(size), face, 0, 0, 0)
@@ -1690,7 +1690,7 @@ class MyFrame(wx.Frame):
     #    wx.EVT_TIMER(self,  ID_Timer, self.OnExtTimer)
     #    self.extTimer.Start(2000)
 
-    def get_db_type(self):
+    def GetDbType(self):
         """Return type of database backend we are using"""
         if self.pref['db'] == 1:
             return "pysql"
@@ -1704,6 +1704,7 @@ class MyFrame(wx.Frame):
         return None
 
     def OnExtTimer(self, evt):
+        """Do cmd recvd via ipc"""
         mq = pyipc.MessageQueue(100)
         data = mq.receive()
         if data:
@@ -1803,7 +1804,7 @@ class MyFrame(wx.Frame):
         cat = utils.GetCategoryName(self)
         if not cat:
             return 0
-        pn = utils.getPN(self)
+        pn = utils.GetPN(self)
         if not pn:
             return 0
         cvs_path = "%s/%s/%s" % (cvs_dir, cat, pn)
@@ -1821,7 +1822,7 @@ class MyFrame(wx.Frame):
             utils.MyMessage(self, msg, "Error", "error")
             return
         cat = utils.GetCategoryName(self)
-        pn = utils.getPN(self)
+        pn = utils.GetPN(self)
         cvs_path = "%s/%s/%s" % (cvs_dir, cat, pn)
         if not os.path.exists(cvs_path):
             msg = "Path doesn't exist: %s" % cvs_path
@@ -1851,7 +1852,7 @@ class MyFrame(wx.Frame):
             utils.MyMessage(self, msg, "Error", "error")
         else:
             c = os.getcwd()
-            p = utils.getP(self)
+            p = utils.GetP(self)
             d = '%s/portage/%s/image/' % (PORTAGE_TMPDIR, p)
             if os.path.exists(d):
                 os.chdir(d)
@@ -1881,7 +1882,7 @@ class MyFrame(wx.Frame):
             utils.MyMessage(self, msg, title, "error")
         else:
             c = os.getcwd()
-            p = utils.getP(self)
+            p = utils.GetP(self)
             mys = utils.GetS(self)
             if os.path.exists(self.s):
                 os.chdir(self.s)
@@ -1935,7 +1936,7 @@ class MyFrame(wx.Frame):
     def OnMnuEdit(self, event=None, save=1, filename=''):
         """Launch external editor then reload ebuild after editor exits"""
         if self.editing:
-            if not self.command_exists(self.pref['editor']):
+            if not self.CommandExists(self.pref['editor']):
                 utils.MyMessage(self, "You need to define an editor in preferences.", \
                   "Error", "error")
                 return

@@ -153,24 +153,24 @@ def PostAction(parent, action):
         parent.RefreshExplorer()
     if action == 'compile':
         parent.RefreshExplorer()
-        log_to_output(parent)
+        LogToOutput(parent)
         parent.Write("))) compile finished")
     if action == 'install':
         PostInstall(parent)
-        log_to_output(parent)
+        LogToOutput(parent)
         parent.RefreshExplorer()
         parent.Write("))) install finished")
     if action == 'qmerge':
         parent.RefreshExplorer()
-        log_to_output(parent)
+        LogToOutput(parent)
         parent.Write("))) qmerge finished")
     if action == 'emerge':
         parent.RefreshExplorer()
-        log_to_output(parent)
+        LogToOutput(parent)
         parent.Write("))) emerge finished")
     parent.statusbar.SetStatusText("%s done." % action, 0)
 
-def log_to_output(parent):
+def LogToOutput(parent):
     """Get logfile text and display in output tab"""
     #TODO: Run through WriteText or something to get color/filter esc codes
     #lines = commands.getoutput("sudo cat /var/tmp/abeni/emerge_log").splitlines()
@@ -186,7 +186,7 @@ def ExportEbuild(parent):
         filelist.append(GetFilename(parent))
         # auto-add the digest
         fdir = GetFilesDir(parent)
-        filelist.append(fdir + "/digest-"+getP(parent))
+        filelist.append(fdir + "/digest-"+GetP(parent))
         auxfilelist = [f for f in os.listdir(fdir) if f[:6] != "digest"]
 
         # add all filenames that are present in the ebuild and ask
@@ -212,7 +212,7 @@ def ExportEbuild(parent):
 
         filelist = [f.replace(GetCategoryPath(parent)+"/", "") for f in filelist]
 
-        tarballname = getP(parent)+".tar.bz2"
+        tarballname = GetP(parent)+".tar.bz2"
         filemask = "BZipped tarball (*.tar.bz2)|*.tar.bz2|GZipped tarball (*.tar.gz)|*.tar.gz|Uncompressed tarball (*.tar)|*.tar|All files|*"
         filedlg = wx.FileDialog(parent, "Export ebuild to tarball", "", tarballname, filemask, wx.SAVE|wx.OVERWRITE_PROMPT)
         if filedlg.ShowModal() == wx.ID_OK:
@@ -244,14 +244,14 @@ def ExportEbuild(parent):
 
 def PostInstall(parent):
     """Change group perms of files in ${D} so we can read them"""
-    p = getP(parent)
+    p = GetP(parent)
     d = '%s/portage/%s/image' % (PORTAGE_TMPDIR, p)
     os.system("sudo chmod +g+r -R %s" %  d)
     os.system("sudo chmod +g+xr %s" %  d)
 
-def get_status(parent):
+def GetStatus(parent):
     """Let us know if ebuild has been unpacked, comiled and installed"""
-    p = getP(parent)
+    p = GetP(parent)
     d = '%s/portage/%s' % (PORTAGE_TMPDIR, p)
     if not os.path.exists(d):
         return
@@ -265,15 +265,15 @@ def get_status(parent):
         for o in out:
             if o == ".unpacked":
                 parent.Write(")))     unpacked")
-                fix_unpacked(parent)
+                FixUnpacked(parent)
             if o == ".compiled":
                 parent.Write(")))     compiled")
             if o == ".installed":
                 parent.Write(")))     installed")
 
-def fix_unpacked(parent):
+def FixUnpacked(parent):
     """chmod for portage group read"""
-    p = getP(parent)
+    p = GetP(parent)
     d = '%s/portage/%s/work' % (PORTAGE_TMPDIR, p)
     d1 = '%s/portage/%s' % (PORTAGE_TMPDIR, p)
     #uname = pwd.getpwuid(os.getuid())[0]
@@ -284,14 +284,14 @@ def fix_unpacked(parent):
 
 def PostUnpack(parent):
     """Report what directories were unpacked, try to set S if necessary"""
-    p = getP(parent)
+    p = GetP(parent)
     d = '%s/portage/%s/work' % (PORTAGE_TMPDIR, p)
     d1 = '%s/portage/%s' % (PORTAGE_TMPDIR, p)
     #uname = pwd.getpwuid(os.getuid())[0]
     #Yay! Can we say 'kludge'?
     #print uname, d
     #os.system("sudo chown %s -R %s" % (uname, d1))
-    fix_unpacked(parent)
+    FixUnpacked(parent)
     #print "done"
     try:
         lines = os.listdir(d)
@@ -307,7 +307,7 @@ def PostUnpack(parent):
     if len(dirs) == 1:
         #We know we have S. Otherwise there were multiple directories unpacked
         p = dirs[0]
-        if p == getP(parent):
+        if p == GetP(parent):
             parent.Write(" * S=${WORKDIR}/${P}")
             if parent.FindReplace("S=${WORKDIR}/${P}", "") != -1:
                 SetS(parent, p)
@@ -324,7 +324,7 @@ def PostUnpack(parent):
 
 def SetS(parent, myp):
     """Set S"""
-    p = getP(parent)
+    p = GetP(parent)
     parent.s = "%s/portage/%s/work/%s" % (PORTAGE_TMPDIR, p, myp)
 
 def Reset(parent):
@@ -346,7 +346,7 @@ def Reset(parent):
     parent.editing = 0
     parent.statusbar.SetStatusText('', 1)
     parent.filename = ""
-    parent.enable_toolbar(True)
+    parent.EnableToolbar(True)
 
 def VerifySaved(parent):
     """Check if the ebuild has changed and offer to save if so"""
@@ -432,19 +432,19 @@ def SetFilename(parent, filename):
 
 def GetCatPackVer(parent):
     """Get category package version: net-www/mozilla-1.0-r1"""
-    return "%s/%s" % (GetCategoryName(parent), getP(parent))
+    return "%s/%s" % (GetCategoryName(parent), GetP(parent))
 
 def GetEbuildDir(parent):
     """Get directory ebuild lives in"""
-    return os.path.join(GetCategoryPath(parent), getPN(parent))
+    return os.path.join(GetCategoryPath(parent), GetPN(parent))
 
 def GetFilesDir(parent):
     """Get ${FILESDIR}"""
     return os.path.join(GetEbuildDir(parent), "files")
 
-def getP(parent):
+def GetP(parent):
     """ Returns P from parent"""
-    return getPN(parent) + "-" + getPVR(parent)
+    return GetPN(parent) + "-" + GetPVR(parent)
 
 def GetCategoryPath(parent):
     """Return path to category of ebuild"""
@@ -453,15 +453,15 @@ def GetCategoryPath(parent):
 def GetPortdirPathVersion(parent):
     categoryDir = os.path.join (PORTDIR, GetCategoryName(parent))
     try:
-        return os.path.join(categoryDir, getPN(parent))
+        return os.path.join(categoryDir, GetPN(parent))
     except:
         return None
 
-def getPN(parent):
+def GetPN(parent):
     """Return PN from form"""
     return parent.text_ctrl_PN.GetValue()
 
-def getPVR(parent):
+def GetPVR(parent):
     """Return PVR from form"""
     return parent.text_ctrl_PVR.GetValue()
 
@@ -481,12 +481,12 @@ def checkEntries(parent):
     if not os.path.exists(valid_cat):
         msg = category + " isn't a valid category."
         return msg
-    pn = getPN(parent)
+    pn = GetPN(parent)
     if not pn:
         msg = "You need to set the Package Name"
         return msg
 
-    pvr = getPVR(parent)
+    pvr = GetPVR(parent)
     #TODO: verify valid $P
     if not pvr:
         msg = "You need to set $PVR (Package Version)"
@@ -496,11 +496,11 @@ def DoTitle(parent):
     """Set application's titlebar"""
     p = parent.GetParent()
     if p.STCeditor.GetModify():
-        p.SetTitle("*" + getP(p) + " - Abeni " + __version__.version)
-        #p.enable_save_tool(True)
+        p.SetTitle("*" + GetP(p) + " - Abeni " + __version__.version)
+        #p.EnableSaveTool(True)
     else:
-        p.SetTitle(getP(p) + " - Abeni " + __version__.version)
-        #p.enable_save_tool(False)
+        p.SetTitle(GetP(p) + " - Abeni " + __version__.version)
+        #p.EnableSaveTool(False)
 
 def LoadByPackage(parent, query):
     """Offer list of ebuilds when given a package or filename on command line"""
@@ -574,7 +574,7 @@ def LoadByPackage(parent, query):
 
 def GetD(parent):
     """return ${D} if it exists"""
-    p = getP(parent)
+    p = GetP(parent)
     #TODO: use os path join
     d = '%s/portage/%s/image' % (PORTAGE_TMPDIR, p)
     if os.path.exists(d):
@@ -590,7 +590,7 @@ def GetCVSDir(parent):
 
 def GetS(parent):
     """grep S from environment file"""
-    p = getP(parent)
+    p = GetP(parent)
     e = '%s/portage/%s/temp/environment' % (PORTAGE_TMPDIR, p)
     if not os.path.exists(e):
         return 0
@@ -605,8 +605,8 @@ def GetS(parent):
 
 def CheckUnpacked(parent):
     """Return 1 if they have unpacked"""
-    #if os.path.exists('%s/portage/%s/.unpacked' % (PORTAGE_TMPDIR, getP(parent))):
-    if not os.system('sudo ls %s/portage/%s/.unpacked >& /dev/null' % (PORTAGE_TMPDIR, getP(parent))):
+    #if os.path.exists('%s/portage/%s/.unpacked' % (PORTAGE_TMPDIR, GetP(parent))):
+    if not os.system('sudo ls %s/portage/%s/.unpacked >& /dev/null' % (PORTAGE_TMPDIR, GetP(parent))):
         return 1
     else:
         return 0
@@ -614,7 +614,7 @@ def CheckUnpacked(parent):
 def GetEnvs(parent):
     """Get the 'major' environmental vars"""
     parent.env = {}
-    p = getP(parent)
+    p = GetP(parent)
     f = '%s/portage/%s/temp/environment' % (PORTAGE_TMPDIR, p)
     if not os.path.exists(f):
         #cmd = '/usr/sbin/ebuild %s setup' % parent.filename
@@ -650,7 +650,7 @@ def ViewEnvironment(parent):
     if parent.envView == 0:
         parent.text_ctrl_environment.SetValue(txt)
     else:
-        p = getP(parent)
+        p = GetP(parent)
         f = '%s/portage/%s/temp/environment' % (PORTAGE_TMPDIR, p)
         if os.path.exists(f):
             parent.text_ctrl_environment.SetValue(open(f, 'r').read())
@@ -745,8 +745,6 @@ def LoadEbuild(parent, filename):
     category = s[len(s)-3]
     parent.ebuildDir = string.replace(filename, parent.ebuild_file, '')
     p = parent.ebuild_file[:-7]
-    
-    #if isValidP(parent, filename.repla):
     my_ebuild = open(filename, 'r').read()
     parent.STCeditor.SetText(my_ebuild)
     cat,pkg,ver,rev=gentoolkit.split_package_name("%s/%s" % (category, p))
@@ -768,13 +766,13 @@ def LoadEbuild(parent, filename):
     parent.tree_ctrl_1.UnselectAll()
     parent.ApplyPrefs()
     ViewEnvironment(parent)
-    get_status(parent)
+    GetStatus(parent)
     v = parent.FindVar("HOMEPAGE")
     parent.window_3.set_uri(v, v)
     if parent.db:
-        load_db_record(parent)
+        LoadDbRecord(parent)
 
-def load_db_record(parent):
+def LoadDbRecord(parent):
     """Load db record for current ebuild"""
     cpvr = GetCatPackVer(parent)
     try:
@@ -785,26 +783,6 @@ def load_db_record(parent):
             parent.text_ctrl_bugz.SetValue("%s" % e.bugz)
     except:
         pass
-
-def isValidP(parent, filename):
-    """Return cat,pkg,ver,rev if valid otherwise 0"""
-    p = string.replace(filename, ".ebuild", "")
-	#cat,pkg,ver,rev = gentoolkit.split_package_name(p)
-    if not pkg:
-        msg = "$PN is not valid. Check the package name."
-        dlg = wx.MessageDialog(parent, msg,
-                '$PN Error', wx.OK | wx.ICON_ERROR)
-        dlg.ShowModal()
-        return
-
-    if not ver:
-        msg = "$PV is not valid. Check the package version."
-        dlg = wx.MessageDialog(parent, msg,
-                '$PV Error', wx.OK | wx.ICON_ERROR)
-        dlg.ShowModal()
-        return
-
-    return cat, pkg, ver, rev
 
 def GetEbuildFileBase(parent):
     """Returns ebuild file base from form: foo-1.0.ebuild"""
@@ -843,11 +821,11 @@ def WriteEbuild(parent, temp=0):
     parent.recentList.append(filename)
     parent.statusbar.SetStatusText("Saved", 0)
     if parent.db:
-        db_write_record(parent)
+        DbWriteRecord(parent)
     #TODO: Add option in prefs to show this optionally:
     parent.Write("))) Saved %s" % filename)
 
-def db_write_record(parent):
+def DbWriteRecord(parent):
     """Write Notes tab to db backend"""
     my_notes = "%s" % parent.text_ctrl_notes.GetValue()
     my_bugz = "%s" % parent.text_ctrl_bugz.GetValue()
