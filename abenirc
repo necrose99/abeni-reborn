@@ -16,4 +16,5 @@ diff = /usr/bin/gtkdiff
 checkSyntax = 1
 logfile = 0
 cvsRoot = /tmp2/cvs/gentoo-x86
-gentooHighlight = 1
+tabPlacement = top
+logPlacement = middle
