@@ -31,6 +31,7 @@ class MyDialog(wxDialog):
         self.checkbox_strip_header = wxCheckBox(self.noteboo_pane_general, -1, "Auto-strip CVS header on save")
         self.checkbox_clear_log_window = wxCheckBox(self.noteboo_pane_general, -1, "Clear log window on new or loading ebuild")
         self.checkbox_check_syntax = wxCheckBox(self.noteboo_pane_general, -1, "Check syntax when saving")
+        self.checkbox_external_control = wxCheckBox(self.noteboo_pane_general, -1, "Allow control from vim or gvim")
         self.checkbox_logfile = wxCheckBox(self.noteboo_pane_general, -1, "Log output to file")
         self.text_ctrl_logfile = wxTextCtrl(self.noteboo_pane_general, -1, "")
         self.button_font = wxButton(self.noteboo_pane_editor, -1, "Font")
@@ -111,6 +112,7 @@ class MyDialog(wxDialog):
         sizer_8.Add(self.checkbox_strip_header, 0, wxALL, 8)
         sizer_8.Add(self.checkbox_clear_log_window, 0, wxALL, 8)
         sizer_8.Add(self.checkbox_check_syntax, 0, wxALL, 8)
+        sizer_8.Add(self.checkbox_external_control, 0, wxALL, 8)
         sizer_10.Add(self.checkbox_logfile, 0, wxALL, 8)
         sizer_10.Add(self.text_ctrl_logfile, 1, wxALL, 8)
         sizer_9.Add(sizer_10, 1, wxEXPAND, 0)
@@ -179,6 +181,7 @@ class MyDialog(wxDialog):
         self.checkbox_strip_header.SetValue(int(p['stripHeader']))
         self.checkbox_clear_log_window.SetValue(int(p['clearLog']))
         self.checkbox_check_syntax.SetValue(int(p['checkSyntax']))
+        self.checkbox_external_control.SetValue(int(p['externalControl']))
         self.checkbox_logfile.SetValue(int(p['logfile']))
         self.text_ctrl_logfile.SetValue(p['logFilename'])
 

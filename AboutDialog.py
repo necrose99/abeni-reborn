@@ -1,6 +1,6 @@
 import sys
 
-import wx   # About module uses the new wx namespace
+import wx 
 import wx.html
 import wx.lib.wxpTag
 
@@ -9,46 +9,45 @@ import __version__
 #---------------------------------------------------------------------------
 
 class MyAboutBox(wx.Dialog):
-    text = '''
-<html>
-<body bgcolor="#dddaec">
-<center><table bgcolor="#7a5ada" width="100%%" cellspacing="0"
-cellpadding="0" border="1">
-<tr>
-    <td align="center">
-    <font color="#ffffff">
-    <h1>Abeni %s</h1>
-    Python %s<br>
-    wxPython %s<br>
-    </font">
-    </td>
-</tr>
-</table>
+    text = '''<html>
+        <body bgcolor="#dddaec">
+        <center><table bgcolor="#7a5ada" width="100%%" cellspacing="0"
+        cellpadding="0" border="1">
+        <tr>
+        <td align="center">
+        <font color="#ffffff">
+        <h1>Abeni %s</h1>
+        Python %s<br>
+        wxPython %s<br>
+        </font">
+        </td>
+        </tr>
+        </table>
 
-<p><b>Abeni</b> is an IDE for creating ebuilds for
-Gentoo Linux</p>
+        <p><b>Abeni</b> is an IDE for creating ebuilds for
+        Gentoo Linux</p>
 
-<p><b>Abeni</b> was written by<br>
-<b>Rob Cakebread - pythonhead@gentoo.org</b><br><br>
+        <p><b>Abeni</b> was written by<br>
+        <b>Rob Cakebread - pythonhead@gentoo.org</b><br><br>
 
-with contributions from:<br><br>
+        with contributions from:<br><br>
 
-<b>Marius Mauch - genone@gentoo.org<br>
-Tim Cera - timcera@earthlink.net</b><br><br>
-<b>Abeni</b> is Copyright (c) 2003-2004 <b>Rob Cakebread</b> <pythonhead@gentoo.org>.</p>
+        <b>Marius Mauch - genone@gentoo.org<br>
+        Tim Cera - timcera@earthlink.net</b><br><br>
+        <b>Abeni</b> is Copyright (c) 2003-2004 <b>Rob Cakebread</b> <pythonhead@gentoo.org>.</p>
 
-<p>
-<font size="-1"><b>Abeni</b> is released under the terms of<br>
-the GNU Public License v.2</font>
-</p>
+        <p>
+        <font size="-1"><b>Abeni</b> is released under the terms of<br>
+        the GNU Public License v.2</font>
+        </p>
 
-<p><wxp module="wx" class="Button">
-    <param name="label" value="Okay">
-    <param name="id"    value="ID_OK">
-</wxp></p>
-</center>
-</body>
-</html>
+        <p><wxp module="wx" class="Button">
+        <param name="label" value="Okay">
+        <param name="id"    value="ID_OK">
+        </wxp></p>
+        </center>
+        </body>
+        </html>
 '''
     def __init__(self, parent):
         wx.Dialog.__init__(self, parent, -1, 'About Abeni',)

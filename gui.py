@@ -23,6 +23,8 @@ import AddFunctionDialog
 import FileCopyDialog
 import HelpFkeysDialog
 import HelpCVSDialog
+import PortageFuncsDialog
+import pyipc
 
 env = config(clone=settings).environ()
 portdir_overlay = env['PORTDIR_OVERLAY'].split(" ")[0]
@@ -525,6 +527,7 @@ class MyFrame(wxFrame):
 
         self.SetTitle("Abeni - The ebuild Builder " + __version__.version)
         self.finddata = wxFindReplaceData()
+        self.ExternalControlListen()
         #Load ebuild if specified on command line, by filename or by
         ## full package name
         if len(sys.argv) == 2:
@@ -934,7 +937,6 @@ class MyFrame(wxFrame):
         if self.running:
             utils.write(self, "!!! You're executing %s" % self.running)
             return
-
         if not utils.VerifySaved(self):
             bookmarks = os.path.expanduser('~/.abeni/recent.txt')
             f = open(bookmarks, 'w')
@@ -1335,22 +1337,15 @@ class MyFrame(wxFrame):
 
     def OnMnuPrivHelp(self, event):
         """View private portage fnunctions"""
-        t = 'dobin doconfd dodir dodoc doenvd doexe dohard dohtml doinfo doinitd doins dojar dolib dolib.a dolib.so doman domo donewins dopython dosbin dosed dosym emake fowners fperms insinto newbin newconfd newdoc newenvd newexe newinitd newins newlib.a newlib.so newman newsbin pmake prepall prepalldocs prepalldocs.new prepallinfo prepallman prepallstrip prepinfo preplib preplib.so prepman prepstrip quickpkg xpak'
+        #win = PortageFuncsDialog.MyDialog(self, -1, "Preferences", \
+        #                          size=wxSize(350, 200), \
+        #                          style = wxDEFAULT_DIALOG_STYLE \
+        #                          )
+        win = PortageFuncsDialog.MyDialog(self, -1, "Portage Private Functions",
+                                  style = wxDEFAULT_DIALOG_STYLE)
+        win.CenterOnScreen()
+        win.ShowModal()
 
-        f = t.split(" ")
-        d = "/usr/lib/portage/bin/"
-        dlg = wxSingleChoiceDialog(self, 'View private portage fucntions', 'Functions',
-                                   f, wxOK|wxCANCEL)
-        if dlg.ShowModal() == wxID_OK:
-            opt = dlg.GetStringSelection()
-            file = "%s/%s" % (d, opt)
-            msg = open(file, "r").read()
-            dlg.Destroy()
-            dlg = wxScrolledMessageDialog(self, msg, opt)
-            dlg.Show(True)
-        else:
-            dlg.Destroy()
-         
     def OnMnuEclassHelp(self, event):
         """View an eclass file"""
         d = "%s/eclass/" % portdir
@@ -1392,9 +1387,7 @@ class MyFrame(wxFrame):
             utils.MyMessage(self, "Can't diff. Save this ebuild first.", "Error", "error")
             return
 
-        #TODO: Hmmmmm. Bad?
-        import options
-        app = options.Options().Prefs()['diff']
+        app = self.pref['diff']
         os.system("%s %s %s &" % (app, orig_ebuild, this_ebuild))
 
     def OnMnuFileCopy(self, event):
@@ -1440,6 +1433,7 @@ class MyFrame(wxFrame):
             self.pref['devUserName'] = win.text_ctrl_devUserName.GetValue()
             self.pref['cvsRoot'] = win.text_ctrl_cvs_root.GetValue()
             self.pref['stripHeader'] = win.checkbox_strip_header.GetValue()
+            self.pref['externalControl'] = win.checkbox_external_control.GetValue()
             #print "int", int(win.checkbox_strip_header.GetValue())
             #print "raw", win.checkbox_strip_header.GetValue()
             self.pref['clearLog'] = win.checkbox_clear_log_window.GetValue()
@@ -1477,6 +1471,29 @@ class MyFrame(wxFrame):
         else:
             self.logfile = None
 
+        #if self.pref['externalControl'] == 1:
+        #self.ExternalControlListen()
+
+
+    def ExternalControlListen(self):
+        """Start timer to call ipc to get external vim commands"""
+        ID_Timer = wxNewId()
+        self.extTimer = wxTimer(self, ID_Timer)
+        EVT_TIMER(self,  ID_Timer, self.OnExtTimer)
+        self.extTimer.Start(2000)
+
+    def OnExtTimer(self, evt):
+        mq = pyipc.MessageQueue(100)
+        data = mq.receive()
+        if data:
+            print "Queue:", data        
+            cmd, file = data.split("*")
+            print "'%s'" % cmd
+            print type(cmd)
+            print len(cmd)
+            if cmd[4:] == "digest":
+                print "Trying to create digest..."
+                self.OnMnuCreateDigest(-1)
 
     def OnMnuHelpFkeys(self, event):
         """List fkeys"""
@@ -1531,10 +1548,11 @@ class MyFrame(wxFrame):
     def OnProcessEnded(self, evt):
         #utils.write('OnProcessEnded, pid:%s,  exitCode: %s\n' %
         #               (evt.GetPid(), evt.GetExitCode()))
+        self.timer.Stop()
         stream = self.process.GetInputStream()
         if stream.CanRead():
             text = stream.read()
-            text = string.split(text, '\n')
+            text = text.split('\n')
             for t in text:
                 utils.write(self, t)
         self.process.Destroy()
@@ -1544,7 +1562,6 @@ class MyFrame(wxFrame):
         action = self.action
         self.action = None
         utils.PostAction(self, action)
-        self.timer.Stop()
         #This assures the log window positions at the bottom:
         utils.write(self, "   ")
 
@@ -1788,12 +1805,7 @@ class GentooSTC(wxStyledTextCtrl):
         self.SetLexer(wxSTC_LEX_PYTHON)
         #self.SetLexer(wxSTC_LEX_AUTOMATIC)
 
-        gentooKeywords = 'FILESDIR WORKDIR PV P PN PVR D S DESCRIPTION HOMEPAGE SRC_URI LICENSE SLOT KEYWORDS IUSE DEPEND RDEPEND insinto docinto glibc_version ewarn replace-flags env-update filter-flags inherit pkg_postinst pkg_postrm pkg_preinst pkg_setup src_unpack src_install \
-        pkg_prerm pkg_nofetch pkg_config unpack src_compile dodir pkg_mv_plugins src_mv_plugins einfo epatch \
-        use has_version best_version use_with use_enable doexe exeinto econf emake dodoc dohtml dobin dosym \
-        einstall check_KV keepdir die einfo eerror into dohard doinfo doins dolib dolib.a dolib.so doman domo \
-        donewins dosbin dosed fowners fperms newbin newdoc newexe newins newlib.a newlib.so newman newsbin pmake \
-        prepalldocs prepallinfo prepallman prepall addwrite replace-sparc64-flags edit_makefiles'
+        gentooKeywords = 'FILESDIR WORKDIR PV P PN PVR D S DESCRIPTION HOMEPAGE SRC_URI LICENSE SLOT KEYWORDS IUSE DEPEND RDEPEND insinto docinto glibc_version ewarn replace-flags env-update filter-flags inherit pkg_postinst pkg_postrm pkg_preinst pkg_setup src_unpack src_install pkg_prerm pkg_nofetch pkg_config unpack src_compile dodir pkg_mv_plugins src_mv_plugins einfo epatch use has_version best_version use_with use_enable doexe exeinto econf emake dodoc dohtml dobin dosym einstall check_KV keepdir die einfo eerror into dohard doinfo doins dolib dolib.a dolib.so doman domo donewins dosbin dosed fowners fperms newbin newdoc newexe newins newlib.a newlib.so newman newsbin pmake prepalldocs prepallinfo prepallman prepall addwrite replace-sparc64-flags edit_makefiles'
         self.SetKeyWords(0, gentooKeywords)
         self.SetProperty("fold", "0")
         # Leading spaces are bad in Gentoo ebuilds!

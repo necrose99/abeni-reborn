@@ -12,7 +12,6 @@ sys.path.insert(0, "/usr/lib/gentoolkit/pym")
 import gentoolkit
 
 import options
-#import MyLog
 import __version__
 
 
@@ -621,7 +620,7 @@ def GetD(parent):
 
 def GetCVSDir(parent):
     """return cvs_root""" 
-    cvs_dir = self.pref['cvsRoot']
+    cvs_dir = parent.pref['cvsRoot']
     if not cvs_dir:
         return
     if os.path.exists(cvs_dir):
@@ -862,7 +861,7 @@ def WriteEbuild(parent, temp=0):
     SetFilename(parent, filename)
     parent.filehistory.AddFileToHistory(filename.strip())
     if parent.pref['stripHeader'] == 1:
-        parent.FindReplace("# $Header", '# $Header: /cvsroot/abeni/abeni/utils.py,v 1.28 2004/08/04 17:46:33 robc Exp $')
+        parent.FindReplace("# $Header", '# $Header: /cvsroot/abeni/abeni/utils.py,v 1.29 2004/08/06 20:53:42 robc Exp $')
     txt = parent.STCeditor.GetText()
     f_out = open(filename, 'w')
     f_out.writelines(txt)

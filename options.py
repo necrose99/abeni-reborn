@@ -16,6 +16,7 @@ class Options:
         self.pref['font'] = "Courier 12"
         self.pref['highlighting'] = 1
         self.pref['gentooHighlight'] = 1
+        self.pref['externalControl'] = 0
         self.pref['browser'] = '/usr/bin/firebird'
         self.pref['xterm'] = '/usr/X11R6/bin/xterm'
         self.pref['diff'] = '/usr/bin/gtkdiff'
