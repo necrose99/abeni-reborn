@@ -1079,7 +1079,7 @@ class MyFrame(wx.Frame):
                 #cmd = 'FEATURES="%s" USE="%s" sudo /usr/sbin/ebuild %s unpack' % \
                 #    (self.pref['features'], self.pref['use'], self.filename)
                 cmd = 'sudo /usr/sbin/ebuild %s unpack' % self.filename
-                self.ExecuteInLog(cmd )
+                self.ExecuteInLog(cmd, "))) Unpacking..." )
 
     def OnToolbarInstall(self, event):
         """ebuild <this ebuild> Install"""

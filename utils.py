@@ -239,10 +239,11 @@ def PostAction(parent, action):
 def log_to_output(parent):
     """Get logfile text and display in output tab"""
     #TODO: Run through WriteText or something to get color/filter esc codes
-    lines = commands.getoutput("sudo cat /var/tmp/abeni/emerge_log").splitlines()
-    for l in lines:
-        write(parent, l)
-    #parent.text_ctrl_log.AppendText("%s\n" % t)
+    #lines = commands.getoutput("sudo cat /var/tmp/abeni/emerge_log").splitlines()
+    #for l in lines:
+    #    write(parent, l)
+    t = commands.getoutput("sudo cat /var/tmp/abeni/emerge_log")
+    parent.text_ctrl_log.AppendText("%s\n" % t)
 
 def ExportEbuild(parent):
     """Export ebuild directory to tar file"""
@@ -437,15 +438,35 @@ def VerifySaved(parent):
     return status
 
 def DeleteEbuild(parent):
-   """Delete ebuild from disk in overlay"""
-
-   f = parent.filename
-   try:
-       os.unlink(f)
-       Reset(parent)
-   except:
-      msg = "Couldn't delete %s" % f 
-      MyMessage(parent, msg, "Error", "error")
+    """Delete ebuild from disk in overlay"""
+    f = parent.filename
+    try:
+        os.unlink(f)
+        Reset(parent)
+    except:
+       msg = "Couldn't delete %s" % f 
+       MyMessage(parent, msg, "Error", "error")
+    d = os.path.split(f)[0]
+    if True in [ f[-7:] == '.ebuild' for f in os.listdir(d) ]:
+       return
+    msg = "There are no more ebuilds for this package in the overlay.\nWould you like to delete this directory and its entire contents?\n%s" % d
+    dlg = wx.MessageDialog(parent, msg,
+            'Delete dirctory?', wx.YES_NO)
+    val = dlg.ShowModal()
+    if val == wx.ID_YES:
+        try:
+            os.system("sudo rm -r %s" % d)
+            #See if category is empty, if not delete it
+            pd = os.path.abspath("%s/.." % d)
+            if not os.listdir(pd):
+                try:
+                    os.system("sudo rmdir %s" % pd)
+                except:
+                    msg = "Couldn't delete empty category directory %s" % pd
+                    MyMessage(parent, msg, "Error", "error")
+        except:
+            msg = "Couldn't delete %s" % d
+            MyMessage(parent, msg, "Error", "error")
 
 def SaveEbuild(parent):
     """Save ebuild if entries are sane"""
