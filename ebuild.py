@@ -8,23 +8,24 @@ overlays = settings['PORTDIR_OVERLAY'].split(" ")
 ERR_FILE_NOT_FOUND  = 1
 ERR_SYNTAX 			= 2
 
-class eclass:
-	def __init__(self, name):
-		self.name = name
-
-class function:
-	def __init__(self, name):
-		self.name = name
+class element:
+	def __init__(self, pos, etype = "unknown", content = ""):
+		self.pos = pos
+		self.content = content
+		self.type = etype
 		
-class variable:
-	def __init__(self, name, value):
-		self.name = name
-		self.value = value
-
-class statement:
-	def __init__(self, cmdline):
-		self.command = cmdline
-
+	def getPos(self):
+		return self.pos
+		
+	def getContent(self):
+		return self.content
+		
+	def addContent(self, newcontent):
+		self.content += newcontent
+		
+	def getType(self):
+		return self.type
+	
 # class that encapsulates all the data from an ebuild
 class ebuild:
 	# kind of default constructor to set all fields to sane values
@@ -35,11 +36,8 @@ class ebuild:
 		self.package = ""
 		self.version = ""
 		
-		self.eclass = []
-		self.functions = []
-		self.variables = []
+		self.elements = { "functions": [], "variables": [], "statements": [] }
 		self.header = ""
-		self.statements = []
 
 		self.content = ""
 				
@@ -102,17 +100,77 @@ class ebuild:
 		# now parse the whole thing
 		ln = 0	# linenumber
 		l = ""	# current line
-		pos = 1	# current element position
+		pos = 0	# current element position
 		header_finished = False
-		for l in self.content:
+		myelement = None
+		tmpcontent = ""
+		while ln < len(self.content):
+			l = self.content[ln]
 			ln += 1
+			
+			# check for header
 			if not header_finished and l[0] == "#":
 				self.header += l
 				continue
 			header_finished = True
 			
-				
+			# now read the different elements (functions, variables, statements)
+			if myelement == None and l[0] == "#":	# no current element and line is a comment
+				tmpcontent +=l						# add line to temporary content
+				continue
+			elif myelement != None and l[0] == "#":	# we have a element and line is a comment
+				myelement.addContent(l)				# add line to current element
+				continue
+
+			vartest = re.search('^[A-Z]+.*= ?', l)
+			functest = re.search('^[a-zA-Z]*[_a-zA-Z0-9]* ?\(\) ?{', l)
+			
+			if vartest:
+				v = l
+				#Multi-line variables
+				if (l.count('"') - l.count('\\\"')) == 1:
+					while (self.content[ln].count('"') - self.content[ln].count('\\\"')) != 1:
+						l = self.content[ln]
+						ln += 1
+						v += l
+					l = self.content[ln]
+					ln += 1
+					v += l
+				myelement = element(pos, "variable", string.strip(tmpcontent+"\n"+v+"\n"))
+				pos += 1
+				self.elements['variables'].append(myelement)
+				myelement = None
+				tmpcontent = ""
+				continue
+			if functest:
+				myelement = element(pos, "variable", tmpcontent+"\n")
+				pos += 1
+				while l.strip() != "}":
+					myelement.addContent(l)
+					l = self.content[ln]
+					ln += 1
+				myelement.addContent(l)
+				self.elements['functions'].append(myelement)
+				myelement = None
+				tmpcontent = ""
+				continue
+			if l.strip() == "":
+				continue
+			if myelement == None:
+				myelement = element(pos, "statement", tmpcontent+"\n"+l)
+				pos += 1
+			else:
+				myelement.addcontent(l)
+			self.elements['statements'].append(myelement)
+			myelement = None
+			
 # test code
-sc = ebuild("net-mail", "sylpheed-claws", "0.9.4", "/usr/portage/local")
+sc = ebuild("dev-php", "mod_php", "4.3.2")
 sc.readEbuild()
 print sc.header
+for v in sc.elements['variables']:
+	print v.getPos(), v.getContent()
+for f in sc.elements['functions']:
+	print f.getPos(), f.getContent()
+for s in sc.elements['statements']:
+	print s.getPos(), s.getContent()
