@@ -28,7 +28,7 @@ class MyFrame(wxFrame):
         # Custom functions added
         self.funcList = []
         #application icon
-        iconFile = ('%s/Images/mocha.png' % appdir)
+        iconFile = ('/usr/share/bitmaps/abeni/mocha.png')
         icon = wxIcon(iconFile, wxBITMAP_TYPE_PNG)
         self.SetIcon(icon)
         #Setup wxNotebook in main frame
@@ -101,13 +101,13 @@ class MyFrame(wxFrame):
         newFunID = wxNewId()
         helpID = wxNewId()
         self.tb = self.CreateToolBar(wxTB_HORIZONTAL|wxNO_BORDER|wxTB_FLAT)
-        newBmp = ('%s/Images/new.bmp' % appdir)
-        saveBmp = ('%s/Images/save.bmp' % appdir)
-        openBmp = ('%s/Images/open.bmp' % appdir)
-        #closeBmp = ('%s/Images/close.bmp' % appdir)
-        newVarBmp = ('%s/Images/new_var.bmp' % appdir)
-        newFunBmp = ('%s/Images/new_fun.bmp' % appdir)
-        helpBmp = ('%s/Images/help.bmp' % appdir)
+        newBmp = ('/usr/share/bitmaps/abeni/new.bmp')
+        saveBmp = ('/usr/share/bitmaps/abeni/save.bmp')
+        openBmp = ('/usr/share/bitmaps/abeni/open.bmp')
+        #closeBmp = ('/usr/share/bitmaps/abeni/close.bmp' % appdir)
+        newVarBmp = ('/usr/share/bitmaps/abeni/new_var.bmp')
+        newFunBmp = ('/usr/share/bitmaps/abeni/new_fun.bmp')
+        helpBmp = ('/usr/share/bitmaps/abeni/help.bmp')
         self.tb.AddSimpleTool(newID, wxBitmap(newBmp, wxBITMAP_TYPE_BMP), \
                                 "Create new ebuild", "Create New ebuild")
         self.tb.AddSimpleTool(openID, wxBitmap(openBmp, wxBITMAP_TYPE_BMP), \
