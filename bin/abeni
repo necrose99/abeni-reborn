@@ -1,3 +1,4 @@
-#!/usr/bin/env python
+#!/bin/bash
 
-import abeni.main
+export NOCOLOR="yes"
+exec /usr/bin/python -c 'import abeni.main'
