@@ -88,14 +88,19 @@ class SubmitEbuild(wxDialog):
     def SubmitEbuild(self):
         ''' Do the actual bug creation and attachment upload'''
         import BugzInterface
-        a = BugzInterface.HandleForm(self.filename, self.summary, self.desc, self.uri, self.password)
+        user = Options().Prefs()['email']
+        if not user:
+            myDlg = self.MyMessage("You need to set your bugzilla email in preferences.", "Error", "error")
+            return
+
+        a = BugzInterface.HandleForm(self.filename, self.summary, self.desc, self.uri, self.password, user)
         max = 90
         dlg = wxProgressDialog("Submitting ebuild",
                                "Creating new bug...",
                                max,
                                self,
                                wxPD_CAN_ABORT | wxPD_APP_MODAL)
-        count = 33
+        count = 5
         dlg.Update(count, "Loging in to bugs.gentoo.org...")
         a.Login()
         count += 33
@@ -106,10 +111,24 @@ class SubmitEbuild(wxDialog):
         if self.bugNbr:
             dlg.Update(count, "Uploading attachment...")
             a.UploadAttachment()
-            count += 33
+            count += 22
             dlg.Update(count, "Done.")
+        else:
+            myDlg = self.MyMessage("Couldn't create bug", "Error", "error")
         dlg.Destroy()
         self.Close()
+
+    def MyMessage(self, msg, title, type="info"):
+        """Simple informational dialog"""
+        if type == "info":
+            icon = wxICON_INFORMATION
+        elif type == "error":
+            icon = wxICON_ERROR
+
+        dlg = wxMessageDialog(self, msg, title, wxOK | icon)
+        dlg.ShowModal()
+        dlg.Destroy()
+
 
 
 [wxID_BUGZQUERY, wxID_BUGZQUERYBUGNBRBUTTON, wxID_BUGZQUERYBUGNBRSTATICBOX,

@@ -33,7 +33,7 @@ import options
 class HandleForm:
     '''Parses bugs.gentoo.org forms, handles cookies and uploads attachments'''
 
-    def __init__(self, filename, summary, desc, uri, password):
+    def __init__(self, filename, summary, desc, uri, password, user):
         self.filename = filename
         self.ebuild = os.path.basename(filename)
         self.summary = summary
@@ -41,7 +41,7 @@ class HandleForm:
         self.uri = uri
         self.password = password
         self.bugNbr = 0
-        self.user = options.Options().Prefs()['email']
+        self.user = user
 
     def Login(self):
         url = "http://bugs.gentoo.org/enter_bug.cgi?product=Gentoo%20Linux"
