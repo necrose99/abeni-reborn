@@ -1,3 +1,7 @@
+import sys
+
+sys.path.insert(0, "/usr/lib/portage/pym")
+
 from portage import config
 from wxPython.wx import *
 from wxPython.grid import *

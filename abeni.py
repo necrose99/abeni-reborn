@@ -23,12 +23,15 @@ __email__ = 'pythonhead@gentoo.org'
 __version__ = '0.0.10'
 __changelog_ = 'http://abeni.sf.net/ChangeLog'
 
+import sys
+
+sys.path.insert(0, "/usr/lib/portage/pym")
+
 from portage import config, portdb, db, pkgsplit, catpkgsplit
 from wxPython.wx import *
 from wxPython.lib.dialogs import wxScrolledMessageDialog, wxMultipleChoiceDialog
 import os
 import string
-import sys
 import urlparse
 import time
 import re

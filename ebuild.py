@@ -1,3 +1,7 @@
+import sys
+
+sys.path.insert(0, "/usr/lib/portage/pym")
+
 import portage, string, re, os
 
 settings = portage.config().environ()

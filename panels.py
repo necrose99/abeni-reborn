@@ -1,3 +1,7 @@
+import sys
+
+sys.path.insert(0, "/usr/lib/portage/pym")
+
 from portage import pkgsplit
 from wxPython.wx import *
 import urlparse, string, os, keyword
