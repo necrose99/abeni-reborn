@@ -260,14 +260,10 @@ class LogWindow(wxPanel):
 
     """Show log window in tab"""
 
-    def __init__(self, parent, statusbar, pref):
+    def __init__(self, parent, log):
         wxPanel.__init__(self, parent, -1)
-        self.log = wxTextCtrl(self, -1,
-                             style = wxTE_MULTILINE|wxTE_READONLY|wxHSCROLL)
-        font = wxFont(12, wxMODERN, wxNORMAL, wxNORMAL, faceName="Lucida Console")
-        self.log.SetFont(font)
         s = wxBoxSizer(wxHORIZONTAL)
-        s.Add(self.log, 1, wxEXPAND)
+        s.Add(log, 1, wxEXPAND)
         self.SetSizer(s)
         self.SetAutoLayout(True)
 

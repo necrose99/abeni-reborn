@@ -133,11 +133,8 @@ class MyFrame(wxFrame):
         self.LogBottom()
 
     def LogBottom(self):
-        txt = self.log.GetValue()
         self.splitter.SplitHorizontally(self.nb, self.log, 400)
         self.splitter.SetMinimumPaneSize(20)
-        wxLog_SetActiveTarget(MyLog(self.log))
-        self.log.SetValue(txt)
         self.log.Show(True)
         self.log.ShowPosition(self.log.GetLastPosition())
         self.pref['log'] = 'bottom'
@@ -148,7 +145,7 @@ class MyFrame(wxFrame):
         if not self.editing or self.pref['log'] == 'tab':
             return
         self.LogTab()
-        self.logWindow.log.ShowPosition(self.logWindow.log.GetLastPosition())
+        self.log.ShowPosition(self.log.GetLastPosition())
 
     def OnNoAuto(self, event):
         """Toggle switch for FEATURES='noauto'"""
@@ -171,20 +168,14 @@ class MyFrame(wxFrame):
     def OnMnuClearLog(self, event):
         """Blank out the log windows"""
         self.log.SetValue('')
-        try:
-            self.logWindow.log.SetValue('')
-        except:
-            pass
 
     def LogTab(self):
         """Show log window in separate tab"""
-        self.logWindow=panels.LogWindow(self.nb, self.sb, self.pref)
-        wxLog_SetActiveTarget(MyLog(self.logWindow.log))
+        self.logWindow=panels.LogWindow(self.nb, self.log)
         self.nb.InsertPage(0, self.logWindow, "Log")
-        txt = self.log.GetValue()
-        self.logWindow.log.SetValue(txt)
         self.splitter.Unsplit()
         self.nb.SetSelection(0)
+        self.log.Show(True)
         self.pref['log'] = 'tab'
 
     def WriteText(self, text):
@@ -480,12 +471,8 @@ class MyFrame(wxFrame):
         self.process = None
         self.tb.EnableTool(self.toolStopID, False)
         self.running = None
-        #TODO: Kludgy, figure out which to re-position
-        try:
-            self.log.ShowPosition(self.log.GetLastPosition())
-            self.logWindow.log.ShowPosition(self.logWindow.log.GetLastPosition())
-        except:
-            pass
+        self.log.ShowPosition(self.log.GetLastPosition())
+
         action = self.action
         self.action = None
         self.PostAction(action)
