@@ -1,11 +1,11 @@
 #!/usr/bin/env python
 
-"""Abeni - by Rob Cakebread
+"""Abeni - Gentoo Linux Ebuild Editor/Syntax Checker
 Released under the terms of the GNU Public License v2
 """
 
 __author__ = 'Rob Cakebread'
-__version__ = '0.0.1'
+__version__ = '0.0.2'
 from wxPython.wx import *
 from wxPython.help import *
 from wxPython.lib.dialogs import wxScrolledMessageDialog
@@ -25,6 +25,7 @@ class MyFrame(wxFrame):
         # Are we in the process of editing an ebuild?
         self.editing = 0
         # Get options from ~/.abeni/abenirc file
+        #TODO: Its in /usr/share/abeni/abenirc, need to copy it to ~/ when first run
         self.GetOptions()
         # Custom functions added
         self.funcList = []
@@ -91,13 +92,18 @@ class MyFrame(wxFrame):
         # Help
         menu_help = wxMenu()
         mnuHelpID = wxNewId()
+        mnuHelpRefID = wxNewId()
         mnuAboutID = wxNewId()
         menu_help.Append(mnuHelpID,"&Contents")
+        EVT_MENU(self, mnuHelpID, self.OnMnuHelp)
+        menu_help.Append(mnuHelpRefID,"&Ebuild Quick Reference")
+        EVT_MENU(self, mnuHelpRefID, self.OnMnuHelpRef)
         menu_help.Append(mnuAboutID,"&About")
+        EVT_MENU(self, mnuAboutID, self.OnMnuAbout)
         menubar.Append(menu_help,"&Help")
         self.SetMenuBar(menubar)
-        EVT_MENU(self, mnuAboutID, self.OnMnuAbout)
-        EVT_MENU(self, mnuHelpID, self.OnMnuHelp)
+
+
         # Keyboard accelerators
         # TODO: Add for accelerator for each item in menu
         # Alt-X to exit
@@ -123,31 +129,32 @@ class MyFrame(wxFrame):
         helpBmp = ('/usr/share/bitmaps/abeni/help.bmp')
         self.tb.AddSimpleTool(newID, wxBitmap(newBmp, wxBITMAP_TYPE_BMP), \
                                 "Create new ebuild", "Create New ebuild")
+        EVT_TOOL(self, newID, self.OnMnuNew)
         self.tb.AddSimpleTool(openID, wxBitmap(openBmp, wxBITMAP_TYPE_BMP), \
                                 "Open ebuild", "Open ebuild")
+        EVT_TOOL(self, openID, self.OnMnuLoad)
         self.tb.AddSimpleTool(saveID, wxBitmap(saveBmp, wxBITMAP_TYPE_BMP), \
                                 "Save ebuild", "Save ebuild")
+        EVT_TOOL(self, saveID, self.OnMnuSave)
         #self.tb.AddSimpleTool(closeID, wxBitmap(closeBmp, wxBITMAP_TYPE_BMP), \
         #                        "Close ebuild", "Close ebuild")
         self.tb.AddSimpleTool(newVarID, wxBitmap(newVarBmp, wxBITMAP_TYPE_PNG), \
                                 "New Variable", "New Variable")
+        EVT_TOOL(self, newVarID, self.OnMnuNewVariable)
         self.tb.AddSimpleTool(newFunID, wxBitmap(newFunBmp, wxBITMAP_TYPE_PNG), \
                                 "New Function", "New Function")
+        EVT_TOOL(self, newFunID, self.OnMnuNewFunction)
         self.tb.AddSimpleTool(helpID, wxBitmap(helpBmp, wxBITMAP_TYPE_BMP ), \
                                 "Help", "Abeni Help")
+        EVT_TOOL(self, helpID, self.OnMnuHelp)
         self.tb.Realize()
-        EVT_TOOL(self, newID, self.OnMnuNew)
-        EVT_TOOL(self, openID, self.OnMnuLoad)
-        EVT_TOOL(self, newVarID, self.OnMnuNewVariable)
-        EVT_TOOL(self, newFunID, self.OnMnuNewFunction)
-        EVT_TOOL(self, saveID, self.OnMnuSave)
-        #EVT_TOOL(self, openID, self.OnMnuOpen)
         EVT_TOOL_ENTER(self, -1, self.OnToolZone)
         EVT_TIMER(self, -1, self.OnClearSB)
         self.timer = None
 
     def OnMnuLintool(self, event):
         """Run 'lintool' on this ebuild"""
+        #TODO use the Python tempfile module
         tmp = '/tmp/lintool.txt'
         os.system('lintool ' + self.filename + ' > ' + tmp)
         l = open(tmp, 'r').read()
@@ -275,7 +282,7 @@ class MyFrame(wxFrame):
             self.AddEditor('Original File', open(filename, 'r').read())
             self.nb.SetSelection(0)
             # Set titlebar of app to ebuild name
-            self.SetTitle('Abeni: ' + ebuild_file)
+            self.SetTitle('Abeni ' + __version__ + ': ' + ebuild_file)
         dlg.Destroy()
 
     def PopulateForms(self, myData):
@@ -378,15 +385,18 @@ class MyFrame(wxFrame):
         n.editorCtrl.SetText(val)
         self.nb.SetSelection(self.nb.GetPageCount() -1)
 
+    def OnMnuHelpRef(self, event):
+        """Display html help file"""
+        #TODO: Fix index. Doesn't die when you exit.
+        #Add: /usr/portage/profiles/use.desc
+        os.system("netscape '/usr/share/abeni/ebuild-quick-reference.html' &")
+
     def OnMnuHelp(self, event):
         """Display html help file"""
         #TODO: Fix index. Doesn't die when you exit.
         #Add: /usr/portage/profiles/use.desc
-
-        dlg = wxMessageDialog(self, 'Look for help in release 0.0.2',
-                          'Better luck next time...', wxOK | wxICON_INFORMATION)
-        dlg.ShowModal()
-        dlg.Destroy()
+        #os.system("netscape '/usr/share/abeni/index.html' &")
+        os.system("netscape 'http://abeni.sf.net/docs/index.html' &")
 
         #import glob
         #from wxPython.tools import helpviewer
@@ -404,8 +414,10 @@ class MyFrame(wxFrame):
         #helpviewer.main(args)
 
 
-    def OnOLDMnuLoad(self, event):
+    def OLD__OnMnuLoad(self, event):
         """Load raw data from pickled file"""
+        # This will probably be removed, unless someone can think of a good reason to pickle everything
+        # as well as save it in native ebuild files.
         wildcard = "Abeni files (*.abeni)|*.abeni"
         dlg = wxFileDialog(self, "Choose a file", "", "", wildcard, wxOPEN|wxMULTIPLE)
         if dlg.ShowModal() == wxID_OK:
@@ -463,7 +475,7 @@ class MyFrame(wxFrame):
             #presence of wxNotebook instead
             self.editing = 1
             # Set titlebar of app to ebuild name
-            self.SetTitle("Abeni: " + self.panelMain.GetEbuildName())
+            self.SetTitle("Abeni " + __version__ + ": " + self.panelMain.GetEbuildName())
 
     def AddPages(self):
         """Add pages to blank notebook"""
@@ -473,10 +485,6 @@ class MyFrame(wxFrame):
         self.nb.AddPage(self.panelMain, "Main")
         self.nb.AddPage(self.panelDepend, "Dependencies")
         self.nb.AddPage(self.panelChangelog, "ChangeLog")
-
-    def OnMnuNewFrom(self,event):
-        """Create new ebuild, copying existing ebuild"""
-        pass
 
     def OnMnuExit(self,event):
         """Exits and closes application"""
@@ -490,9 +498,9 @@ class MyFrame(wxFrame):
 
     def OnMnuAbout(self,event):
         """Obligitory About me and my app screen"""
-        dlg = wxMessageDialog(self, 'Abeni is a Python and wxPython application\n \
+        dlg = wxMessageDialog(self, 'Abeni ' + __version__ + ' is a Python and wxPython application\n \
             by Rob Cakebread released under the GPL license.\n\n', \
-                              'About Abeni', wxOK | wxICON_INFORMATION)
+                              'About Abeni ' + __version__, wxOK | wxICON_INFORMATION)
         dlg.ShowModal()
         dlg.Destroy()
 
@@ -531,7 +539,7 @@ class MyFrame(wxFrame):
 
         f.write('# Copyright 1999-2003 Gentoo Technologies, Inc.\n')
         f.write('# Distributed under the terms of the GNU General Public License v2\n')
-        f.write('# $Header: /cvsroot/abeni/abeni/Attic/abeni.py,v 1.20 2003/06/04 02:44:12 robc Exp $\n\n')
+        f.write('# $Header: /cvsroot/abeni/abeni/Attic/abeni.py,v 1.21 2003/06/05 00:03:17 robc Exp $\n\n')
 
         f.write(self.panelMain.stext.GetValue() + '\n')
         textList, varList = self.panelMain.GetVars()
@@ -635,7 +643,7 @@ class MyApp(wxApp):
         wxHelpProvider_Set(provider)
         # Enable gif, jpg, bmp, png handling for wxHtml and icons
         wxInitAllImageHandlers()
-        frame=MyFrame(None, -1, 'Abeni - The ebuild Builder')
+        frame=MyFrame(None, -1, 'Abeni - The ebuild Builder ' + __version__)
         frame.Show(true)
         self.SetTopWindow(frame)
         return true
