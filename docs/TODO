@@ -15,6 +15,7 @@ Immediate:
   update cvs dir=/whatever label
 
   warn if ebuild is diff from overlay
+
   warn if ebuild has epatch but files in $FILESDIR not added to cvs?
 
   cp ebuild to cvs in repoman menu option, in case they don't want to use 
@@ -22,8 +23,6 @@ Immediate:
 
 When copying ebuild from PORTDIR to PORTDIR_OVERLAY, check if non-digest files 
 in PORTDIR/FILESDIR and warn, tell them to press F8 to copy them if needed.
-
-Figure out decent command line options, opening file from cli, etc.
 
 Convert files from unicode to ascii before displaying in
 vanilla text viewer, or use wxStyledTxtCtrl if that doesn't

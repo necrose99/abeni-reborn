@@ -1,3 +1,23 @@
+  22 Jan 2004; Rob Cakebread <pythonhead@gentoo.org>:
+  Fixed misplaced .abenirc 
+  Added ability to open ebuild from command line by path
+
+*abeni-1.0_pre2 (Jan 23 2004)
+
+  22 Jan 2004; Rob Cakebread <pythonhead@gentoo.org>:
+  New file browsers
+  Multiple ebuilds open in multiple editors
+  repoman CVS GUI
+  Abeni now runs as regular user and executes emerge, ebuild and changes
+  file permissions via sudo
+  Herd and maintainer info displayed in Notes tab 
+  Many keyboard shortcuts added
+  Menus and toolbar disabled/enabled based on editor status
+  Re-organized menu items
+  New file dialog 
+  
+*abeni-1.0_pre1 (Jan 22 2004)
+
   18 Dec 2004; Rob Cakebread <pythonhead@gentoo.org>:
   Moved output widget to center, removed old files widget and replaced it with
   new column list style with separate tabs.
@@ -9,14 +29,8 @@
   Added Notes tab to notebook, database option in PrefsDialog,
   sqlobject interface for Notes.
  
-  19 Nov 2004; Rob Cakebread <pythonhead@gentoo.org>:
-  When deleting ebuild, offer to rm -rf package dir when there are no more ebuilds
   18 Nov 2004; Rob Cakebread <pythonhead@gentoo.org>:
   When deleting ebuild, offer to rm -rf package dir when there are no more ebuilds
-
-  14 Nov 2004; Rob Cakebread <pythonhead@gentoo.org>:
-  Abeni now runs as regular user using sudo to perform any ebuild/emerge
-  and misc file handling commands
 
 *abeni-0.0.22 (Nov 14 2004)
 

@@ -47,7 +47,7 @@ import pyipc
 import enamer
 
 
-# __revision__ = "$Id: MyFrame.py,v 1.8 2005/01/23 17:50:24 robc Exp $"
+# __revision__ = "$Id: MyFrame.py,v 1.9 2005/01/24 05:33:39 robc Exp $"
 
 env = config(clone = settings).environ()
 PORTDIR_OVERLAY = env['PORTDIR_OVERLAY'].split(" ")[0]
@@ -688,7 +688,7 @@ class MyFrame(wx.Frame):
         #Focus on Notes tab
         self.notebook_1.SetSelection(1)
 
-        self.emerge_log = os.path.expanduser("~/abeni/emerge_log")
+        self.emerge_log = os.path.expanduser("~/.abeni/emerge_log")
         #list of editor widgets:
         self.eds = []
         self.ed_panels = []
@@ -697,6 +697,13 @@ class MyFrame(wx.Frame):
         self.filename = []
         self.loading_ebuild = None
         self.DisableMenus()
+        if len(sys.argv) == 2:
+            utils.load_ebuild(self, sys.argv[1])
+            self.EnableToolbar(True)
+            self.button_Category.Enable(True)
+            self.text_ctrl_Category.Enable(True)
+            self.text_ctrl_PN.Enable(True)
+            self.text_ctrl_PVR.Enable(True)
         # end wxGlade
 
     def EnableMenus(self):
