@@ -14,6 +14,11 @@ Make New Function descripts more clear i.e.
  src_compile ./configure && make
  Also make user supported templates
 
+Add a submit button to ProjMan to submit new ebuilds to bugzilla (we should exclude the bugzilla stuff to its own class)
+
+Export function to generate a tarball with all necessary files (for uploading on a website)
+
+make the "Abeni status" combo list configurable
 
 ---------
 
