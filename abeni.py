@@ -25,8 +25,6 @@ class MyFrame(wxFrame):
         self.editing = 0
         # Get options from ~/.abeni/abenirc file
         self.GetOptions()
-        # Custom variables added
-        self.varList = []
         # Custom functions added
         self.funcList = []
         #application icon
@@ -142,6 +140,7 @@ class MyFrame(wxFrame):
     def ClearNotebook(self):
         """Delete all pages in the notebook"""
         self.nb.DeleteAllPages()
+        self.funcList=[]
 
     def OnMnuLoad(self, event):
         """Load ebuild file"""
@@ -182,13 +181,14 @@ class MyFrame(wxFrame):
                         s[1] = s[1] + "=" + s[2] + "\n"
                     #Multi-line variables
                     if l.count('"') == 1:
-                        v = s[1]
+                        v = s[1] + '\n'
                         while 1:
                             l = f.readline()
                             v += l
                             if l.count('"') == 1:
-                                print s[0], v
+                                #print s[0], v
                                 s[1] = v.replace('\t', '')
+                                s[1] = s[1].replace('\n\n', '\n')
                                 break
 
                     vars[s[0]] = string.replace(s[1], '"', '')
@@ -328,7 +328,8 @@ class MyFrame(wxFrame):
     def AddFunc(self, newFunction, val):
         """Add page in notebook for a new function"""
         n = panels.NewFunction(self.nb, self.sb, self.pref)
-        self.funcList.append(n)
+        if newFunction != 'Original File':
+            self.funcList.append(n)
         self.nb.AddPage(n, newFunction)
         n.edNewFun.SetText(val)
         self.nb.SetSelection(self.nb.GetPageCount() -1)
@@ -459,22 +460,29 @@ class MyFrame(wxFrame):
         myData['IUSE'] = self.panelMain.USE.GetValue()
         myData['DEPEND'] = self.panelDepend.elb1.GetStrings()
         myData['RDEPEND'] = self.panelDepend.elb2.GetStrings()
-        myData['S'] = "S=${WORKDIR}/${P}"
+        #myData['S'] = "S=${WORKDIR}/${P}"
         myData['changelog'] = self.panelChangelog.edChangelog.GetText()
         return myData
 
     def FormatEbuild(self):
         """Format data into fields ready to output to ebuild file"""
-        abeniPath = os.path.join(os.path.expanduser('~'), '.abeni')
-        if not os.path.exists(abeniPath):
-            os.mkdir(abeniPath)
-        ebuildDir = os.path.join (abeniPath, self.panelMain.Ebuild.GetValue())
+        #abeniPath = os.path.join(os.path.expanduser('~'), '.abeni')
+        #if not os.path.exists(abeniPath):
+        #    os.mkdir(abeniPath)
+        categoryDir = os.path.join ('/usr/local/portage', self.panelMain.Category.GetValue())
+        if not os.path.exists(categoryDir):
+            os.mkdir(categoryDir)
+        ebuildDir = os.path.join (categoryDir, self.panelMain.Ebuild.GetValue())
         if not os.path.exists(ebuildDir):
             os.mkdir(ebuildDir)
         ebuildFile = os.path.join(ebuildDir, self.panelMain.EbuildFile.GetValue())
         f = open(ebuildFile, 'w')
 
-        f.write("S=${WORKDIR}/${P}\n\n")
+        textList, varList = self.panelMain.GetVars()
+        for i in range(0, len(varList)):
+            f.write(textList[i] + '="' + varList[i].GetValue() + '"\n\n')
+
+        #f.write("S=${WORKDIR}/${P}\n\n")
         f.write('DESCRIPTION="' + self.panelMain.Desc.GetValue() + '"\n\n')
         f.write('HOMEPAGE="' + self.panelMain.Homepage.GetValue() + '"\n\n')
         f.write('SRC_URI="' + self.panelMain.URI.GetValue() + '"\n\n')
@@ -503,14 +511,10 @@ class MyFrame(wxFrame):
         f.write(d + '\n\n')
         f.write(rd + '\n\n')
 
-        #Write custom variables:
-        #for var in self.varList:
-
-
         #Write functions:
         for fun in self.funcList:
             ftext = fun.edNewFun.GetText()
-            f.write(ftext)
+            f.write(ftext + '\n')
 
         #CHANGELOG.write(self.panelChangelog.ed.GetText())
 

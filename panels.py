@@ -24,7 +24,7 @@ class main(wxPanel):
         self.sb = sb
 
         #Custom variable globals
-        self.text = []
+        self.textList = []
         self.varList = []
         self.vrow = 30
 
@@ -152,7 +152,7 @@ class main(wxPanel):
 
     def AddVar(self, var, val):
         t = wxStaticText(self, -1, var, wxPoint(410, self.vrow))
-        self.text.append(t)
+        self.textList.append(var)
         v = wxTextCtrl(self, wxNewId(), val, wxPoint(525, self.vrow), wxSize(250, 20))
         v.SetFocus()
         self.varList.append(v)
@@ -160,6 +160,9 @@ class main(wxPanel):
         self.boxt.Destroy()
         h = self.vrow + 20
         self.boxt = wxStaticBox( self, -1, "Other Variables", wxPoint(400, 5), wxSize(390, h))
+
+    def GetVars(self):
+        return self.textList, self.varList
 
     def AddStatement(self, var, val):
         t = wxStaticText(self, -1, var, wxPoint(410, self.vrow))
