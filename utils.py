@@ -55,22 +55,6 @@ def LoadEbuild(parent, filename, portdir):
     defaultVars = ['DESCRIPTION', 'HOMEPAGE', 'SRC_URI', 'LICENSE', 'SLOT'
                     'KEYWORDS', 'IUSE', 'DEPEND', 'S']
     f = open(filename, 'r')
-    # Read in header, then discard it. We always write clean header.
-    header1 = f.readline()
-    # First line should contain:
-    # Copyright 1999-200n Gentoo Technologies, Inc.
-    if header1.find("Gentoo Technologies") == -1:
-        msg = "The ebuild has no header. Would you like to edit this ebuild in your external editor?"
-        dlg = wxMessageDialog(parent, msg,
-                'Header Error', wxOK | wxCANCEL | wxICON_ERROR)
-        val = dlg.ShowModal()
-        if val == wxID_OK:
-            parent.write("filename %s" % filename)
-            parent.OnMnuEdit(save=0, filename=filename)
-        return
-
-    f.readline()
-    f.readline()
 
     #Indenting shoud be done with tabs, not spaces
     badSpaces = re.compile('^ +')
@@ -82,6 +66,14 @@ def LoadEbuild(parent, filename, portdir):
             break
         if l !='\n':
             l = string.strip(l)
+
+        # Read in header, then discard it. We always write clean header.
+        if l[0:11] == '# Copyright':
+            continue
+        if l[0:13] == '# Distributed':
+            continue
+        if l[0:10] == '# $Header:':
+            continue
 
         # Variables always start a line with all caps and has an =
         varTest = re.search('^[A-Z]+.*= ?', l)
@@ -139,16 +131,6 @@ def LoadEbuild(parent, filename, portdir):
 
     f.close()
 
-    '''
-    print parent.statementList
-    t = string.join(parent.statementList, '\n')
-    print t
-    dups = re.compile(r"""\n\n\n""", re.DOTALL)
-    t = dups.sub('\n', t)
-    print t
-    parent.statementList= string.split(t, '\n')
-    print parent.statementList
-    '''
     s = string.split(filename, "/")
     parent.ebuild_file = s[len(s)-1]
     package = s[len(s)-2]
