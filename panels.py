@@ -1,13 +1,16 @@
+import urlparse
+import string
+import os
+import keyword
 import sys
 
-sys.path.insert(0, "/usr/lib/portage/pym")
-
+from wxPython.lib.dialogs import wxMultipleChoiceDialog
 from portage import pkgsplit
 from wxPython.wx import *
-import urlparse, string, os, keyword
 from wxPython.gizmos import *
 from wxPython.stc import *
-
+sys.path.insert(0, "/usr/lib/gentoolkit/pym/")
+import gentoolkit
 
 faces = { 'times': 'Times',
         'mono' : 'Courier',
@@ -16,6 +19,17 @@ faces = { 'times': 'Times',
         'size' : 12,
         'size2': 10,
         }
+
+def LogBottom(frame, log):
+    """Show log at the bottom"""
+    frame.menu_options.Check(frame.mnuLogBottomID, 1)
+    frame.log = log
+    frame.log.Reparent(frame.splitter)
+    wxLog_SetActiveTarget(MyLog(frame.log))
+    frame.splitter.SplitHorizontally(frame.nb, frame.log, 400)
+    frame.splitter.SetMinimumPaneSize(20)
+    frame.log.Show(True)
+    frame.pref['log'] = 'bottom'
 
 class main(wxPanel):
 
@@ -205,7 +219,6 @@ class main(wxPanel):
 
     def OnLicButton(self, event):
         """Pick a license, any license"""
-        from wxPython.lib.dialogs import wxMultipleChoiceDialog
         c = os.listdir('%s/licenses' % self.parent.portdir)
         def strp(s): return s.strip()
         c = map(strp, c)
@@ -280,6 +293,10 @@ class main(wxPanel):
         """Return package name"""
         return self.Package.GetValue()
 
+    def GetCategoryName(self):
+        """Return category name"""
+        return self.Category.GetValue()
+
 class LogWindow(wxFrame):
     """Separate window for log"""
     def __init__(self, parent):
@@ -299,7 +316,7 @@ class LogWindow(wxFrame):
         self.Show(True)
 
     def OnClose(self, event):
-        self.parent.LogBottom(self.parent.log)
+        LogBottom(self.parent, self.parent.log)
         self.Destroy()
 
     def AddToolbar(self):
@@ -375,16 +392,22 @@ class changelog(wxPanel):
         self.edChangelog.SetMarginType(1, wxSTC_MARGIN_NUMBER)
         self.edChangelog.SetMarginWidth(1, 25)
 
-    def Populate(self, filename, portdir):
+    def Populate(self, text):
         """Add Changelog template for new ebuilds"""
+        self.edChangelog.SetText(text)
+        self.edChangelog.SetReadOnly(1)
 
-        if os.path.exists(filename):
-            self.edChangelog.SetText(open(filename).read())
-        else:
-            filename= '%s/skel.ChangeLog' % portdir
-            self.edChangelog.SetText(open(filename).read())
+class Logo(wxPanel):
 
+    """Add notebook page for Abeni logo on startup"""
 
+    def __init__(self, parent):
+        wxPanel.__init__(self, parent, -1)
+        self.SetBackgroundColour(wxBLUE)
+        png = wxImage('/usr/share/abeni/images/abeni_logo50.png', wxBITMAP_TYPE_PNG).ConvertToBitmap()
+        wxStaticBitmap(self, -1, png, wxPoint(10, 30), wxSize(png.GetWidth(), png.GetHeight()))
+ 
+ 
 class NewFunction(wxPanel):
 
     """Add notebook page for new function, using a simple text editor"""
@@ -698,3 +721,15 @@ class PythonSTC(wxStyledTextCtrl):
 
         return line
 
+class MyLog(wxPyLog):
+    def __init__(self, textCtrl, logTime=0):
+        wxPyLog.__init__(self)
+        self.tc = textCtrl
+        self.logTime = logTime
+
+    def DoLogString(self, message, timeStamp):
+        if self.logTime:
+            message = time.strftime("%X", time.localtime(timeStamp)) + \
+                      ": " + message
+        if self.tc:
+            self.tc.AppendText(message + '\n')
