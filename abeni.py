@@ -116,8 +116,10 @@ class MyFrame(wxFrame):
         saveBmp = ('/usr/share/bitmaps/abeni/save.bmp')
         openBmp = ('/usr/share/bitmaps/abeni/open.bmp')
         #closeBmp = ('/usr/share/bitmaps/abeni/close.bmp' % appdir)
-        newVarBmp = ('/usr/share/bitmaps/abeni/new_var.bmp')
-        newFunBmp = ('/usr/share/bitmaps/abeni/new_fun.bmp')
+        #newVarBmp = ('/usr/share/bitmaps/abeni/new_var.bmp')
+        newVarBmp = ('/usr/share/bitmaps/abeni/x.png')
+        #newFunBmp = ('/usr/share/bitmaps/abeni/new_fun.bmp')
+        newFunBmp = ('/usr/share/bitmaps/abeni/fx.png')
         helpBmp = ('/usr/share/bitmaps/abeni/help.bmp')
         self.tb.AddSimpleTool(newID, wxBitmap(newBmp, wxBITMAP_TYPE_BMP), \
                                 "Create new ebuild", "Create New ebuild")
@@ -127,9 +129,9 @@ class MyFrame(wxFrame):
                                 "Save ebuild", "Save ebuild")
         #self.tb.AddSimpleTool(closeID, wxBitmap(closeBmp, wxBITMAP_TYPE_BMP), \
         #                        "Close ebuild", "Close ebuild")
-        self.tb.AddSimpleTool(newVarID, wxBitmap(newVarBmp, wxBITMAP_TYPE_BMP), \
+        self.tb.AddSimpleTool(newVarID, wxBitmap(newVarBmp, wxBITMAP_TYPE_PNG), \
                                 "New Variable", "New Variable")
-        self.tb.AddSimpleTool(newFunID, wxBitmap(newFunBmp, wxBITMAP_TYPE_BMP), \
+        self.tb.AddSimpleTool(newFunID, wxBitmap(newFunBmp, wxBITMAP_TYPE_PNG), \
                                 "New Function", "New Function")
         self.tb.AddSimpleTool(helpID, wxBitmap(helpBmp, wxBITMAP_TYPE_BMP ), \
                                 "Help", "Abeni Help")
@@ -529,7 +531,7 @@ class MyFrame(wxFrame):
 
         f.write('# Copyright 1999-2003 Gentoo Technologies, Inc.\n')
         f.write('# Distributed under the terms of the GNU General Public License v2\n')
-        f.write('# $Header: /cvsroot/abeni/abeni/Attic/abeni.py,v 1.19 2003/06/03 01:09:08 robc Exp $\n\n')
+        f.write('# $Header: /cvsroot/abeni/abeni/Attic/abeni.py,v 1.20 2003/06/04 02:44:12 robc Exp $\n\n')
 
         f.write(self.panelMain.stext.GetValue() + '\n')
         textList, varList = self.panelMain.GetVars()
