@@ -204,8 +204,10 @@ class MyDialog(wxDialog):
         self.checkbox_whitespace.SetValue(int(p['show_whitespace']))
         #spaces per tab
         #TODO: change in wxglade
-        self.text_ctrl_1.SetValue(p['tabsize'])
-
+        try:
+            self.text_ctrl_1.SetValue(p['tabsize'])
+        except:
+            self.text_ctrl_1.SetValue('4')
         #gen devs
         self.text_ctrl_cvs_root.SetValue(p['cvsRoot'])
         self.text_ctrl_devUserName.SetValue(p['devUserName'])
