@@ -1,8 +1,11 @@
 
   11 Jul 2004; Rob Cakebread <pythonhead@gentoo.org>:
+  Version bump.
   gui.py: Added diff PORTDIR vs current ebuild in Tools
-  utils.py: Re-ordered ebuild (See Abeni_Style_Guide.txt)
+  utils.py: Improved ordering of elements in ebuild (See Style_Guide.html)
   docs/Style_Guide.html: Added to CVS
+  docs: Moved all documentation to this new directory
+  HelpStyleGuid.py: New help window added to CVS
 
   10 Jul 2004; Rob Cakebread <pythonhead@gentoo.org>:
   utils.py: Remove copying of ChangeLog. It should only be touched by echangelog.
