@@ -22,7 +22,22 @@ from portage import config, settings
 
 import __version__ 
 import utils
-from Dialogs import *
+
+import AboutDialog
+#import FileCopyDialog
+#import MetadataXMLDialog
+import RepomanDialog
+import AddFunctionDialog
+import GetURIDialog
+#import PermsDialog
+import ScrolledDialog
+#import FileCopyDialog
+#import HelpCVSDialog
+import PortageFuncsDialog
+import EmergeDialog
+import HelpFkeysDialog
+import PrefsDialog
+
 from GentooSTC import GentooSTC
 from FileBrowser import MyBrowser
 from MyLog import MyLog
@@ -32,7 +47,7 @@ import pyipc
 import enamer
 
 
-# __revision__ = "$Id: MyFrame.py,v 1.6 2005/01/22 20:09:51 robc Exp $"
+# __revision__ = "$Id: MyFrame.py,v 1.7 2005/01/22 21:11:43 robc Exp $"
 
 env = config(clone = settings).environ()
 PORTDIR_OVERLAY = env['PORTDIR_OVERLAY'].split(" ")[0]

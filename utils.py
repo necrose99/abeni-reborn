@@ -22,7 +22,7 @@ import gentoolkit
 
 import sudo
 import options
-from Dialogs import ScrolledDialog
+import ScrolledDialog
 import parse_metadata
 
 try:

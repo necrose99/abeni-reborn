@@ -2,6 +2,6 @@
 
 export FEATURES="notitles"
 export NOCOLOR="yes"
-exec /usr/bin/python -c 'import abeni.main'
+exec /usr/bin/python -c 'import abeni.main;abeni.main.main()'
 
 

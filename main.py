@@ -90,9 +90,12 @@ class MyApp(wx.App):
         self.SetTopWindow(self.frame)
         return True
 
-
-if __name__ == "__main__":
+def main():
+    """Display GUI"""
     gentoo_sanity_check()
     rc_setup()
     app=MyApp(0)
     app.MainLoop()
+
+if __name__ == "__main__":
+    main()
