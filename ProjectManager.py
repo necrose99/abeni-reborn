@@ -7,6 +7,8 @@ env = config().environ()
 portdir_overlay = env['PORTDIR_OVERLAY'].split(":")[0]
 portdir = env['PORTDIR']
 
+if portdir_overlay[-1] == "/":
+	portdir_overlay = portdir_overlay[:-1]
 
 #---------------------------------------------------------------------------
 
