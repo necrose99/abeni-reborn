@@ -205,6 +205,7 @@ class MyFrame(wx.Frame):
         self.text_ctrl_PN = wx.TextCtrl(self.panel_cpvr, -1, "")
         self.label_PVR = wx.StaticText(self.panel_cpvr, -1, "$PVR")
         self.text_ctrl_PVR = wx.TextCtrl(self.panel_cpvr, -1, "")
+        self.button_1 = wx.ToggleButton(self.panel_cpvr, -1, "noauto")
         self.static_line_3 = wx.StaticLine(self.panel_1, -1)
         self.STCeditor = GentooSTC(self.splitter, -1)
         self.text_ctrl_log = wx.TextCtrl(self.panel_log, -1, "", style=wx.TE_MULTILINE|wx.TE_READONLY)
@@ -236,12 +237,10 @@ class MyFrame(wx.Frame):
         for i in range(len(statusbar_fields)):
             self.statusbar.SetStatusText(statusbar_fields[i], i)
         self.toolbar.Realize()
-        self.text_ctrl_Category.SetSize((120, 22))
         self.text_ctrl_Category.SetToolTipString("Select a category")
-        self.text_ctrl_PN.SetSize((200, 22))
         self.text_ctrl_PN.SetToolTipString("Enter the Package Name")
-        self.text_ctrl_PVR.SetSize((120, 22))
         self.text_ctrl_PVR.SetToolTipString("Enter the Package Version")
+        self.button_1.SetValue(1)
         self.radio_box_env.SetSelection(0)
         # end wxGlade
 
@@ -263,14 +262,15 @@ class MyFrame(wx.Frame):
         sizer_8 = wx.BoxSizer(wx.HORIZONTAL)
         sizer_1.Add(self.static_line_2, 0, wx.EXPAND, 0)
         sizer_8.Add(self.button_Category, 0, wx.RIGHT, 10)
-        sizer_8.Add(self.text_ctrl_Category, 0, 0, 0)
+        sizer_8.Add(self.text_ctrl_Category, 1, wx.RIGHT|wx.EXPAND, 16)
         sizer_5.Add(sizer_8, 1, wx.EXPAND, 0)
         sizer_6.Add(self.label_PN, 0, wx.RIGHT|wx.ALIGN_CENTER_VERTICAL, 10)
-        sizer_6.Add(self.text_ctrl_PN, 0, 0, 0)
+        sizer_6.Add(self.text_ctrl_PN, 1, wx.RIGHT|wx.EXPAND, 16)
         sizer_5.Add(sizer_6, 1, wx.EXPAND, 0)
         sizer_7.Add(self.label_PVR, 0, wx.RIGHT|wx.ALIGN_CENTER_VERTICAL, 10)
         sizer_7.Add(self.text_ctrl_PVR, 0, 0, 0)
         sizer_5.Add(sizer_7, 1, wx.EXPAND, 0)
+        sizer_5.Add(self.button_1, 0, wx.FIXED_MINSIZE, 0)
         sizer_3.Add(sizer_5, 1, wx.ALL, 6)
         self.panel_cpvr.SetAutoLayout(True)
         self.panel_cpvr.SetSizer(sizer_3)
@@ -298,7 +298,7 @@ class MyFrame(wx.Frame):
         self.window_1_pane_2.SetSizer(sizer_11)
         sizer_11.Fit(self.window_1_pane_2)
         sizer_11.SetSizeHints(self.window_1_pane_2)
-        self.window_1.SplitVertically(self.window_1_pane_1, self.window_1_pane_2, 267)
+        self.window_1.SplitVertically(self.window_1_pane_1, self.window_1_pane_2, -361)
         sizer_9.Add(self.window_1, 1, wx.EXPAND, 0)
         self.panel_explorer.SetAutoLayout(True)
         self.panel_explorer.SetSizer(sizer_9)
@@ -429,7 +429,10 @@ class MyFrame(wx.Frame):
 
         wx.EVT_CLOSE(self, self.OnClose)
         wx.EVT_END_PROCESS(self, -1, self.OnProcessEnded)
-        #wx.EVT_IDLE(self, self.OnIdle)
+
+        self.Bind(wx.EVT_TOGGLEBUTTON, self.on_noauto, self.button_1)
+        self.noauto = "FEATURES='noauto'"
+
         self.process = None
 
     	self.toolbar.EnableTool(self.StopID, False)
@@ -520,6 +523,17 @@ class MyFrame(wx.Frame):
             print "Checking for package: %s" % f
             #Draw GUI before we start the slow search
             utils.LoadByPackage(self, f)
+
+    def on_noauto(self, event):
+        """Toggle noauto button"""
+        if self.noauto:
+            self.noauto = "FEATURES='-noauto'"
+        else:
+            self.noauto = "FEATURES='noauto'"
+
+    def focus_output(self):
+        """Switch to Output notebook page"""
+        self.notebook_1.SetSelection(0)
 
     def OnMnuExportEbuild(self, event):
         """Export ebuild and auxiliary files as tarball"""
@@ -737,10 +751,6 @@ class MyFrame(wx.Frame):
     def OnTimer(self, evt):
         """Call idle handler every second to update log window"""
         self.HandleIdle()
-
-    #def OnIdle(self, event):
-    #    """Called after the GUI stops being idle (mouse or key events)"""
-    #    self.HandleIdle()
 
     def HandleIdle(self):
         if self.busywriting:
@@ -976,8 +986,8 @@ class MyFrame(wx.Frame):
                 logMsg = '))) Compiling...'
                 #cmd = 'FEATURES="%s" USE="%s" sudo /usr/sbin/ebuild %s compile' % \
                 #    (self.pref['features'], self.pref['use'], self.filename)
-                cmd = '''xterm -e "sudo sh -c 'export USE='%s';sudo ebuild %s compile 2>&1| tee /var/tmp/abeni/emerge_log'"''' \
-                         % (self.pref['use'], self.filename)
+                cmd = '''xterm -e "sudo sh -c 'export %s;export USE='%s';sudo ebuild %s compile 2>&1| tee /var/tmp/abeni/emerge_log'"''' \
+                         % (self.noauto, self.pref['use'], self.filename)
                 utils.ExecuteInLog(self, cmd, logMsg)
 
     def OnMnuClean(self, event):
@@ -1001,6 +1011,7 @@ class MyFrame(wx.Frame):
             if not utils.IsOverlay(self, self.filename):
                 utils.MyMessage(self, "You need to save the ebuild first.", "error")
                 return 0
+            self.focus_output()
             if not utils.VerifySaved(self):
                 self.action = 'unpack'
                 logMsg = '))) Unpacking...'
@@ -1016,12 +1027,17 @@ class MyFrame(wx.Frame):
                 utils.MyMessage(self, "You need to save the ebuild first.", "error")
                 return 0
 
+            self.focus_output()
             if not utils.VerifySaved(self):
                 self.action = 'install'
                 logMsg = '))) Installing...'
                 #cmd = 'FEATURES="%s" USE="%s" sudo /usr/sbin/ebuild %s install' % \
                 #    (self.pref['features'], self.pref['use'], self.filename)
-                cmd = 'sudo /usr/sbin/ebuild %s install' % self.filename
+                #cmd = 'sudo /usr/sbin/ebuild %s install' % self.filename
+                cmd = '''xterm -e "sudo sh -c 'export %s;export USE='%s';sudo ebuild %s install 2>&1|tee /var/tmp/abeni/emerge_log'"''' \
+                         % (self.noauto, self.pref['use'], self.filename)
+
+
                 utils.ExecuteInLog(self, cmd, logMsg)
 
     def OnToolbarQmerge(self, event):
@@ -1031,13 +1047,14 @@ class MyFrame(wx.Frame):
                 utils.MyMessage(self, "You need to save the ebuild first.", "error")
                 return 0
 
+            self.focus_output()
             if not utils.VerifySaved(self):
                 self.action = 'qmerge'
                 logMsg = '))) Qmerging...'
                 #cmd = 'FEATURES="%s" USE="%s" sudo /usr/sbin/ebuild %s qmerge' % \
                 #    (self.pref['features'], self.pref['use'], self.filename)
-                cmd = '''xterm -e "sudo sh -c 'export USE='%s';sudo ebuild %s qmerge 2>&1|tee /var/tmp/abeni/emerge_log'"''' \
-                         % (self.pref['use'], self.filename)
+                cmd = '''xterm -e "sudo sh -c 'export %s;export USE='%s';sudo ebuild %s qmerge 2>&1|tee /var/tmp/abeni/emerge_log'"''' \
+                         % (aelf.noauto, self.pref['use'], self.filename)
 
                 #cmd = """sudo sh -c 'export USE='%s';sudo ebuild %s qmerge 2>&1|\
                 #         tee /var/tmp/abeni/emerge_log'""" \
@@ -1105,7 +1122,6 @@ class MyFrame(wx.Frame):
         fdir = utils.GetFilesDir(self)
         os.system("sudo chown root:portage %s" % fdir)
         os.system("sudo chmod 775 %s" % fdir)
-        print fdir
         tmpdir = tempfile.mkdtemp(suffix='', prefix='tmp', dir=None)
         tmp_patch = os.path.join(tmpdir, "tmp_patch")
         #if not os.path.exists(tmpdir):
@@ -1506,7 +1522,7 @@ class MyFrame(wx.Frame):
         data = mq.receive()
         if data:
             cmd, file = data.split("*")
-            print "External command recvd:'%s'" % cmd
+            self.write("))) External command:'%s'" % cmd)
             if cmd[4:] == "digest":
                 self.OnMnuCreateDigest(-1)
             if cmd[4:] == "unpack":

@@ -3,7 +3,7 @@ This is the TODO file for Abeni.
 If you are interested in working on any of these, please
 email pythonhead AT gentoo DOT org
 
- - Use actual ARCH in emerge dialog
+ - Test stop button
  - Disable cpvr inputs till editor is visible
  - Make sure scroll is visible? wx.CallAfter(self.EnsureCaretVisible)
 

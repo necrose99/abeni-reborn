@@ -212,30 +212,29 @@ def PostAction(parent, action):
         write(parent, "))) All clean.")
         parent.RefreshExplorer()
         ViewEnvironment(parent)
+    if action == 'digest':
+        parent.RefreshExplorer()
     if action == 'unpack':
         PostUnpack(parent)
-        parent.RefreshExplorer()
-    if action == 'install':
-        PostInstall(parent)
-        #log_to_output(parent)
-        parent.RefreshExplorer()
-        write(parent, "))) install finished")
-    if action == 'digest':
         parent.RefreshExplorer()
     if action == 'compile':
         parent.RefreshExplorer()
         log_to_output(parent)
         write(parent, "))) compile finished")
+    if action == 'install':
+        PostInstall(parent)
+        log_to_output(parent)
+        parent.RefreshExplorer()
+        write(parent, "))) install finished")
     if action == 'qmerge':
         parent.RefreshExplorer()
         log_to_output(parent)
         write(parent, "))) qmerge finished")
-    if action:
-        parent.statusbar.SetStatusText("%s done." % action, 0)
     if action == 'emerge':
         parent.RefreshExplorer()
         log_to_output(parent)
         write(parent, "))) emerge finished")
+    parent.statusbar.SetStatusText("%s done." % action, 0)
 
 def log_to_output(parent):
     """Get logfile text and display in output tab"""
