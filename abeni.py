@@ -12,7 +12,7 @@ print "Importing portage config, wxPython, Python and Abeni modules..."
 
 from portage import config, portdb, db, pkgsplit, catpkgsplit
 from wxPython.wx import *
-from wxPython.lib.dialogs import wxScrolledMessageDialog
+from wxPython.lib.dialogs import wxScrolledMessageDialog, wxMultipleChoiceDialog
 import os, string, sys, urlparse, time, re, shutil   #, tarfile
 #Abeni modules:
 import dialogs, panels
@@ -882,10 +882,19 @@ class MyFrame(wxFrame):
             filelist = []
             filelist.append(self.GetFilename())
             filelist.append(self.env['FILESDIR']+"/digest-"+self.GetP())
-            auxfilelist = [self.env['FILESDIR']+"/"+f for f in os.listdir(self.env['FILESDIR']) if f[:6] != "digest"]
+            auxfilelist = [f for f in os.listdir(self.env['FILESDIR']) if f[:6] != "digest"]
             
             # TODO: add all filenames that are present in the ebuild and ask 
-            # the user about the others. For now just add all files
+            # the user about the others. For now just ask the user for all files except digests
+            # Hmm, the multi-choice dialog does not allow to pre-select anything
+            # I'd like to select all files by default, but I guess that needs a custom dialog then.
+            msg = "Select the files you want to include in the tarball.\n(don't worry about the digest,\nit will be included automatically)"
+            fileselectdlg = wxMultipleChoiceDialog(self, msg, "Auxiliary file selection", 
+                                                   auxfilelist, size=(300,min([500,150+len(auxfilelist)*20])))
+            if fileselectdlg.ShowModal() == wxID_OK:
+                auxfilelist = [self.env['FILESDIR']+"/"+f for f in list(fileselectdlg.GetValueString())]
+            else:
+                return 0
             filelist += auxfilelist
             
             filelist = [f.replace(self.GetCategory()+"/", "") for f in filelist]
@@ -895,7 +904,10 @@ class MyFrame(wxFrame):
             filedlg = wxFileDialog(self, "Export ebuild to tarball", "", tarballname, "BZipped tarball (*.tar.bz2)|*.tar.bz2|All files|*", wxSAVE|wxOVERWRITE_PROMPT)
             if filedlg.ShowModal() == wxID_OK:
                 tarballname = filedlg.GetPath()
-            filedlg.Destroy()
+                filedlg.Destroy()
+            else:
+                filedlg.Destroy()
+                return 0
 			
             tarcmd = "tar -cvjf " + tarballname + " -C " + self.GetCategory() + " " + reduce(lambda a,b: a+" "+b, filelist)
             self.ExecuteInLog(tarcmd)
