@@ -8,7 +8,7 @@ from wxPython.wx import *
 from wxPython.lib.dialogs import wxMultipleChoiceDialog
 from wxPython.lib.dialogs import wxScrolledMessageDialog
 
-import MetadataDialog
+from Dialogs import MetadataDialog
 
 codes={}
 codes["bold"]="\x1b[01m"

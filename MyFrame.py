@@ -22,27 +22,18 @@ from portage import config, settings
 
 import __version__ 
 import utils
-import AboutDialog
-import AddFunctionDialog
-import EmergeDialog
-import FileCopyDialog
-import HelpCVSDialog
-import HelpFkeysDialog
-import MetadataDialog
-import PortageFuncsDialog
-import PrefsDialog
+from Dialogs import *
 from GentooSTC import GentooSTC
-from GetURIDialog import GetURIDialog
-from URI_Link import MyURILink
 from FileBrowser import MyBrowser
 from MyLog import MyLog
+from URI_Link import MyURILink
 import MyDatabase
 import pyipc
 import abeniCVS
 import enamer
 
 
-__revision__ = "$Id: MyFrame.py,v 1.2 2005/01/10 18:15:22 robc Exp $"
+__revision__ = "$Id: MyFrame.py,v 1.3 2005/01/10 18:56:59 robc Exp $"
 
 env = config(clone=settings).environ()
 PORTDIR_OVERLAY = env['PORTDIR_OVERLAY'].split(" ")[0]
@@ -1134,7 +1125,7 @@ class MyFrame(wx.Frame):
     def OnMnuNew(self, event):
         """Creates a new ebuild from scratch"""
         if not utils.verify_saved(self):
-            win = GetURIDialog(self, -1, "Enter Package URI",
+            win = GetURIDialog.GetURIDialog(self, -1, "Enter Package URI",
                                size = wx.Size(350, 200),
                                style = wx.DEFAULT_DIALOG_STYLE 
                                )
@@ -1752,6 +1743,7 @@ class MyFrame(wx.Frame):
     def OnMnuPref(self, event):
         """Modify preferences"""
         win = PrefsDialog.MyDialog(self, -1, "Preferences",
+        #win = MyDialog(self, -1, "Preferences",
                                    size=wx.Size(350, 200),
                                    style = wx.DEFAULT_DIALOG_STYLE
                                   )

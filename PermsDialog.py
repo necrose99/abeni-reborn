@@ -1,23 +1,54 @@
-import dialog
 
-from wxPython.wx import *
+import wx
 
-class ChmodWindow (dialog.DialogWindow):
+class DialogWindow(wx.Dialog):
+
+	def __init__ (self, parent, title):
+		wx.Dialog.__init__ (self, parent, -1, title)
+
+		self.dialog_panel = wx.Panel (self, -1, style=wx.SUNKEN_BORDER)
+
+	def renderDialog (self):
+		ok_button = wx.Button (self, wx.ID_OK, _("Ok"))
+		ok_button.SetDefault ()
+		cancel_button = wx.Button (self, wx.ID_CANCEL, _("Cancel"))
+		bsizer = wx.BoxSizer (wx.HORIZONTAL)
+		bsizer.Add (5, 5, 1, wx.EXPAND)
+		bsizer.Add (ok_button, 0, wx.EXPAND)
+		bsizer.Add (75, 5, 0, wx.EXPAND)
+		bsizer.Add (cancel_button, 0, wx.EXPAND)
+		bsizer.Add (5, 5, 1, wx.EXPAND)
+
+		sizer = wx.BoxSizer (wx.VERTICAL)
+		sizer.Add (self.dialog_panel, 1, wx.EXPAND)
+		sizer.Add (15, 15, 0, wx.EXPAND)
+		sizer.Add (bsizer, 0, wx.EXPAND)
+		sizer.Add (15, 15, 0, wx.EXPAND)
+		self.SetAutoLayout (true)
+		self.SetSizer (sizer)
+		sizer.Fit (self)
+		sizer.SetSizeHints (self)
+
+		self.Centre ()
+
+	def getDialogPanel (self):
+		return self.dialog_panel
+class ChmodWindow (DialogWindow):
 
     # User permission IDs
-    idCHECK_UREAD  = wxNewId ()
-    idCHECK_UWRITE = wxNewId ()
-    idCHECK_UEXEC  = wxNewId ()
+    idCHECK_UREAD  = wx.NewId ()
+    idCHECK_UWRITE = wx.NewId ()
+    idCHECK_UEXEC  = wx.NewId ()
 
     # Group permission IDs
-    idCHECK_GREAD  = wxNewId ()
-    idCHECK_GWRITE = wxNewId ()
-    idCHECK_GEXEC  = wxNewId ()
+    idCHECK_GREAD  = wx.NewId ()
+    idCHECK_GWRITE = wx.NewId ()
+    idCHECK_GEXEC  = wx.NewId ()
 
     # Other permission IDs
-    idCHECK_OREAD  = wxNewId ()
-    idCHECK_OWRITE = wxNewId ()
-    idCHECK_OEXEC  = wxNewId ()
+    idCHECK_OREAD  = wx.NewId ()
+    idCHECK_OWRITE = wx.NewId ()
+    idCHECK_OEXEC  = wx.NewId ()
 
     def __init__ (self, parent, file, perm, title=None):
         if __debug__:
@@ -27,67 +58,67 @@ class ChmodWindow (dialog.DialogWindow):
 
         if title is None:
             title = "Ftpcube - Change File Permissions"
-        dialog.DialogWindow.__init__ (self, parent, title)
+        DialogWindow.__init__ (self, parent, title)
         #self.SetIcon (main.getApp ().getAppIcon ())
 
         panel = self.getDialogPanel ()
 
         # Construct the user permissions section
-        self.uread = wxCheckBox (panel, self.idCHECK_UREAD, "Read")
-        self.uwrite = wxCheckBox (panel, self.idCHECK_UWRITE, "Write")
-        self.uexec = wxCheckBox (panel, self.idCHECK_UEXEC, "Exec")
-        ufsizer = wxGridSizer (1, 3)
+        self.uread = wx.CheckBox (panel, self.idCHECK_UREAD, "Read")
+        self.uwrite = wx.CheckBox (panel, self.idCHECK_UWRITE, "Write")
+        self.uexec = wx.CheckBox (panel, self.idCHECK_UEXEC, "Exec")
+        ufsizer = wx.GridSizer (1, 3)
         ufsizer.AddMany ([
-            (self.uread, 0, wxALIGN_CENTER_HORIZONTAL), (self.uwrite, 0, wxALIGN_CENTER_HORIZONTAL), (self.uexec, 0, wxALIGN_CENTER_HORIZONTAL)
+            (self.uread, 0, wx.ALIGN_CENTER_HORIZONTAL), (self.uwrite, 0, wx.ALIGN_CENTER_HORIZONTAL), (self.uexec, 0, wx.ALIGN_CENTER_HORIZONTAL)
         ])
-        ubox = wxStaticBox (panel, -1, "User Access")
-        usizer = wxStaticBoxSizer (ubox, wxHORIZONTAL)
-        usizer.Add (ufsizer, 1, wxEXPAND)
+        ubox = wx.StaticBox (panel, -1, "User Access")
+        usizer = wx.StaticBoxSizer (ubox, wx.HORIZONTAL)
+        usizer.Add (ufsizer, 1, wx.EXPAND)
 
         # Construct the group permissions section
-        self.gread = wxCheckBox (panel, self.idCHECK_GREAD, "Read")
-        self.gwrite = wxCheckBox (panel, self.idCHECK_GWRITE, "Write")
-        self.gexec = wxCheckBox (panel, self.idCHECK_GEXEC, "Exec")
-        gfsizer = wxGridSizer (1, 3)
+        self.gread = wx.CheckBox (panel, self.idCHECK_GREAD, "Read")
+        self.gwrite = wx.CheckBox (panel, self.idCHECK_GWRITE, "Write")
+        self.gexec = wx.CheckBox (panel, self.idCHECK_GEXEC, "Exec")
+        gfsizer = wx.GridSizer (1, 3)
         gfsizer.AddMany ([
-            (self.gread, 0, wxALIGN_CENTER_HORIZONTAL), (self.gwrite, 0, wxALIGN_CENTER_HORIZONTAL), (self.gexec, 0, wxALIGN_CENTER_HORIZONTAL)
+            (self.gread, 0, wx.ALIGN_CENTER_HORIZONTAL), (self.gwrite, 0, wx.ALIGN_CENTER_HORIZONTAL), (self.gexec, 0, wx.ALIGN_CENTER_HORIZONTAL)
         ])
-        gbox = wxStaticBox (panel, -1, "Group Access")
-        gsizer = wxStaticBoxSizer (gbox, wxHORIZONTAL)
-        gsizer.Add (gfsizer, 1, wxEXPAND)
+        gbox = wx.StaticBox (panel, -1, "Group Access")
+        gsizer = wx.StaticBoxSizer (gbox, wx.HORIZONTAL)
+        gsizer.Add (gfsizer, 1, wx.EXPAND)
 
         # Construct the others permissions section
-        self.oread = wxCheckBox (panel, self.idCHECK_OREAD, "Read")
-        self.owrite = wxCheckBox (panel, self.idCHECK_OWRITE, "Write")
-        self.oexec = wxCheckBox (panel, self.idCHECK_OEXEC, "Exec")
-        ofsizer = wxGridSizer (1, 3)
+        self.oread = wx.CheckBox (panel, self.idCHECK_OREAD, "Read")
+        self.owrite = wx.CheckBox (panel, self.idCHECK_OWRITE, "Write")
+        self.oexec = wx.CheckBox (panel, self.idCHECK_OEXEC, "Exec")
+        ofsizer = wx.GridSizer (1, 3)
         ofsizer.AddMany ([
-            (self.oread, 0, wxALIGN_CENTER_HORIZONTAL), (self.owrite, 0, wxALIGN_CENTER_HORIZONTAL), (self.oexec, 0, wxALIGN_CENTER_HORIZONTAL)
+            (self.oread, 0, wx.ALIGN_CENTER_HORIZONTAL), (self.owrite, 0, wx.ALIGN_CENTER_HORIZONTAL), (self.oexec, 0, wx.ALIGN_CENTER_HORIZONTAL)
         ])
-        obox = wxStaticBox (panel, -1, "Other Access")
-        osizer = wxStaticBoxSizer (obox, wxHORIZONTAL)
-        osizer.Add (ofsizer, 1, wxEXPAND)
+        obox = wx.StaticBox (panel, -1, "Other Access")
+        osizer = wx.StaticBoxSizer (obox, wx.HORIZONTAL)
+        osizer.Add (ofsizer, 1, wx.EXPAND)
 
-        file_label = wxStaticText (panel, -1, "Permissions for: %(file)s"
+        file_label = wx.StaticText (panel, -1, "Permissions for: %(file)s"
                                               %{ 'file' : self.file })
 
-        fsizer = wxFlexGridSizer (7, 3)
+        fsizer = wx.FlexGridSizer (7, 3)
         fsizer.AddMany ([
             (10, 10), (10, 10), (10, 10),
-            (10, 5), (usizer, 1, wxEXPAND), (10, 5),
+            (10, 5), (usizer, 1, wx.EXPAND), (10, 5),
             (10, 10), (10, 10), (10, 10),
-            (10, 5), (gsizer, 1, wxEXPAND), (10, 5),
+            (10, 5), (gsizer, 1, wx.EXPAND), (10, 5),
             (10, 10), (10, 5), (10, 5),
-            (10, 5), (osizer, 1, wxEXPAND), (10, 5),
+            (10, 5), (osizer, 1, wx.EXPAND), (10, 5),
             (10, 10), (10, 10), (10, 10),
-            (10, 5), (file_label, 0, wxALIGN_CENTER_HORIZONTAL), (10, 5),
+            (10, 5), (file_label, 0, wx.ALIGN_CENTER_HORIZONTAL), (10, 5),
         ])
         fsizer.AddGrowableCol (1)
 
-        sizer = wxFlexGridSizer (3, 3)
+        sizer = wx.FlexGridSizer (3, 3)
         sizer.AddMany ([
             (10, 10), (10, 10), (10, 10),
-            (10, 10), (fsizer, 1, wxEXPAND), (10, 10),
+            (10, 10), (fsizer, 1, wx.EXPAND), (10, 10),
             (10, 10), (10, 10), (10, 10)
         ])
         sizer.AddGrowableCol (1)
@@ -160,3 +191,5 @@ class ChmodWindow (dialog.DialogWindow):
             self.owrite.SetValue (true)
         if self.mode & 1:
             self.oexec.SetValue (true)
+
+
