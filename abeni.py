@@ -149,19 +149,31 @@ class MyFrame(wxFrame):
                 wxSafeYield()
                 self.LoadByPackage(f)
 
+    def OnMnuBugzSum(self, event):
+        import GridCustTable
+        frame = GridCustTable.TestFrame(None, sys.stdout)
+        frame.Show(true)
 
     def OnMnuGetDeps(self, event):
         l = self.panelDepend.elb1.GetStrings()
+        new = []
         for p in l:
             p = p.strip()
             if p:
+                #curver = self.versions('^%s$' % p)
                 curver = self.versions(p)
                 if curver == None:
                     self.write("Can't find: %s" % p)
+                    new.append(p)
                 elif curver == "":
-                    self.write("Multiple names like %s. Be more specific." % p)
+                    #self.write("Multiple names like %s. Be more specific." % p)
+                    #Also means isn't installed. TODO
+                    self.write(p)
+                    new.append(p)
                 else:
                     self.write(">=%s" % curver)
+                    new.append(">=%s" % curver)
+        self.panelDepend.elb1.SetStrings(new)
 
     def search(self, search_key):
         matches = []
@@ -732,6 +744,7 @@ class MyFrame(wxFrame):
         dlg.CenterOnScreen()
         v = dlg.ShowModal()
         if v == wxID_OK:
+            self.write( "Saving.")
             r = dlg.SaveInfo()
         dlg.Destroy()
 
@@ -1316,15 +1329,24 @@ class MyFrame(wxFrame):
         menu_tools.Append(mnuDiffCreateID, "Create diff &file")
         EVT_MENU(self, mnuDiffCreateID, self.OnMnuDiffCreate)
 
-        mnuBugID = wxNewId()
-        menu_tools.Append(mnuBugID, "Enter bug&zilla info")
-        EVT_MENU(self, mnuBugID, self.OnMnuBugzilla)
-
         mnuClearLogID = wxNewId()
         menu_tools.Append(mnuClearLogID, "Clear log &window\tf11")
         EVT_MENU(self, mnuClearLogID, self.OnMnuClearLog)
-
         menubar.Append(menu_tools, "&Tools")
+
+        # Project
+        menu_proj = wxMenu()
+
+        mnuBugID = wxNewId()
+        menu_proj.Append(mnuBugID, "Enter or view info")
+        EVT_MENU(self, mnuBugID, self.OnMnuBugzilla)
+
+        mnuSumID = wxNewId()
+        menu_proj.Append(mnuSumID, "Summarize all overlay ebuilds")
+        EVT_MENU(self, mnuSumID, self.OnMnuBugzSum)
+
+        menubar.Append(menu_proj, "&Project")
+
         # View
         menu_view = wxMenu()
         mnuViewID = wxNewId()
@@ -1407,7 +1429,6 @@ class MyApp(wxPySimpleApp):
         frame.Show(true)
         self.SetTopWindow(frame)
         return true
-
 
 app=MyApp(0)
 app.MainLoop()

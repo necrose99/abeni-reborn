@@ -3,7 +3,7 @@ from wxPython.help import *
 from options import *
 from wxPython.lib.grids import wxGridSizer, wxFlexGridSizer
 from wxPython.lib.buttons import *
-
+import os, gadfly
 
 [wxID_BUGZILLA, wxID_BUGZILLABUGNBR, wxID_BUGZILLABUGNBRSTATICTEXT,
  wxID_BUGZILLABUZILLASTATICBOX, wxID_BUGZILLACANCEL,
@@ -12,14 +12,75 @@ from wxPython.lib.buttons import *
  wxID_BUGZILLASTATUSCOMBO,
 ] = map(lambda _init_ctrls: wxNewId(), range(11))
 
+
 class BugzillaDialog(wxDialog):
     def __init__(self, parent):
         self._init_ctrls(parent)
+        loc = "/home/rob/.abeni/bugz"
+        if not os.path.exists("%s/EBUILDS.grl" % loc):
+            self.parent.write("Creating project database and tables...")
+            self.createDB()
+            self.parent.write("Database created.")
+        else:
+            self.connection = gadfly.gadfly("bugzDB", "/home/rob/.abeni/bugz")
+            self.cursor = self.connection.cursor()
         self.LoadInfo()
 
-    def _init_utils(self):
-        # generated method, don't edit
-        pass
+    def createDB(self):
+        self.connection = gadfly.gadfly()
+        self.connection.startup("bugzDB", "/home/rob/.abeni/bugz")
+        self.cursor = self.connection.cursor()
+        cmd = "create table ebuilds (\
+           p VARCHAR, \
+           package VARCHAR, \
+           cat VARCHAR, \
+           bug VARCHAR, \
+           bzstatus VARCHAR, \
+           bzresolution VARCHAR, \
+           notes VARCHAR, \
+           abenistatus VARCHAR \
+           )"
+        self.cursor.execute(cmd)
+        self.connection.commit()
+
+    def SaveInfo(self):
+        p = self.parent.GetP()
+        cat = self.parent.panelMain.Category.GetValue()
+        package = self.parent.panelMain.Package.GetValue()
+        bug, notes, bzstatus, bzresolution = self.GetValues()
+        abenistatus = '1'
+        if self.new:
+            self.cursor.execute("INSERT INTO ebuilds(p, package, cat, bug, bzstatus, bzresolution, notes, abenistatus) \
+                VALUES ('%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s')" \
+                % (p, package, cat, bug, bzstatus, bzresolution, notes, abenistatus)\
+                )
+        else:
+            self.cursor.execute("UPDATE ebuilds SET p='%s', package='%s', cat='%s', bug='%s', bzstatus='%s',  \
+                                bzresolution='%s', notes='%s', abenistatus='%s' WHERE p='%s'" \
+                                % (p, package, cat, bug, bzstatus, bzresolution, notes, abenistatus, p))
+        self.connection.commit()
+
+    def LoadInfo(self):
+        P = self.parent.GetP()
+        cat = self.parent.panelMain.Category.GetValue()
+        package = self.parent.panelMain.Package.GetValue()
+        self.cursor.execute("SELECT p, package, cat, bug, bzstatus, bzresolution, notes, abenistatus \
+                                FROM ebuilds WHERE p='%s'" % P)
+        data = self.cursor.fetchall()
+        if data:
+            self.new = 0
+            self.FillForm(data)
+        else:
+            self.new = 1
+
+    def FillForm(self, data):
+        p, package, cat, bug, bzstatus, bzresolution, notes, abenistatus = data[0]
+        self.BugNbr.SetValue(bug)
+        self.NotestextCtrl.SetValue(notes)
+        if bzstatus != '':
+            self.StatusCombo.SetValue(bzstatus)
+        if bzresolution != '':
+            self.ResolutionCombo.SetValue(bzresolution)
 
     def _init_ctrls(self, prnt):
         self.parent = prnt
@@ -27,7 +88,6 @@ class BugzillaDialog(wxDialog):
         wxDialog.__init__(self, id=wxID_BUGZILLA, name='Bugzilla', parent=prnt,
               pos=wxPoint(278, 137), size=wxSize(462, 493),
               style=wxDEFAULT_DIALOG_STYLE, title='Bugzilla Info & Notes')
-        self._init_utils()
         self.SetClientSize(wxSize(462, 493))
 
         self.BugNbrstaticText = wxStaticText(id=wxID_BUGZILLABUGNBRSTATICTEXT,
@@ -41,13 +101,14 @@ class BugzillaDialog(wxDialog):
         self.SearchButton = wxButton(id=wxID_BUGZILLASEARCHBUTTON,
               label='Search', name='SearchButton', parent=self, pos=wxPoint(226,
               48), size=wxSize(80, 22), style=0)
+        self.SearchButton.SetToolTipString('Launch browser, bugs.gentoo.org, find bug')
         EVT_BUTTON(self, wxID_BUGZILLASEARCHBUTTON, self.OnSearchButton)
 
         self.NotestextCtrl = wxTextCtrl(id=wxID_BUGZILLANOTESTEXTCTRL,
               name='NotestextCtrl', parent=self, pos=wxPoint(16, 168),
               size=wxSize(432, 248), style=wxTAB_TRAVERSAL | wxTE_MULTILINE,
               value='')
-        self.NotestextCtrl.SetToolTipString('Notes')
+        #self.NotestextCtrl.SetToolTipString('Notes')
 
         self.OK = wxGenButton(ID=wxID_OK, label='OK', name='OK',
               parent=self, pos=wxPoint(112, 432), size=wxSize(81, 27), style=0)
@@ -81,44 +142,6 @@ class BugzillaDialog(wxDialog):
         bugNbr, foo, foo, foo = self.GetValues()
         URL = "http://bugs.gentoo.org/show_bug.cgi?id=%s" % bugNbr
         os.system("%s %s &" % (self.parent.pref['browser'], URL))
-
-    def SaveInfo(self):
-        import pickle
-        ebuild = self.parent.GetP()
-        filename = os.path.expanduser('~/.abeni/bugzilla/%s' % ebuild)
-        bug, notes, status, resolution = self.GetValues()
-        f = open(filename, 'w')
-        all = {'bugNbr' : bug, \
-               'notes' : notes, \
-               'status' : status, \
-               'resolution' : resolution
-            }
-        pickle.dump(all, f)
-
-    def LoadInfo(self):
-        import pickle
-        """
-        all = {'bugNbr' : '', \
-               'notes' : '', \
-               'status' : '', \
-               'resolution' : ''
-            }
-        """
-
-        ebuild = self.parent.GetP()
-        filename = os.path.expanduser('~/.abeni/bugzilla/%s' % ebuild)
-        if os.path.exists(filename):
-            f = open(filename, 'r')
-            all = pickle.load(f)
-            self.FillForm(all)
-
-    def FillForm(self, all):
-        self.BugNbr.SetValue(all['bugNbr'])
-        self.NotestextCtrl.SetValue(all['notes'])
-        if all['status'] != '':
-            self.StatusCombo.SetValue(all['status'])
-        if all['resolution'] != '':
-            self.ResolutionCombo.SetValue(all['resolution'])
 
     def GetValues(self):
         bug = self.BugNbr.GetValue()
