@@ -2,6 +2,113 @@ from wxPython.wx import *
 from wxPython.help import *
 from options import *
 from wxPython.lib.grids import wxGridSizer, wxFlexGridSizer
+from wxPython.lib.buttons import *
+
+
+[wxID_BUGZILLA, wxID_BUGZILLABUGNBR, wxID_BUGZILLABUGNBRSTATICTEXT,
+ wxID_BUGZILLABUZILLASTATICBOX, wxID_BUGZILLACANCEL,
+ wxID_BUGZILLANOTESSTATICBOX, wxID_BUGZILLANOTESTEXTCTRL, wxID_BUGZILLAOK,
+ wxID_BUGZILLARESOLUTIONCOMBO, wxID_BUGZILLASEARCHBUTTON,
+ wxID_BUGZILLASTATUSCOMBO,
+] = map(lambda _init_ctrls: wxNewId(), range(11))
+
+class BugzillaDialog(wxDialog):
+    def __init__(self, parent):
+        self._init_ctrls(parent)
+        self.LoadInfo()
+
+    def _init_utils(self):
+        # generated method, don't edit
+        pass
+
+    def _init_ctrls(self, prnt):
+        self.parent = prnt
+        # generated method, don't edit
+        wxDialog.__init__(self, id=wxID_BUGZILLA, name='Bugzilla', parent=prnt,
+              pos=wxPoint(278, 137), size=wxSize(462, 493),
+              style=wxDEFAULT_DIALOG_STYLE, title='Bugzilla Info & Notes')
+        self._init_utils()
+        self.SetClientSize(wxSize(462, 493))
+
+        self.BugNbrstaticText = wxStaticText(id=wxID_BUGZILLABUGNBRSTATICTEXT,
+              label='Bug Number', name='BugNbrstaticText', parent=self,
+              pos=wxPoint(16, 48), size=wxSize(88, 24), style=0)
+
+        self.BugNbr = wxTextCtrl(id=wxID_BUGZILLABUGNBR, name='BugNbr',
+              parent=self, pos=wxPoint(96, 48), size=wxSize(120, 22), style=0,
+              value='')
+
+        self.SearchButton = wxButton(id=wxID_BUGZILLASEARCHBUTTON,
+              label='Search', name='SearchButton', parent=self, pos=wxPoint(226,
+              48), size=wxSize(80, 22), style=0)
+        EVT_BUTTON(self, wxID_BUGZILLASEARCHBUTTON, self.OnSearchButton)
+
+        self.NotestextCtrl = wxTextCtrl(id=wxID_BUGZILLANOTESTEXTCTRL,
+              name='NotestextCtrl', parent=self, pos=wxPoint(16, 168),
+              size=wxSize(432, 248), style=wxTAB_TRAVERSAL | wxTE_MULTILINE,
+              value='')
+        self.NotestextCtrl.SetToolTipString('Notes')
+
+        self.OK = wxGenButton(ID=wxID_OK, label='OK', name='OK',
+              parent=self, pos=wxPoint(112, 432), size=wxSize(81, 27), style=0)
+
+        self.Cancel = wxGenButton(ID=wxID_CANCEL, label='Cancel',
+              name='Cancel', parent=self, pos=wxPoint(272, 432), size=wxSize(81,
+              27), style=0)
+
+        self.BuzillaStaticBox = wxStaticBox(id=wxID_BUGZILLABUZILLASTATICBOX,
+              label='Bugzilla Information', name='BuzillaStaticBox',
+              parent=self, pos=wxPoint(8, 8), size=wxSize(448, 128), style=0)
+
+        self.StatusCombo = wxComboBox(choices=[], id=wxID_BUGZILLASTATUSCOMBO,
+              name='StatusCombo', parent=self, pos=wxPoint(16, 88),
+              size=wxSize(200, 22), style=0, validator=wxDefaultValidator,
+              value='NEW')
+        self.StatusCombo.SetLabel('')
+
+        self.ResolutionCombo = wxComboBox(choices=[],
+              id=wxID_BUGZILLARESOLUTIONCOMBO, name='ResolutionCombo',
+              parent=self, pos=wxPoint(224, 88), size=wxSize(224, 22), style=0,
+              validator=wxDefaultValidator, value='FIXED')
+        self.ResolutionCombo.SetLabel('')
+
+        self.NotesStaticBox = wxStaticBox(id=wxID_BUGZILLANOTESSTATICBOX,
+              label='Notes', name='NotesStaticBox', parent=self, pos=wxPoint(8,
+              144), size=wxSize(448, 280), style=0)
+
+    def OnSearchButton(self, event):
+        bugNbr, foo = self.GetValues()
+        URL = "http://bugs.gentoo.org/show_bug.cgi?id=%s" % bugNbr
+        os.system("%s %s &" % (self.parent.pref['browser'], URL))
+
+    def SaveInfo(self):
+        import pickle
+        ebuild = self.parent.GetP()
+        filename = os.path.expanduser('~/.abeni/bugzilla/%s' % ebuild)
+        bug, notes = self.GetValues()
+        f = open(filename, 'w')
+        all = {'bugNbr' : bug, 'notes' : notes}
+        pickle.dump(all, f)
+
+    def LoadInfo(self):
+        import pickle
+        ebuild = self.parent.GetP()
+        filename = os.path.expanduser('~/.abeni/bugzilla/%s' % ebuild)
+        if os.path.exists(filename):
+            f = open(filename, 'r')
+            all = pickle.load(f)
+            self.FillForm(all)
+
+    def FillForm(self, all):
+        bug = all['bugNbr']
+        notes = all['notes']
+        self.BugNbr.SetValue(bug)
+        self.NotestextCtrl.SetValue(notes)
+
+    def GetValues(self):
+        bug = self.BugNbr.GetValue()
+        notes = self.NotestextCtrl.GetValue()
+        return bug, notes
 
 class GetURIDialog(wxDialog):
 
@@ -203,8 +310,6 @@ class Preferences(wxDialog):
         self.SetSizer(vs)
         self.browser.SetFocus()
 
-
-
 [wxID_WXDIALOG1,
  wxID_WXDIALOG1PANEL1, wxID_WXDIALOG1RADIOBUTTON1, wxID_WXDIALOG1RADIOBUTTON2,
  wxID_WXDIALOG1RADIOBUTTON3, wxID_WXDIALOG1RADIOBUTTON4,
@@ -214,16 +319,13 @@ class Preferences(wxDialog):
 ] = map(lambda _init_ctrls: wxNewId(), range(11))
 
 class NewFunction(wxDialog):
-    def _init_utils(self):
-        # generated method, don't edit
-        pass
 
     def _init_ctrls(self, prnt):
         # generated method, don't edit
         wxDialog.__init__(self, id=wxID_WXDIALOG1, name='', parent=prnt,
               pos=wxPoint(373, 191), size=wxSize(327, 307),
               style=wxDEFAULT_DIALOG_STYLE, title='New Function')
-        self._init_utils()
+
         self.SetClientSize(wxSize(327, 307))
 
         self.panel1 = wxPanel(id=wxID_WXDIALOG1PANEL1, name='panel1',
@@ -335,3 +437,4 @@ class NewFunction(wxDialog):
         name = 'src_install()'
         self.textCtrl1.SetValue(name)
         self.val = name + ' {\n\tpython setup.py install || die\n}\n'
+

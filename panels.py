@@ -257,41 +257,56 @@ class main(wxPanel):
         return self.Package.GetValue()
 
 class LogWindow(wxFrame):
-
+    """Separate window for log"""
     def __init__(self, parent):
-        wxFrame.__init__(self, parent, -1, "Abeni Log", size=wxSize(900, 300))
+        wxFrame.__init__(self, parent, -1, "Abeni Log", size=wxSize(900, 450))
         self.parent=parent
-        self.panel = LogPanel(self, parent.log)
+        self.AddToolbar()
+        aTable = wxAcceleratorTable([(wxACCEL_NORMAL, WXK_F10, self.ScrollID)])
+        self.SetAcceleratorTable(aTable)
         EVT_CLOSE(self, self.OnClose)
+        self.splitter = wxSplitterWindow(self, -1, style=wxNO_3D|wxSP_3D)
+        self.parent.log.Reparent(self.splitter)
+        self.scrollLog = wxTextCtrl(self.splitter, -1, style = wxTE_MULTILINE|wxTE_READONLY)
+        def EmptyHandler(evt): pass
+        EVT_ERASE_BACKGROUND(self.splitter, EmptyHandler)
+        self.splitter.SplitHorizontally(self.scrollLog, self.parent.log, 1)
+        self.splitter.SetMinimumPaneSize(1)
+        self.Show(True)
 
     def OnClose(self, event):
-        self.parent.LogBottom(self.panel.log)
+        self.parent.LogBottom(self.parent.log)
         self.Destroy()
 
-class LogPanel(wxPanel):
+    def AddToolbar(self):
+        #Create Toolbar with icons
+        # icons are  28 pixels high, variable width
+        self.tb = self.CreateToolBar(wxTB_HORIZONTAL|wxNO_BORDER|wxTB_FLAT)
+        self.ScrollID = wxNewId()
+        ScrollBmp = ('/usr/share/pixmaps/abeni/split.png')
+        self.tb.AddSimpleTool(self.ScrollID, wxBitmap(ScrollBmp, wxBITMAP_TYPE_PNG), \
+                                "Scrollback in split window")
+        EVT_TOOL(self, self.ScrollID, self.ScrollBack)
 
-    def __init__(self, parent, log):
-        wxPanel.__init__(self, parent, -1)
-        self.parent = parent
-        self.log = log
-        self.log.Reparent(self)
-        s = wxBoxSizer(wxHORIZONTAL)
-        s.Add(self.log, 1, wxEXPAND)
-        #s.Fit(self)
-        self.SetSizer(s)
-        self.SetAutoLayout(True)
+        self.UnsplitID = wxNewId()
+        UnsplitBmp = ('/usr/share/pixmaps/abeni/unsplit.png')
+        self.tb.AddSimpleTool(self.UnsplitID, wxBitmap(UnsplitBmp, wxBITMAP_TYPE_PNG), \
+                                "Un-split window")
+        EVT_TOOL(self, self.UnsplitID, self.Unsplit)
 
-"""
-class LogWindow(wxPanel):
+        self.CloseID = wxNewId()
+        CloseBmp = ('/usr/share/pixmaps/abeni/close_scrollback.png')
+        self.tb.AddSimpleTool(self.CloseID, wxBitmap(CloseBmp, wxBITMAP_TYPE_PNG), \
+                                "Close this log window")
+        EVT_TOOL(self, self.CloseID, self.OnClose)
+        self.tb.Realize()
 
-    def __init__(self, parent, log):
-        wxPanel.__init__(self, parent, -1)
-        s = wxBoxSizer(wxHORIZONTAL)
-        s.Add(log, 1, wxEXPAND)
-        self.SetSizer(s)
-        self.SetAutoLayout(True)
+    def ScrollBack(self, event):
+        self.scrollLog.SetValue(self.parent.log.GetValue())
+        self.splitter.SetSashPosition(250)
 
-"""
+    def Unsplit(self, event):
+        self.splitter.SetSashPosition(1)
 
 class depend(wxPanel):
 

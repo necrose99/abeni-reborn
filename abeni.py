@@ -19,10 +19,12 @@ from utils import *
 for p in sys.path:
     if os.path.basename(p) == 'site-packages':
         modulePath = "%s/abeni" % p
+        break
 
 distdir = config().environ()['DISTDIR']
 portdir = config().environ()['PORTDIR']
-portdir_overlay = config().environ()['PORTDIR_OVERLAY']
+#You can specify multiple overlay directories, we use the first one:
+portdir_overlay = config().environ()['PORTDIR_OVERLAY'].split(" ")[0]
 portage_tmpdir = config().environ()['PORTAGE_TMPDIR']
 
 defaults = ["SRC_URI", "HOMEPAGE", "DEPEND", "RDEPEND", "DESCRIPTION", \
@@ -43,6 +45,8 @@ class MyFrame(wxFrame):
         if not os.path.exists(os.path.expanduser('~/.abeni')):
             print "Creating directory " + os.path.expanduser('~/.abeni')
             os.mkdir(os.path.expanduser('~/.abeni'))
+        if not os.path.exists(os.path.expanduser('~/.abeni/bugzilla')):
+            os.mkdir(os.path.expanduser('~/.abeni/bugzilla'))
         bookmarks = os.path.expanduser('~/.abeni/recent.txt')
         if os.path.exists(bookmarks):
             self.recentList = open(bookmarks, 'r').readlines()
@@ -239,7 +243,7 @@ class MyFrame(wxFrame):
                     elif c == "fuscia":
                         color = "PURPLE"
                     elif c == "green":
-                        color = "SPRING GREEN"
+                        color = "DARK GREEN"
                     elif c == "red":
                         color = "RED"
                     else:
@@ -269,14 +273,20 @@ class MyFrame(wxFrame):
         """Send text to log window"""
         self.WriteText(txt)
 
+    def GetP(self):
+        ebuild = self.panelMain.EbuildFile.GetValue()
+        p = string.replace(ebuild, '.ebuild', '')
+        return p
+
     def OnToolbarXterm(self, event):
         """Launch xterm in $PORTAGE_TMPDIR/portage/$P/"""
         #TODO: Damn it. I wish we could cd to ${S}
         if self.editing:
             c = os.getcwd()
             #TODO: Make a self.P variable or something:
-            ebuild = self.panelMain.EbuildFile.GetValue()
-            p = string.replace(ebuild, '.ebuild', '')
+            #ebuild = self.panelMain.EbuildFile.GetValue()
+            #p = string.replace(ebuild, '.ebuild', '')
+            p = self.GetP()
             os.chdir('%s/portage/%s' % (portage_tmpdir, p))
             os.system('sudo %s &' % self.pref['xterm'])
             os.chdir(c)
@@ -700,6 +710,17 @@ class MyFrame(wxFrame):
             return
         EclassGames(self)
 
+    def OnMnuBugzilla(self, event):
+        """Dialog to add bugzilla info"""
+        if not self.editing:
+            return
+        dlg = dialogs.BugzillaDialog(self)
+        dlg.CenterOnScreen()
+        v = dlg.ShowModal()
+        if v == wxID_OK:
+            r = dlg.SaveInfo()
+        dlg.Destroy()
+
     def OnMnuNewFunction(self, event):
         """Dialog to add new function"""
         if not self.editing:
@@ -707,8 +728,8 @@ class MyFrame(wxFrame):
         #from NewFuncDialog import wxDialog1
         dlg = dialogs.NewFunction(self)
         dlg.CenterOnScreen()
-        val = dlg.ShowModal()
-        if val == wxID_OK:
+        v = dlg.ShowModal()
+        if v == wxID_OK:
             func, val = dlg.GetFunc()
             self.AddFunc(func, val)
         self.saved = 0
@@ -1334,6 +1355,10 @@ class MyFrame(wxFrame):
         menu_tools.Append(mnuDiffCreateID, "Create diff &file")
         EVT_MENU(self, mnuDiffCreateID, self.OnMnuDiffCreate)
 
+        mnuBugID = wxNewId()
+        menu_tools.Append(mnuBugID, "Enter bug&zilla info")
+        EVT_MENU(self, mnuBugID, self.OnMnuBugzilla)
+
         mnuClearLogID = wxNewId()
         menu_tools.Append(mnuClearLogID, "Clear log &window\tf11")
         EVT_MENU(self, mnuClearLogID, self.OnMnuClearLog)
@@ -1390,7 +1415,7 @@ class MyFrame(wxFrame):
         menu_help.Append(mnuEclassID, "&View eclass files")
         EVT_MENU(self, mnuEclassID, self.OnMnuEclassHelp)
         mnuUseID = wxNewId()
-        menu_help.Append(mnuUseID, "&View USE descriptions")
+        menu_help.Append(mnuUseID, "View &USE descriptions")
         EVT_MENU(self, mnuUseID, self.OnMnuUseHelp)
         mnuAboutID = wxNewId()
         menu_help.Append(mnuAboutID,"&About")

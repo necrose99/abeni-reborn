@@ -19,6 +19,8 @@ def LoadEbuild(parent, filename, portdir):
     f = open(filename, 'r')
     # Read in header, then discard it. We always write clean header.
     # This may change for developer version in future.
+    # TODO:
+    # If someone doesn't have a header, they lose first 3 lines.
     f.readline()
     f.readline()
     f.readline()
@@ -148,7 +150,7 @@ def LoadEbuild(parent, filename, portdir):
         parent.AddFunc(parent.funcOrder[n], funcs[parent.funcOrder[n]])
     parent.panelMain.stext.SetValue(string.join(parent.statementList, '\n'))
     if parent.pref['log'] != 'bottom':
-        parent.LogTab()
+        parent.LogWindow()
     parent.nb.SetSelection(0)
 
     # Set titlebar of app to ebuild name
@@ -342,145 +344,6 @@ def EclassCVS(parent):
     parent.AddCommand("inherit cvs")
     parent.AddFunc("src_compile", (src_compile))
     parent.AddFunc("src_install", (src_install))
-
-def AddMenu(parent):
-    #Create menus, setup keyboard accelerators
-    # File
-    parent.menu = menu_file = wxMenu()
-    mnuNewID=wxNewId()
-    menu_file.Append(mnuNewID, "&New ebuild")
-    EVT_MENU(parent, mnuNewID, parent.OnMnuNew)
-    mnuLoadID=wxNewId()
-    menu_file.Append(mnuLoadID, "&Load ebuild")
-    EVT_MENU(parent, mnuLoadID, parent.OnMnuLoad)
-    mnuSaveID=wxNewId()
-    menu_file.Append(mnuSaveID, "&Save ebuild")
-    EVT_MENU(parent, mnuSaveID, parent.OnMnuSave)
-    mnuExitID=wxNewId()
-    menu_file.Append(mnuExitID, "E&xit\tAlt-X")
-    EVT_MENU(parent, mnuExitID, parent.OnMnuExit)
-    menubar = wxMenuBar()
-    menubar.Append(menu_file, "&File")
-    EVT_MENU_RANGE(parent, wxID_FILE1, wxID_FILE9, parent.OnFileHistory)
-    parent.filehistory = wxFileHistory()
-    parent.filehistory.UseMenu(parent.menu)
-
-    # Variable
-    menu_variable = wxMenu()
-    mnuNewVariableID = wxNewId()
-    menu_variable.Append(mnuNewVariableID, "&New Variable\tF2", "New Variable")
-    EVT_MENU(parent, mnuNewVariableID, parent.OnMnuNewVariable)
-    mnuDelVariableID = wxNewId()
-    menu_variable.Append(mnuDelVariableID, "&Delete Variable")
-    EVT_MENU(parent, mnuDelVariableID, parent.OnMnuDelVariable)
-    menubar.Append(menu_variable, "&Variable")
-    # Function
-    menu_function = wxMenu()
-    mnuNewFunctionID = wxNewId()
-    menu_function.Append(mnuNewFunctionID, "&New Function\tF3", "New Function")
-    EVT_MENU(parent, mnuNewFunctionID, parent.OnMnuNewFunction)
-    mnuDelFunctionID = wxNewId()
-    menu_function.Append(mnuDelFunctionID, "&Delete Function")
-    EVT_MENU(parent, mnuDelFunctionID, parent.OnMnuDelFunction)
-    menubar.Append(menu_function, "Functio&n")
-    # Eclass
-    menu_eclass = wxMenu()
-
-    mnuGamesID = wxNewId()
-    menu_eclass.Append(mnuGamesID, "games")
-    EVT_MENU(parent, mnuGamesID, parent.OnMnuEclassGames)
-
-    mnuCVSID = wxNewId()
-    menu_eclass.Append(mnuCVSID, "cvs")
-    EVT_MENU(parent, mnuCVSID, parent.OnMnuEclassCVS)
-
-    mnuDistutilsID = wxNewId()
-    menu_eclass.Append(mnuDistutilsID, "distutils")
-    EVT_MENU(parent, mnuDistutilsID, parent.OnMnuEclassDistutils)
-
-    menubar.Append(menu_eclass, "E&class")
-    # Tools
-    menu_tools = wxMenu()
-    mnuEbuildID = wxNewId()
-    menu_tools.Append(mnuEbuildID, "Run &ebuild <this ebuild> <command>\tf4")
-    EVT_MENU(parent, mnuEbuildID, parent.OnMnuEbuild)
-    mnuEmergeID = wxNewId()
-    menu_tools.Append(mnuEmergeID, "Run e&merge <args> <this ebuild>\tf5")
-    EVT_MENU(parent, mnuEmergeID, parent.OnMnuEmerge)
-    mnuLintoolID = wxNewId()
-    menu_tools.Append(mnuLintoolID, "Run &Lintool on this ebuild")
-    EVT_MENU(parent, mnuLintoolID, parent.OnMnuLintool)
-    mnuRepomanID = wxNewId()
-    menu_tools.Append(mnuRepomanID, "Run &Repoman on this ebuild")
-    EVT_MENU(parent, mnuRepomanID, parent.OnMnuRepoman)
-    mnuDigestID = wxNewId()
-    menu_tools.Append(mnuDigestID, "&Create Digest")
-    EVT_MENU(parent, mnuDigestID, parent.OnMnuCreateDigest)
-    mnuDiffCreateID = wxNewId()
-    menu_tools.Append(mnuDiffCreateID, "Create diff &file")
-    EVT_MENU(parent, mnuDiffCreateID, parent.OnMnuDiffCreate)
-
-    mnuClearLogID = wxNewId()
-    menu_tools.Append(mnuClearLogID, "Clear log &window\tf11")
-    EVT_MENU(parent, mnuClearLogID, parent.OnMnuClearLog)
-
-    menubar.Append(menu_tools, "&Tools")
-    # View
-    menu_view = wxMenu()
-    mnuViewID = wxNewId()
-    menu_view.Append(mnuViewID, "en&vironment")
-    EVT_MENU(parent, mnuViewID, parent.OnMnuViewEnvironment)
-    mnuViewConfigureID = wxNewId()
-    menu_view.Append(mnuViewConfigureID, "configure")
-    EVT_MENU(parent, mnuViewConfigureID, parent.OnMnuViewConfigure)
-    mnuViewMakefileID = wxNewId()
-    menu_view.Append(mnuViewMakefileID, "Makefile")
-    EVT_MENU(parent, mnuViewMakefileID, parent.OnMnuViewMakefile)
-    mnuViewSetuppyID = wxNewId()
-    menu_view.Append(mnuViewSetuppyID, "setup.py")
-    EVT_MENU(parent, mnuViewSetuppyID, parent.OnMnuViewSetuppy)
-    mnuDiffID = wxNewId()
-    menu_view.Append(mnuDiffID, "&diff")
-    EVT_MENU(parent, mnuDiffID, parent.OnMnuDiff)
-    mnuEditID = wxNewId()
-    menu_view.Append(mnuEditID, "This ebuild in e&xternal editor\tf7")
-    EVT_MENU(parent, mnuEditID, parent.OnMnuEdit)
-    #mnuExploreWorkdirID = wxNewId()
-    #menu_view.Append(mnuExploreWorkdirID, "File browser in ${WORKDIR}")
-    #EVT_MENU(parent, mnuExploreWorkdirID, parent.ExploreWorkdir)
-    menubar.Append(menu_view, "Vie&w")
-    # Options
-    menu_options = wxMenu()
-    mnuPrefID = wxNewId()
-    menu_options.Append(mnuPrefID, "&Global Preferences")
-    EVT_MENU(parent, mnuPrefID, parent.OnMnuPref)
-    menu_options.AppendSeparator()
-    mnuLogBottomID = wxNewId()
-    menu_options.Append(mnuLogBottomID, "Log at &bottom\tf9", "", wxITEM_RADIO)
-    EVT_MENU(parent, mnuLogBottomID, parent.OnMnuLogBottom)
-    mnuLogTabID = wxNewId()
-    menu_options.Append(mnuLogTabID, "Log in separate &tab\tf10", "", wxITEM_RADIO)
-    EVT_MENU(parent, mnuLogTabID, parent.OnMnuLogTab)
-    menu_options.AppendSeparator()
-
-    menubar.Append(menu_options, "&Options")
-    # Help
-    menu_help = wxMenu()
-    mnuHelpID = wxNewId()
-    menu_help.Append(mnuHelpID,"&Contents\tF1")
-    EVT_MENU(parent, mnuHelpID, parent.OnMnuHelp)
-    mnuHelpRefID = wxNewId()
-    menu_help.Append(mnuHelpRefID,"&Ebuild Quick Reference")
-    EVT_MENU(parent, mnuHelpRefID, parent.OnMnuHelpRef)
-    mnuEclassID = wxNewId()
-    menu_help.Append(mnuEclassID, "&View eclass files")
-    EVT_MENU(parent, mnuEclassID, parent.OnMnuEclassHelp)
-    mnuAboutID = wxNewId()
-    menu_help.Append(mnuAboutID,"&About")
-    EVT_MENU(parent, mnuAboutID, parent.OnMnuAbout)
-    menubar.Append(menu_help,"&Help")
-
-    parent.SetMenuBar(menubar)
 
 def AddToolbar(parent):
     #Create Toolbar with icons
