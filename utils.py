@@ -1,6 +1,4 @@
 from wxPython.wx import *
-#from wxPython.lib.dialogs import wxScrolledMessageDialog
-#import os, string, sys, re, urlparse
 import os, string, sys, re
 import options
 
@@ -72,10 +70,11 @@ def LoadEbuild(parent, filename, __version__, portdir):
             tempf.append(l + "\n")
             while 1:
                 l = f.readline()
+                #This needs more testing.
                 #replace spaces with tabs
-                if parent.pref['autoTabs'] == 'yes':
-                    l = badSpaces.sub('\t', l)
-                    l = badComments.sub('\t#', l)
+                #if parent.pref['autoTabs'] == 'yes':
+                #    l = badSpaces.sub('\t', l)
+                #    l = badComments.sub('\t#', l)
                 tempf.append(l)
                 if l[0] == "}":
                     s = ""
@@ -258,11 +257,13 @@ def WriteEbuild(parent, temp=0):
     f.close()
     parent.recentList.append(filename)
     parent.sb.SetStatusText("Saved", 0)
-    parent.write("Saved %s" % filename)
+    #parent.write("Saved %s" % filename)
     #parent.SetTitle("%s | %s" % (parent.panelMain.EbuildFile.GetValue(), parent.__version__))
     #TODO: CRITICAL Fix this. It doesn't work on first save of new ebuild.
     try:
+        parent.ebuildfile.editorCtrl.SetReadOnly(0)
         parent.ebuildfile.editorCtrl.SetText(open(filename, 'r').read())
+        parent.ebuildfile.editorCtrl.SetReadOnly(1)
     except:
         pass
 
@@ -414,6 +415,11 @@ def AddMenu(parent):
     mnuDiffCreateID = wxNewId()
     menu_tools.Append(mnuDiffCreateID, "Create diff &file")
     EVT_MENU(parent, mnuDiffCreateID, parent.OnMnuDiffCreate)
+
+    mnuClearLogID = wxNewId()
+    menu_tools.Append(mnuClearLogID, "Clear log &window\tf11")
+    EVT_MENU(parent, mnuClearLogID, parent.OnMnuClearLog)
+
     menubar.Append(menu_tools, "&Tools")
     # View
     menu_view = wxMenu()
@@ -490,7 +496,6 @@ def AddToolbar(parent):
                             "Save ebuild")
     EVT_TOOL(parent, saveID, parent.OnMnuSave)
     parent.tb.AddSeparator()
-    parent.tb.AddSeparator()
     newVarID = wxNewId()
     newVarBmp = ('/usr/share/pixmaps/abeni/x.png')
     parent.tb.AddSimpleTool(newVarID, wxBitmap(newVarBmp, wxBITMAP_TYPE_PNG), \
@@ -526,7 +531,6 @@ def AddToolbar(parent):
                          "Install this package")
     EVT_TOOL(parent, toolInstallID, parent.OnToolbarInstall)
 
-
     parent.tb.AddSeparator()
     toolEbuildID = wxNewId()
     ebuildBmp = ('/usr/share/pixmaps/abeni/ebuild.png')
@@ -551,7 +555,7 @@ def AddToolbar(parent):
     xtermID = wxNewId()
     xtermBmp = ('/usr/share/pixmaps/abeni/xterm.png')
     parent.tb.AddSimpleTool(xtermID, wxBitmap(xtermBmp, wxBITMAP_TYPE_PNG), \
-                            "Launch xterm in ${S}")
+                            "Launch xterm in ../${WORKDIR}")
     EVT_TOOL(parent, xtermID, parent.OnToolbarXterm)
 
     helpID = wxNewId()
@@ -564,6 +568,12 @@ def AddToolbar(parent):
         parent.filehistory.AddFileToHistory(ebuild.strip())
 
     parent.tb.AddSeparator()
+    parent.noautoID = wxNewId()
+    b = wxToggleButton(parent.tb, parent.noautoID, "noauto")
+    EVT_TOGGLEBUTTON(parent, parent.noautoID, parent.OnNoAuto)
+    parent.tb.AddControl(b)
+
+    parent.tb.AddSeparator()
     parent.toolStopID = wxNewId()
     stopBmp = ('/usr/share/pixmaps/abeni/stop.png')
     parent.stop = parent.tb.AddSimpleTool(parent.toolStopID, wxBitmap(stopBmp, wxBITMAP_TYPE_PNG), \
@@ -572,8 +582,8 @@ def AddToolbar(parent):
     parent.tb.EnableTool(parent.toolStopID, False)
 
     parent.tb.Realize()
-    parent.timer = None
-
+    #parent.timer = None
+    parent.OnNoAuto(-1)
 
 def DelVariable(parent):
     varDict = parent.panelMain.GetVars()

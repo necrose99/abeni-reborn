@@ -58,6 +58,74 @@ class GetURIDialog(wxDialog):
         sizer.Fit(self)
 
 
+class EmergeDialog(wxDialog):
+
+    """Dialog box for running emerge with options"""
+
+    def __init__(self, parent, ID, title,
+                 pos=wxDefaultPosition, size=wxDefaultSize,
+                 style=wxDEFAULT_DIALOG_STYLE):
+        provider = wxSimpleHelpProvider()
+        wxHelpProvider_Set(provider)
+
+        # Instead of calling wxDialog.__init__ we precreate the dialog
+        # so we can set an extra style that must be set before
+        # creation, and then we create the GUI dialog using the Create
+        # method.
+        pre = wxPreDialog()
+        pre.SetExtraStyle(wxDIALOG_EX_CONTEXTHELP)
+        pre.Create(parent, ID, title, pos, size, style)
+        # This next step is the most important, it turns this Python
+        # object into the real wrapper of the dialog (instead of pre)
+        # as far as the wxPython extension is concerned.
+        self.this = pre.this
+        sizer = wxBoxSizer(wxVERTICAL)
+        box = wxBoxSizer(wxHORIZONTAL)
+
+        useLabel = wxStaticText(self, -1, "USE=")
+        useLabel.SetHelpText("Enter any USE variables for the emerge command.")
+        box.Add(useLabel, 0, wxALIGN_CENTRE|wxALL, 5)
+
+        self.use = wxTextCtrl(self, -1, parent.pref["use"], size=(280,-1))
+        self.use.SetHelpText("Enter any USE variables for the emerge command.")
+        box.Add(self.use, 1, wxALIGN_CENTRE|wxALL, 5)
+
+        featuresLabel = wxStaticText(self, -1, "FEATURES=")
+        featuresLabel.SetHelpText("Enter any variables for FEATURES.")
+        box.Add(featuresLabel, 0, wxALIGN_CENTRE|wxALL, 5)
+
+        self.features = wxTextCtrl(self, -1, parent.pref["features"], size=(280,-1))
+        self.features.SetHelpText("Enter any variables for FEATURES.")
+        box.Add(self.features, 1, wxALIGN_CENTRE|wxALL, 5)
+
+        sizer.AddSizer(box, 0, wxGROW|wxALIGN_CENTER_VERTICAL|wxALL, 5)
+
+        box = wxBoxSizer(wxHORIZONTAL)
+        cmd = "emerge %s" % parent.filename
+        self.emerge = wxTextCtrl(self, -1, cmd, size=(560,-1))
+        self.emerge.SetHelpText("Enter any options for the emerge command.")
+        box.Add(self.emerge, 1, wxALIGN_CENTRE|wxALL, 5)
+        sizer.AddSizer(box, 0, wxGROW|wxALIGN_CENTER_VERTICAL|wxALL, 5)
+
+        box = wxBoxSizer(wxHORIZONTAL)
+        sizer.AddSizer(box, 0, wxGROW|wxALIGN_CENTER_VERTICAL|wxALL, 5)
+        line = wxStaticLine(self, -1, size=(20,-1), style=wxLI_HORIZONTAL)
+        #text = wxStaticText(self, -1, "Enter CVS for CVS eclass template.")
+        #sizer.Add(text, 0, wxALIGN_CENTER|wxALL, 5)
+        sizer.Add(line, 0, wxGROW|wxALIGN_CENTER_VERTICAL|wxRIGHT|wxTOP, 5)
+        box = wxBoxSizer(wxHORIZONTAL)
+        btn = wxButton(self, wxID_OK, " OK ")
+        btn.SetDefault()
+        box.Add(btn, 0, wxALIGN_CENTRE|wxALL, 5)
+        btn = wxButton(self, wxID_CANCEL, " Cancel ")
+        box.Add(btn, 0, wxALIGN_CENTRE|wxALL, 5)
+        btn = wxContextHelpButton(self)
+        box.Add(btn, 0, wxALIGN_CENTRE|wxALL, 5)
+        sizer.AddSizer(box, 0, wxALIGN_CENTER_VERTICAL|wxALL, 5)
+        self.SetSizer(sizer)
+        self.SetAutoLayout(True)
+        sizer.Fit(self)
+
 class Preferences(wxDialog):
 
     """Modify preferences"""

@@ -73,6 +73,10 @@ class MyFrame(wxFrame):
         EVT_IDLE(self, self.OnIdle)
         EVT_END_PROCESS(self, -1, self.OnProcessEnded)
 
+        # Setting for noauto toggle button
+        self.StripNoAuto()
+        self.noauto = 0
+
         #application icon 16x16
         iconFile = ('/usr/share/pixmaps/abeni/abeni_logo16.png')
         icon = wxIcon(iconFile, wxBITMAP_TYPE_PNG)
@@ -120,10 +124,9 @@ class MyFrame(wxFrame):
 
     def OnMnuLogBottom(self, event):
         """Switch ouput log to bottom"""
-        if not self.editing:
+        if not self.editing or self.pref['log'] == 'bottom':
             return
         self.LogBottom()
-
 
     def LogBottom(self):
         txt = self.log.GetValue()
@@ -133,16 +136,40 @@ class MyFrame(wxFrame):
         self.log.SetValue(txt)
         self.log.Show(True)
         self.log.ShowPosition(self.log.GetLastPosition())
-        #self.log.Refresh()
         self.pref['log'] = 'bottom'
         self.nb.DeletePage(0)
 
     def OnMnuLogTab(self, event):
         """Switch ouput log to tab"""
-        if not self.editing:
+        if not self.editing or self.pref['log'] == 'tab':
             return
         self.LogTab()
         self.logWindow.log.ShowPosition(self.logWindow.log.GetLastPosition())
+
+    def OnNoAuto(self, event):
+        """Toggle switch for FEATURES='noauto'"""
+        self.StripNoAuto()
+        if self.noauto == 1:
+            self.noauto = 0
+            self.pref['features'] = "noauto %s" % self.pref['features'].strip()
+        else:
+            self.noauto = 1
+            self.pref['features'] = "-noauto %s" % self.pref['features'].strip()
+
+    def StripNoAuto(self):
+        #We completely ignore what's in make.conf and Abeni's preference file because this switch is so damned handy
+        if string.find(self.pref['features'], "-noauto") != -1:
+            self.pref['features'] = string.replace(self.pref['features'], "-noauto", "")
+        if string.find(self.pref['features'], "noauto") != -1:
+            self.pref['features'] = string.replace(self.pref['features'], "noauto", "")
+
+    def OnMnuClearLog(self, event):
+        """Blank out the log windows"""
+        self.log.SetValue('')
+        try:
+            self.logWindow.log.SetValue('')
+        except:
+            pass
 
     def LogTab(self):
         txt = self.log.GetValue()
@@ -244,16 +271,6 @@ class MyFrame(wxFrame):
         #os.system(cmd)
         self.ExecuteInLog(cmd)
 
-    def OnMnuCreateDigest(self, event):
-        """Run 'ebuild filename digest' on this ebuild"""
-        if not self.editing:
-            return
-        if self.SaveEbuild():
-            #TODO: Strip escape codes so we can put in a text widget for those who use sudo
-            cmd = 'sudo /usr/sbin/ebuild %s digest' % self.filename
-            #os.system(self.pref['xterm'] + ' -T "Creating Digest" -hold -e ' + cmd + ' &')
-            self.ExecuteInLog(cmd)
-
     def OnMnuRepoman(self, event):
         """Run 'repoman-local-5.py' on this ebuild"""
         if not self.editing:
@@ -271,17 +288,33 @@ class MyFrame(wxFrame):
         if not self.editing:
             return
         if self.SaveEbuild():
-            cmd = 'USE="%s" FEATURES="%s" sudo /usr/bin/emerge %s' % (self.pref['use'], self.pref['features'], self.filename)
-            dlg = wxTextEntryDialog(self, 'What arguments do you want to pass?',
-                                'Arguments?', cmd)
-            #dlg.SetValue("")
-            if dlg.ShowModal() == wxID_OK:
-                cmd = dlg.GetValue()
-                self.write("Executing:\n%s" % cmd)
-                dlg.Destroy()
-            else:
-                dlg.Destroy()
+            #cmd = 'USE="%s" FEATURES="%s" sudo /usr/bin/emerge %s' % (self.pref['use'], self.pref['features'], self.filename)
+
+            win = dialogs.EmergeDialog(self, -1, "Enter emerge options", \
+                                size=wxSize(350, 350), \
+                                style = wxDEFAULT_DIALOG_STYLE \
+                                )
+            win.CenterOnScreen()
+            val = win.ShowModal()
+            emergeCmd = win.emerge.GetValue()
+            use = win.use.GetValue()
+            features = win.features.GetValue()
+            if emergeCmd[:6] != 'emerge':
+                self.write("Error, can't run: %s " % emergeCmd)
                 return
+            if val == wxID_OK:
+                cmd = 'USE="%s" FEATURES="%s" sudo %s' % (use, features, emergeCmd)
+                self.write(cmd)
+                self.ExecuteInLog(cmd)
+            #dlg = wxTextEntryDialog(self, 'What arguments do you want to pass?',
+            #                    'Arguments?', cmd)
+            #if dlg.ShowModal() == wxID_OK:
+            #    cmd = dlg.GetValue()
+            #    self.write("Executing:\n%s" % cmd)
+            #    dlg.Destroy()
+            #else:
+            #    dlg.Destroy()
+            #    return
             """
             if opts == '-p' or opts == '--pretend':
                 #cmd = '"/usr/bin/emerge ' + opts + ' ' + self.filename + ' ; echo Done"'
@@ -297,7 +330,7 @@ class MyFrame(wxFrame):
             """
             #cmd2 = self.pref['xterm'] + ' -T "emerge" -hold -e ' + cmd + ' &'
             #os.system(cmd2)
-            self.ExecuteInLog(cmd)
+
 
 
     def OnMnuEbuild(self, event):
@@ -328,35 +361,9 @@ class MyFrame(wxFrame):
             #    self.write(l)
             self.ExecuteInLog(cmd)
 
-    '''
-    def OnIdle(self, event):
-        if self.inp is not None:
-            wxYield()
-            l = self.inp.readline()
-            self.write(l)
-            while l:
-                wxYield()
-                l = self.inp.readline()
-                self.write(l)
-            self.inp = None
-            self.tb.EnableTool(self.toolStopID, False)
-            #self.myTimer.Stop()
-    '''
-
-    def OnTimer(self, event):
-        wxYield()
-        print "OnTimer"
-
-    def OnCloseStream(self, evt):
-        #self.write('OnCloseStream\n')
-        #print "b4 CloseOutput"
-        self.process.CloseOutput()
-        #print "after CloseOutput"
-
     def OnIdle(self, event):
         if self.process is not None:
             stream = self.process.GetInputStream()
-
             if stream.CanRead():
                 text = stream.read()
                 self.write(text)
@@ -374,16 +381,22 @@ class MyFrame(wxFrame):
         self.process = None
         self.tb.EnableTool(self.toolStopID, False)
         self.running = None
-        self.log.ShowPosition(self.log.GetLastPosition())
-        self.PostAction(self.action)
+        #TODO: Kludgy, figure out which to re-position
+        try:
+            self.log.ShowPosition(self.log.GetLastPosition())
+            self.logWindow.log.ShowPosition(self.logWindow.log.GetLastPosition())
+        except:
+            pass
+        action = self.action
         self.action = None
+        self.PostAction(action)
 
     def PostAction(self, action):
         if action == 'unpack':
             ebuild = self.panelMain.EbuildFile.GetValue()
             p = string.replace(ebuild, '.ebuild', '')
             d = '%s/portage/%s/work' % (portage_tmpdir, p)
-            self.write("Unpacked into ${WORKDIR}/work/:")
+            self.write("Unpacked these directory(s) into ${WORKDIR}:")
             self.ExecuteInLog('sudo ls %s' % d)
 
     def ExecuteInLog(self, cmd):
@@ -402,10 +415,14 @@ class MyFrame(wxFrame):
         self.pid = wxExecute(pyCmd, wxEXEC_ASYNC, self.process)
         #self.write('"%s" pid: %s\n' % (cmd, pid))
 
-
     def KillProc(self, event):
         os.system("sudo kill %s" % self.pid)
         self.write("Killed %s" % self.pid)
+        try:
+            pid = open("/tmp/abeni_proc.pid", "r").read().strip()
+            self.write("sub pid %s" % pid)
+        except:
+            pass
 
     def OnMnuLintool(self, event):
         """Run 'lintool' on this ebuild"""
@@ -624,11 +641,12 @@ class MyFrame(wxFrame):
     def AddEditor(self, name, val):
         """Add page in notebook for an editor"""
         n = panels.Editor(self.nb, self.sb, self.pref)
-        if name == 'Output':
-            self.ebuildfile = n
         #self.nb.AddPage(n, name)
         self.NewPage(n, name)
         n.editorCtrl.SetText(val)
+        if name == 'Output':
+            n.editorCtrl.SetReadOnly(1)
+            self.ebuildfile = n
         #self.nb.SetSelection(self.nb.GetPageCount() -1)
 
     def OnMnuHelpRef(self, event):
@@ -968,24 +986,42 @@ class MyFrame(wxFrame):
             return 1
 
     #TODO: Errr. I see a pattern here.
+
+    def OnMnuCreateDigest(self, event):
+        """Run 'ebuild filename digest' on this ebuild"""
+        if not self.editing:
+            return
+        if self.SaveEbuild():
+            #TODO: Strip escape codes so we can put in a text widget for those who use sudo
+            cmd = 'FEATURES="%s" USE="%s" sudo /usr/sbin/ebuild %s digest' % \
+                (self.pref['features'], self.pref['use'], self.filename)
+            #os.system(self.pref['xterm'] + ' -T "Creating Digest" -hold -e ' + cmd + ' &')
+            self.ExecuteInLog(cmd)
+
     def OnToolbarUnpack(self, event):
         if self.editing:
             if self.SaveEbuild():
-                self.write("Unpacking %s " % self.filename)
+                #self.write("Unpacking %s " % self.filename)
                 self.action = 'unpack'
-                self.ExecuteInLog("sudo /usr/sbin/ebuild %s unpack" % self.filename)
+                cmd = 'FEATURES="%s" USE="%s" sudo /usr/sbin/ebuild %s unpack' % \
+                    (self.pref['features'], self.pref['use'], self.filename)
+                self.ExecuteInLog(cmd)
 
     def OnToolbarCompile(self, event):
         if self.editing:
             if self.SaveEbuild():
-                self.write("Compiling %s " % self.filename)
-                self.ExecuteInLog("sudo /usr/sbin/ebuild %s compile" % self.filename)
+                #self.write("Compiling %s " % self.filename)
+                cmd = 'FEATURES="%s" USE="%s" sudo /usr/sbin/ebuild %s compile' % \
+                    (self.pref['features'], self.pref['use'], self.filename)
+                self.ExecuteInLog(cmd)
 
     def OnToolbarInstall(self, event):
         if self.editing:
             if self.SaveEbuild():
-                self.write("Installing %s " % self.filename)
-                self.ExecuteInLog("sudo /usr/sbin/ebuild %s install" % self.filename)
+                #self.write("Installing %s " % self.filename)
+                cmd = 'FEATURES="%s" USE="%s" sudo /usr/sbin/ebuild %s install' % \
+                    (self.pref['features'], self.pref['use'], self.filename)
+                self.ExecuteInLog(cmd)
 
 
     def OnMnuViewSetuppy(self, event):

@@ -1,5 +1,9 @@
 browser = /usr/bin/firebird
-xterm = xterm
+xterm = konsole
 diff = /usr/kde/3.1/bin/kompare
 editor = /usr/bin/scite
 autoTabs = no
+fileBrowser = Not Implented, leave this as is.
+use = 
+features = notitles sandbox ccache
+log = bottom
