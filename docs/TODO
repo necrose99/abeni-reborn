@@ -3,21 +3,17 @@ This is the TODO file for Abeni.
 If you are interested in working on any of these, please
 email pythonhead AT gentoo DOT org
 
-
- wx.CallAfter(self.EnsureCaretVisible)
+ - Disable cpvr inputs till editor is visible
+ - Make sure scroll is visible? wx.CallAfter(self.EnsureCaretVisible)
 
 * General:
  - Change focus to log window when doing emerge
- - Add separator after menu, between groups Cat, PN, PV? (test with various gtk styles)
- - Option to sort functions: src_unpack then src_compile, src_install etc.
-   (See ebuild.py by genone, it can probably do that easily)
+ - Add separator after menu, between groups Cat, PN, PV? (test with various gtk themes)
  - Need function to check/warn if external apps exist every time someone tries to launch
    the external editor, web browser etc.
  - When you inherit an eclass, scan the functions and add them to Scintilla's
    keyword list for highlighting and auto-completion
- - Get dev email from env var: ECHANGELOG_USER="Rob Cakebread <pythonhead@gentoo.org>"
-   then fill in option in dev prefs.
- - Disable menus when not in edit mode
+ - Disable menus/toolbar icons when not in edit mode
  - Improve find / search&replace dialog: "whole word", "match case" don't work
  - Lowercase PN when given URI on new ebuilds in GetURIDialog.py
  - New feature: Launch browser to HOMEPAGE url
@@ -26,7 +22,7 @@ email pythonhead AT gentoo DOT org
 
 * Repoman/CVS:
 
- - Test signing of manifests
+ - Test signing of manifests (need to run gpg agent of some sort)
  - Don't allow CVS operations if ssh-agent isn't running 
  - New feature: rm -rf CVS/cat/PN then 'cvs update' in CVS/cat
 
@@ -44,12 +40,9 @@ email pythonhead AT gentoo DOT org
 * Syntax checking/formatting ebuilds:
 
  - Validate metadata.xml
- - Remove trailing spaces on save. 
- - Warn on leading whitespace or try to convert to tabs
  - Give warning if /usr/local is in ${D}
- - Give warning when SLOTS are not numeric. Dynamic slots like in 
-   mod_php are a bad thing because portage can't detect them.
- - Give warning if inherit isn't first thing in ebuild, unless CVS
+ - Dynamic slots like in mod_php are a bad thing because portage can't detect them.
+ - Give warning if inherit isn't first thing in ebuild after comments, unless CVS vars
  - Check Common Ebuild Mistakes, see if we can auto-fix any
 
 * Documentation:
