@@ -7,7 +7,7 @@ class Options:
     def Readapprc(self):
         import string, sys, os
         appdir = os.path.abspath(os.path.join(os.getcwd(), sys.path[0]))
-        f = open('%s/pybuilderrc' % appdir)
+        f = open('%s/abenirc' % appdir)
         line = f.readline()
         while line:
             if string.find(line, 'debug') != -1:
