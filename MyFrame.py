@@ -34,7 +34,7 @@ import pyipc
 import enamer
 
 
-# __revision__ = "$Id: MyFrame.py,v 1.10 2005/01/28 00:11:47 robc Exp $"
+# __revision__ = "$Id: MyFrame.py,v 1.11 2005/01/28 06:16:45 robc Exp $"
 
 PORTDIR_OVERLAY = utils.get_portdir_overlay()
 if PORTDIR_OVERLAY[-1] == "/":
@@ -42,6 +42,21 @@ if PORTDIR_OVERLAY[-1] == "/":
 PORTDIR = utils.get_portdir()
 PORTAGE_TMPDIR = utils.get_portage_tmpdir()
 
+
+try:
+    tab_position = utils.get_options()["tabPlacement"]
+    if tab_position == 1:
+        tab_position = wx.NB_LEFT
+    elif tab_position == 2:
+        tab_position = wx.NB_RIGHT
+    elif tab_position == 0:
+        pass
+except KeyError:
+    tab_position = 0 # top
+try:
+    log_position = utils.get_options()["logPlacement"]
+except KeyError:
+    log_position = 0 # middle log position
 
 class MyFrame(wx.Frame):
 
@@ -106,10 +121,6 @@ class MyFrame(wx.Frame):
         global mnuNextBufferID; mnuNextBufferID = wx.NewId()
         global mnuPrevBufferID; mnuPrevBufferID = wx.NewId()
         global mnuClearLogID; mnuClearLogID = wx.NewId()
-        self.log_bottom = wx.NewId()
-        self.log_middle = wx.NewId()
-        self.log_right = wx.NewId()
-        self.log_left = wx.NewId()
         global mnuPrefID; mnuPrefID = wx.NewId()
         global mnuHelpID; mnuHelpID = wx.NewId()
         global mnuHelpRefID; mnuHelpRefID = wx.NewId()
@@ -171,11 +182,6 @@ class MyFrame(wx.Frame):
         self.menubar.Append(wxglade_tmp_menu, "&View")
         self.menu_options = wx.Menu()
         self.menu_options.Append(mnuClearLogID, "&Clear log window\tF11", "", wx.ITEM_NORMAL)
-        self.menu_options.AppendSeparator()
-        self.menu_options.Append(self.log_bottom, "&Bottom", "", wx.ITEM_RADIO)
-        self.menu_options.Append(self.log_middle, "&Middle", "", wx.ITEM_RADIO)
-        self.menu_options.Append(self.log_right, "Top &Right", "", wx.ITEM_RADIO)
-        self.menu_options.Append(self.log_left, "Top &Left", "", wx.ITEM_RADIO)
         self.menubar.Append(self.menu_options, "Lo&g")
         wxglade_tmp_menu = wx.Menu()
         wxglade_tmp_menu.Append(mnuPrefID, "&Preferences", "", wx.ITEM_NORMAL)
@@ -240,7 +246,7 @@ class MyFrame(wx.Frame):
         self.button_1 = wx.ToggleButton(self.panel_cpvr, -1, "noauto")
         self.label_filename = wx.StaticText(self.panel_main, -1, "filename:")
         self.static_line_3 = wx.StaticLine(self.panel_main, -1)
-        self.notebook_editor = wx.Notebook(self.panel_editor, -1, style=0)
+        self.notebook_editor = wx.Notebook(self.panel_editor, -1, style=tab_position)
         self.text_ctrl_log = wx.TextCtrl(self.panel_top_log, -1, "", style=wx.TE_MULTILINE|wx.TE_READONLY)
         self.text_ctrl_environment = wx.TextCtrl(self.panel_environment, -1, "", style=wx.TE_MULTILINE|wx.TE_READONLY)
         self.button_env_refresh = wx.Button(self.panel_environment, -1, "Refresh")
@@ -273,10 +279,6 @@ class MyFrame(wx.Frame):
         self.__set_properties()
         self.__do_layout()
 
-        self.Bind(wx.EVT_MENU, self.LogRadio, id=self.log_bottom)
-        self.Bind(wx.EVT_MENU, self.LogRadio, id=self.log_middle)
-        self.Bind(wx.EVT_MENU, self.LogRadio, id=self.log_right)
-        self.Bind(wx.EVT_MENU, self.LogRadio, id=self.log_left)
         self.Bind(wx.EVT_NOTEBOOK_PAGE_CHANGED, self.OnEdChanged, self.notebook_editor)
         self.Bind(wx.EVT_NOTEBOOK_PAGE_CHANGING, self.OnEdChanging, self.notebook_editor)
         # end wxGlade
@@ -370,7 +372,12 @@ class MyFrame(wx.Frame):
         self.panel_top_log.SetSizer(sizer_top_log)
         sizer_top_log.Fit(self.panel_top_log)
         sizer_top_log.SetSizeHints(self.panel_top_log)
-        self.splitter_2.SplitHorizontally(self.panel_editor, self.panel_top_log)
+        if log_position == 0 or log_position == 3:
+            self.splitter_2.SplitHorizontally(self.panel_editor, self.panel_top_log)
+        if log_position == 1:
+            self.splitter_2.SplitVertically(self.panel_top_log, self.panel_editor)
+        if log_position == 2:
+            self.splitter_2.SplitVertically(self.panel_editor, self.panel_top_log)
         sizer_environment.Add(self.text_ctrl_environment, 1, wx.EXPAND, 0)
         sizer_environment_ctrls.Add(self.button_env_refresh, 0, wx.ALL, 10)
         sizer_environment_ctrls.Add(self.radio_box_env, 0, wx.BOTTOM, 12)
@@ -437,6 +444,8 @@ class MyFrame(wx.Frame):
         sizer_cpvr_notebook.Fit(self.panel_main)
         sizer_cpvr_notebook.SetSizeHints(self.panel_main)
         sizer_main.Add(self.panel_main, 1, wx.EXPAND, 0)
+        if log_position == 3:
+            self.SwitchLog("bottom")
         self.SetAutoLayout(True)
         self.SetSizer(sizer_main)
         sizer_main.Fit(self)
@@ -608,7 +617,7 @@ class MyFrame(wx.Frame):
         #brief mode for viewing environment:
         self.env_view = 0
         # Get options from ~/.abeni/abenirc file
-        utils.get_options(self)
+        self.pref = utils.get_options()
         if self.pref['logfile'] == 1:
             self.logfile = open(self.pref['logFilename'], 'a')
         else:
@@ -677,6 +686,8 @@ class MyFrame(wx.Frame):
             self.text_ctrl_PN.Enable(True)
             self.text_ctrl_PVR.Enable(True)
         # end wxGlade
+
+    # START ABENI CUSTOM:
 
     def security_check(self):
         if os.getuid() == 0:
@@ -771,6 +782,7 @@ class MyFrame(wx.Frame):
         text = text.replace("\x1b[01m", '')
         text = text.replace("\x1b[31;06m", '')
         text = text.replace("\x1b[31;01m", '')
+        text = text.replace("\x1b[32m", '')
         text = text.replace("\x1b[32;06m", '')
         text = text.replace("\x1b[32;01m", '')
         text = text.replace("\x1b[33;06m", '')
@@ -781,6 +793,7 @@ class MyFrame(wx.Frame):
         text = text.replace("\x1b[35;06m", '')
         text = text.replace("\x1b[36;01m", '')
         text = text.replace("\x1b[36;06m", '')
+        text = text.replace("\x1b[39;49;00m", '')
 
         # For the [ok]'s
         text = text.replace("\x1b[A", '')
@@ -1726,7 +1739,8 @@ class MyFrame(wx.Frame):
             self.pref['logFilename'] = win.text_ctrl_logfile.GetValue()
             self.pref['font'] = win.text_ctrl_font.GetValue()
             self.pref['highlighting'] = win.checkbox_highlight.GetValue()
-            self.pref['gentooHighlight'] = win.checkbox_gentoo_highlighting.GetValue()
+            self.pref['tabPlacement'] = win.radio_box_tab.GetSelection()
+            self.pref['logPlacement'] = win.radio_box_log.GetSelection()
             self.pref['show_whitespace'] = win.checkbox_whitespace.GetValue()
             self.pref['tabsize'] = win.text_ctrl_1.GetValue()
             self.pref['db'] = win.radio_box_database.GetSelection()
@@ -2107,33 +2121,44 @@ class MyFrame(wx.Frame):
         """Catch page changes in notebook before new page is selected"""
         event.Skip()
 
-    def LogRadio(self, event): # wxGlade: MyFrame.<event_handler>
-        log = event.GetId()
-        if log == self.log_bottom:
-            print "bottom log"
+    def LogRadio(self, event):
+        id = event.GetId()
+        if id == self.log_bottom:
+            position = "bottom"
+        if id == self.log_middle:
+            position = "middle"
+        if id == self.log_right:
+            position = "right"
+        if id == self.log_left:
+            position = "left"
+        event.Skip()
+            
+    def SwitchLog(self, position):
+        """Change position of log output window"""
+        if position == "bottom":
             txt = self.text_ctrl_log.GetValue()
-            self.panel_log = wx.Panel(self.notebook_1, -1)
-            self.text_ctrl_log = wx.TextCtrl(self.panel_log, -1, "", style=wx.TE_MULTILINE|wx.TE_READONLY)
+            self.splitter_2.Unsplit(self.panel_top_log)
+            self.panel_top_log = wx.Panel(self.notebook_1, -1)
+            self.text_ctrl_log = wx.TextCtrl(self.panel_top_log, -1, "", style=wx.TE_MULTILINE|wx.TE_READONLY)
             self.text_ctrl_log.SetValue(txt)
             wx.Log_SetActiveTarget(MyLog(self.text_ctrl_log))
-            sizer_staticbox = (wx.StaticBox(self.panel_log, -1))
+            sizer_staticbox = (wx.StaticBox(self.panel_top_log, -1))
             my_sizer = wx.StaticBoxSizer(sizer_staticbox, wx.HORIZONTAL)
             my_sizer.Add(self.text_ctrl_log, 1, wx.EXPAND, 0)
-            self.panel_log.SetSizer(my_sizer)
-            my_sizer.Fit(self.panel_log)
-            my_sizer.SetSizeHints(self.panel_log)
-            self.notebook_1.AddPage(self.panel_log, "Log")
+            self.panel_top_log.SetSizer(my_sizer)
+            my_sizer.Fit(self.panel_top_log)
+            my_sizer.SetSizeHints(self.panel_top_log)
+            self.notebook_1.AddPage(self.panel_top_log, "Log")
 
-        if log == self.log_middle:
-            print "middle log"
+        if position == "middle":
+            self.splitter_2.SplitHorizontally(self.panel_editor, self.panel_top_log)
 
-        if log == self.log_left:
-            print "left"
+        if position == "left":
+            self.splitter_2.SplitVertically(self.panel_top_log, self.panel_editor)
 
-        if log == self.log_right:
-            print "right"
+        if position == "right":
+            self.splitter_2.SplitVertically(self.panel_editor, self.panel_top_log)
 
-        event.Skip()
 
 # end of class MyFrame
 
