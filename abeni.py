@@ -23,7 +23,7 @@ class MyFrame(wxFrame):
     """ Main frame that holds the menu, toolbar and notebook """
 
     def __init__(self, parent, id, title):
-        wxFrame.__init__(self, parent, -1, title,size=wxSize(600,480))
+        wxFrame.__init__(self, parent, -1, title, size=wxSize(600,480))
         self.SetAutoLayout(true)
 
         # Are we in the process of creating an ebuild?
@@ -177,8 +177,6 @@ class MyFrame(wxFrame):
         self.panelMain.Slot.SetValue(myData['slot'])
         self.panelMain.Keywords.SetValue(myData['keywords'])
 
-
-
     def OnMnuSave(self, event):
         """Save ebuild file to disk"""
         if self.checkEntries():
@@ -231,7 +229,6 @@ class MyFrame(wxFrame):
         self.nb.AddPage(self.panelInstall, "Install")
         self.nb.AddPage(self.panelChangelog, "Changelog")
 
-
     def OnMnuNewFrom(self,event):
         """Create new ebuild, copying existing ebuild"""
         pass
@@ -253,7 +250,6 @@ class MyFrame(wxFrame):
                               'About Abeni', wxOK | wxICON_INFORMATION)
         dlg.ShowModal()
         dlg.Destroy()
-
 
     def GatherData(self):
         """Gather data from form"""
@@ -278,6 +274,14 @@ class MyFrame(wxFrame):
 
     def FormatEbuild(self):
         """Format data into fields ready to output to ebuild file"""
+        abeniPath = os.path.join(os.path.expanduser('~'), '.abeni')
+        if not os.path.exists(abeniPath):
+            os.mkdir(abeniPath)
+        ebuildDir = os.path.join (abeniPath, self.panelMain.Ebuild.GetValue())
+        if not os.path.exists(ebuildDir):
+            os.mkdir(ebuildDir)
+        ebuildFile = os.path.join(ebuildDir, self.panelMain.EbuildFile.GetValue())
+        f = open(ebuildFile, 'w')
 
         dlist = self.panelDepend.elb1.GetStrings()
         d = 'DEPEND="'
@@ -290,8 +294,6 @@ class MyFrame(wxFrame):
         for ds in rdlist:
             rd += ds + " "
         rd += '"'
-
-        f = open(self.panelMain.EbuildFile.GetValue(), 'w')
         f.write("S=${WORKDIR}/${P}\n\n")
         f.write('DESCRIPTION="' + self.panelMain.Desc.GetValue() + '"\n\n')
         f.write('HOMEPAGE="' + self.panelMain.Homepage.GetValue() + '"\n\n')
