@@ -8,7 +8,7 @@ __version__ = '0.0.1'
 
 from wxPython.wx import *
 from wxPython.help import *
-import os, os.path, string, shutil, time, sys, pickle, re, urlparse
+import os, os.path, string, sys, re, urlparse
 import panels, options
 
 #Find directory Abeni was started from
@@ -43,7 +43,6 @@ class MyFrame(wxFrame):
         self.SetIcon(icon)
 
         #Setup wxNotebook in main frame
-
         self.nb = wxNotebook(self, -1)
         lc = wxLayoutConstraints()
         lc.top.SameAs(self, wxTop, 0)
@@ -56,7 +55,6 @@ class MyFrame(wxFrame):
         EVT_NOTEBOOK_PAGE_CHANGED(self.nb, self.nb.GetId(), self.OnPageChanged)
 
         #Create menus, setup keyboard accelerators
-
         # File
         menu_file = wxMenu()
         mnuNewID=wxNewId()
@@ -151,19 +149,21 @@ class MyFrame(wxFrame):
         EVT_TIMER(self, -1, self.OnClearSB)
         self.timer = None
 
+    def ClearNotebook(self):
+        self.nb.DeleteAllPages()
+
     def OnMnuLoad(self, event):
         """Load ebuild file"""
+        if self.editing:
+            self.ClearNotebook()
         wildcard = "ebuild files (*.ebuild)|*.ebuild"
         dlg = wxFileDialog(self, "Choose a file", "/usr/portage/", "", \
-                            wildcard, wxOPEN|wxMULTIPLE)
+                            wildcard, wxOPEN)
         if dlg.ShowModal() == wxID_OK:
-            paths = dlg.GetPaths()
-            for filename in paths:
-                print filename
+            filename = dlg.GetPath()
             vars = {}
             funcs = {}
             commands = []
-
             f = open(filename, 'r')
             while 1:
                 l = f.readline()
@@ -173,16 +173,18 @@ class MyFrame(wxFrame):
                     l = string.strip(l)
                 # Variables always start a line with all caps
                 varTest = re.search('^[A-Z]', l)
-                # Function like: mine() {
+                # Function like: mine() {   or mine ()
                 funcTest1 = re.search('^[a-z]*\(\) {', l)
-                # Function like: my_func() {
-                funcTest2 = re.search('^[a-z]*_[a-z]*\(\) {', l)
+                funcTest2 = re.search('^[a-z]* \(\) {', l)
+                # Function like: my_func() {   or  my_func ()
+                funcTest3 = re.search('^[a-z]*_[a-z]*\(\) {', l)
+                funcTest4 = re.search('^[a-z]*_[a-z]* \(\) {', l)
                 if varTest:
                     #TODO: Multi-line variables
                     s = string.split(l, "=")
                     vars[s[0]] = string.replace(s[1], '"', '')
                     continue
-                if funcTest1 or funcTest2:
+                if funcTest1 or funcTest2 or funcTest3 or funcTest4:
                     tempf = []
                     fname = string.replace(l, "{", "")
                     tempf.append(l + "\n")
@@ -216,10 +218,12 @@ class MyFrame(wxFrame):
             print commands
 
             s = string.split(filename, "/")
+            print "filename", filename
             ebuild_file = s[len(s)-1]
-
-            s = string.split(filename, "/")
             ebuild = s[len(s)-2]
+            category = s[len(s)-3]
+            clog = string.replace(filename, ebuild_file, '') + 'ChangeLog'
+
             myData = {}
             otherVars = {}
             myData, otherVars = self.SeparateVars(vars)
@@ -227,26 +231,24 @@ class MyFrame(wxFrame):
             #print otherVars.keys()
             myData['ebuild'] = ebuild
             myData['ebuild_file'] = ebuild_file
+            myData['category'] = category
             self.editing = 1
             self.AddPages()
             self.PopulateForms(myData)
+            self.panelChangelog.Populate(clog)
             #Add custom variables to Main panel
             for v in otherVars:
                 self.AddNewVar(v, otherVars[v])
-
             # Add function pages to notebook
             for fname in funcs:
                 self.AddFunc(fname, funcs[fname])
             # Set titlebar of app to ebuild name
-            self.SetTitle(ebuild_file)
-
+            self.SetTitle('Abeni: ' + ebuild_file)
             #TODO:
-            # set myData['LICENSE'] DONE
             # Comments
             # Commands panel
             # Add functions panels DONE
-            # Changelog
-
+            # Changelog DONE
         dlg.Destroy()
 
     def SeparateVars(self, vars):
@@ -283,8 +285,8 @@ class MyFrame(wxFrame):
 
     def OnPageChanged(self, event):
         """Catch event when page in notebook is changed"""
-        event.Skip()
         self.nbPage = event.GetSelection()
+        event.Skip()
 
     def OnMnuNewVariable(self, event):
         """Dialog for adding new variable"""
@@ -360,18 +362,18 @@ class MyFrame(wxFrame):
         self.PopulateForms(myData)
         self.editing = 1
 
-
     def PopulateForms(self, myData):
         """Fill forms with saved data"""
         self.panelMain.Ebuild.SetValue(myData['ebuild'])
         self.panelMain.EbuildFile.SetValue(myData['ebuild_file'])
+        self.panelMain.Category.SetValue(myData['category'])
         self.panelMain.URI.SetValue(myData['SRC_URI'])
         self.panelMain.Homepage.SetValue(myData['HOMEPAGE'])
         self.panelMain.Desc.SetValue(myData['DESCRIPTION'])
         self.panelMain.USE.SetValue(myData['IUSE'])
         self.panelMain.Slot.SetValue(myData['SLOT'])
         self.panelMain.Keywords.SetValue(myData['KEYWORDS'])
-        self.panelMain.ch.SetStringSelection(myData['LICENSE'])
+        self.panelMain.License.SetValue(myData['LICENSE'])
 
     def OnMnuSave(self, event):
         """Save ebuild file to disk"""
@@ -392,27 +394,28 @@ class MyFrame(wxFrame):
 
     def OnMnuNew(self,event):
         """Creates a new ebuild from scratch"""
-        if not self.editing:
-            win = GetURIDialog(self, -1, "Enter Package URI", \
-                                size=wxSize(350, 200), \
-                                style = wxDEFAULT_DIALOG_STYLE \
-                               )
-            win.CenterOnScreen()
-            val = win.ShowModal()
-            self.URI = win.URI.GetValue()
-            # If they click OK and filled out URI entry, create notebook
-            if val == wxID_OK and self.URI:
-                self.AddPages()
-                self.panelMain.PopulateDefault()
-                self.panelMain.SetURI(self.URI)
-                self.panelMain.SetName(self.URI)
-                self.panelMain.SetEbuild()
-                self.panelChangelog.PopulateDefault()
-                #We are in the middle of createing an ebuild. Should probably check for
-                #presence of wxNotebook instead
-                self.editing = 1
-                # Set titlebar of app to ebuild name
-                self.SetTitle("Abeni: " + self.panelMain.GetEbuildName())
+        if self.editing:
+            self.ClearNotebook()
+        win = GetURIDialog(self, -1, "Enter Package URI", \
+                            size=wxSize(350, 200), \
+                            style = wxDEFAULT_DIALOG_STYLE \
+                            )
+        win.CenterOnScreen()
+        val = win.ShowModal()
+        self.URI = win.URI.GetValue()
+        # If they click OK and filled out URI entry, create notebook
+        if val == wxID_OK and self.URI:
+            self.AddPages()
+            self.panelMain.PopulateDefault()
+            self.panelMain.SetURI(self.URI)
+            self.panelMain.SetName(self.URI)
+            self.panelMain.SetEbuild()
+            self.panelChangelog.Populate(filename='/usr/portage/skel.ChangeLog')
+            #We are in the middle of createing an ebuild. Should probably check for
+            #presence of wxNotebook instead
+            self.editing = 1
+            # Set titlebar of app to ebuild name
+            self.SetTitle("Abeni: " + self.panelMain.GetEbuildName())
 
     def AddPages(self):
         """Add pages to blank notebook"""
@@ -453,7 +456,7 @@ class MyFrame(wxFrame):
         myData['DESCRIPTION'] = self.panelMain.Desc.GetValue()
         myData['HOMEPAGE'] = self.panelMain.Homepage.GetValue()
         myData['SRC_URI'] = self.panelMain.URI.GetValue()
-        myData['LICENSE'] = self.panelMain.License
+        myData['LICENSE'] = self.panelMain.License.GetValue()
         myData['SLOT'] = self.panelMain.Slot.GetValue()
         myData['KEYWORDS'] = self.panelMain.Keywords.GetValue()
         myData['IUSE'] = self.panelMain.USE.GetValue()
@@ -478,7 +481,7 @@ class MyFrame(wxFrame):
         f.write('DESCRIPTION="' + self.panelMain.Desc.GetValue() + '"\n\n')
         f.write('HOMEPAGE="' + self.panelMain.Homepage.GetValue() + '"\n\n')
         f.write('SRC_URI="' + self.panelMain.URI.GetValue() + '"\n\n')
-        f.write('LICENSE="' + self.panelMain.License + '"\n\n')
+        f.write('LICENSE="' + self.panelMain.License.GetValue() + '"\n\n')
         f.write('SLOT="' + self.panelMain.Slot.GetValue() + '"\n\n')
         f.write('KEYWORDS="' + self.panelMain.Keywords.GetValue() + '"\n\n')
         f.write('IUSE="' + self.panelMain.USE.GetValue() + '"\n\n')

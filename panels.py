@@ -39,7 +39,9 @@ class main(wxPanel):
         text1 = wxStaticText(self, -1, "Ebuild File")
         self.EbuildFile = wxTextCtrl(self, wxNewId(), "", wxPoint(0,0), wxSize(250, 20))
         row+=30
-        text2 = wxStaticText(self, -1, "Category")
+        catButID = wxNewId()
+        catButton = wxButton(self, catButID, "Category")
+        EVT_BUTTON(self, catButID, self.OnCatButton)
         self.Category = wxTextCtrl(self, wxNewId(), "", wxPoint(0,0), wxSize(250, 20))
         row+=30
         self.group2_ctrls = []
@@ -62,33 +64,27 @@ class main(wxPanel):
         text9 = wxStaticText(self, -1, "KEYWORDS")
         self.Keywords = wxTextCtrl(self, wxNewId(), "", wxPoint(0,0), wxSize(250, 20))
         row+=30
-        text10 = wxStaticText(self, -1, "LICENSE")
-        licenseList = ['Artistic', 'BSD', 'GPL-1', 'GPL-2']
-        self.group3_ctrls = []
-
-        chEvt = wxNewId()
-        self.ch = wxChoice(self, chEvt, wxPoint(0,0), choices = licenseList)
-        self.License = licenseList[0]
-        EVT_CHOICE(self, chEvt, self.EvtChoice)
-        #text11 = wxStaticText(self, -1, "Choose 'New Variable' in the 'Edit' menu to add new variables.")
-        #text12 = wxStaticText(self, -1, "     ")
+        butID = wxNewId()
+        button = wxButton(self, butID, "LICENSE          ")
+        EVT_BUTTON(self, butID, self.OnLicButton)
+        self.License = wxTextCtrl(self, wxNewId(), "", wxPoint(0,0), wxSize(250, 20))
 
         self.group1_ctrls.append((text0, self.Ebuild))
         self.group1_ctrls.append((text1, self.EbuildFile))
-        self.group1_ctrls.append((text2, self.Category))
+        self.group1_ctrls.append((catButton, self.Category))
         self.group2_ctrls.append((text3, self.URI))
-        #self.group2_ctrls.append((text4, self.Rev))
         self.group2_ctrls.append((text5, self.Homepage))
         self.group2_ctrls.append((text6, self.Desc))
         self.group2_ctrls.append((text7, self.USE))
         self.group2_ctrls.append((text8, self.Slot))
         self.group2_ctrls.append((text9, self.Keywords))
-        self.group2_ctrls.append((text10, self.ch))
+        self.group2_ctrls.append((button, self.License))
 
+        self.group3_ctrls = []
         #self.group3_ctrls.append((text11, text12))
 
         # Layout controls on panel:
-        vs = wxBoxSizer( wxVERTICAL )
+        vs = wxBoxSizer(wxVERTICAL)
         box1_title = wxStaticBox( self, -1, "Ebuild Info")
         box1 = wxStaticBoxSizer( box1_title, wxVERTICAL )
         grid1 = wxFlexGridSizer( 0, 2, 0, 20 )
@@ -126,6 +122,34 @@ class main(wxPanel):
         #vs2.Fit(self)
         self.boxt = wxStaticBox( self, -1, "Other Variables", wxPoint(400, 5), wxSize(390, 40))
 
+    def OnCatButton(self, event):
+        dlg = wxDirDialog(self, "Choose a Category:", '/usr/portage',
+                    style=wxDD_DEFAULT_STYLE)
+        if dlg.ShowModal() == wxID_OK:
+            c = dlg.GetPath()
+            c = string.split(c, '/')
+            c = c[len(c)-1]
+            self.Category.SetValue(c)
+        #TODO: If more than 3 '/', you aren't picking a proper category
+        #Should also check that first two dirs are /usr/portage
+        #/usr/portage/foo-boo
+        dlg.Destroy()
+
+    def OnLicButton(self, event):
+        ldir = '/usr/portage/licenses'
+        dlg = wxFileDialog(self, "Choose a file", ldir, "", "All files (*)|*", wxOPEN|wxMULTIPLE)
+        if dlg.ShowModal() == wxID_OK:
+            paths = dlg.GetPaths()
+            # We can have more than one license, so this mess:
+            l = ''
+            for path in paths:
+                l += path + ' '
+                l = string.split(l, '/')
+                l = l[len(l)-1]
+            l = string.strip(l)
+            self.License.SetValue(l)
+        dlg.Destroy()
+
     def AddVar(self, var, val):
         t = wxStaticText(self, -1, var, wxPoint(410, self.vrow))
         self.text.append(t)
@@ -152,9 +176,6 @@ class main(wxPanel):
         self.Keywords.SetValue("~x86")
         self.Slot.SetValue("0")
         self.Homepage.SetValue("http://")
-
-    def EvtChoice(self, event):
-        self.License = event.GetString()
 
     def SetURI(self, uri):
         self.URI.SetValue(uri)
@@ -217,9 +238,9 @@ class changelog(wxPanel):
         self.edChangelog.SetMarginType(1, wxSTC_MARGIN_NUMBER)
         self.edChangelog.SetMarginWidth(1, 25)
 
-    def PopulateDefault(self):
+    def Populate(self, filename):
         """Add Changelog template for new ebuilds"""
-        self.edChangelog.SetText(open('/usr/portage/skel.ChangeLog').read())
+        self.edChangelog.SetText(open(filename).read())
 
 
 class NewFunction(wxPanel):
