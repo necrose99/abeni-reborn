@@ -3,7 +3,7 @@ import wx
 
 import __version__
 import options
-from utils import get_p
+import utils
 
 class GentooSTC(wx.stc.StyledTextCtrl):
 
@@ -45,8 +45,8 @@ class GentooSTC(wx.stc.StyledTextCtrl):
 
         self.SetCaretForeground("BLUE")
         self.SetMyStyle()
-        wx.stc.EVT_STC_SAVEPOINTLEFT(self, -1, self.UnsavedTitle)
-        wx.stc.EVT_STC_SAVEPOINTREACHED(self, -1, self.SavedTitle)
+        wx.stc.EVT_STC_SAVEPOINTLEFT(self, -1, self.OnSaveChange)
+        wx.stc.EVT_STC_SAVEPOINTREACHED(self, -1, self.OnSaveChange)
 
     def SetMyStyle(self):
         try:
@@ -83,20 +83,33 @@ class GentooSTC(wx.stc.StyledTextCtrl):
         self.StyleSetSpec(wx.stc.STC_P_COMMENTBLOCK, "fore:#7F7F7F,size:%(size)d" % faces)
         self.StyleSetSpec(wx.stc.STC_P_STRINGEOL, "fore:#000000,face:%(mono)s,eol,size:%(size)d" % faces)
 
-    def DoTitle(self):
+    def DoTitle(self, tab=True):
         """Set application's titlebar"""
         if self.GetModify():
-            self.frame.SetTitle("*" + get_p(self.frame) + " - Abeni " + __version__.version)
+            title = "*%s  - Abeni %s" % (utils.get_p(self.frame),
+                                         __version__.version)
+            self.frame.SetTitle(title)
             self.toolbar.EnableTool(self.toolbarId, True)
+            if tab:
+                self.SetTabModified(True)
+
         else:
-            self.frame.SetTitle(get_p(self.frame) + " - Abeni " + __version__.version)
+            self.frame.SetTitle(utils.get_p(self.frame) + " - Abeni " + __version__.version)
             self.toolbar.EnableTool(self.toolbarId, False)
-        
-    def UnsavedTitle(self, evt):
+            if tab:
+                self.SetTabModified(False)
+
+    def SetTabModified(self, modified): 
+        page = self.frame.ed_shown
+        if modified:
+            tab = self.frame.notebook_editor.GetPageText(page)
+            self.frame.notebook_editor.SetPageText(page, "* %s" % tab)
+        else:
+            tab = self.frame.notebook_editor.GetPageText(page)
+            tab = tab.replace("* ", "")
+            self.frame.notebook_editor.SetPageText(page, tab)
+
+    def OnSaveChange(self, evt):
         ''' Set application's titlebar '''
         self.DoTitle()
  
-    def SavedTitle(self, evt):
-        ''' Set application's titlebar '''
-        self.DoTitle()
-

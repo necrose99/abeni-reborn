@@ -23,6 +23,7 @@ import gentoolkit
 import sudo
 import options
 from Dialogs import ScrolledDialog
+import parse_metadata
 
 try:
     env = config(clone=settings).environ()
@@ -106,43 +107,61 @@ def refresh_s(parent):
 def post_action(parent, action):
     """Execute code after asynchronous job done with ExecuteInLog finishes"""
     if action == "download":
+        #Download URI in FILESDIR browser
         parent.filesDir.onRefresh(-1)
+
     if action == "setup":
         view_environment(parent)
         parent.filesDir.onRefresh(-1)
         refresh_s(parent)
+
     if action == "clean":
         parent.Write("))) All clean.")
         parent.filesDir.onRefresh(-1)
         parent.sDir.clearList()
+        parent.dDir.clearList()
         view_environment(parent)
+        set_status(parent)
+
     if action == 'digest':
         parent.filesDir.onRefresh(-1)
+
     if action == 'unpack':
         post_unpack(parent)
         parent.filesDir.onRefresh(-1)
+        parent.label_s_dir.SetLabel("${S}: %s" % get_s(parent))
         refresh_s(parent)
+        set_status(parent)
+
     if action == 'compile':
         refresh_s(parent)
         log_to_output(parent)
         parent.Write("))) compile finished")
+        set_status(parent)
+
     if action == 'install':
+        parent.label_d_dir.SetLabel("${D}: %s" % get_d(parent))
         post_install(parent)
         log_to_output(parent)
         refresh_s(parent)
         refresh_d(parent)
         parent.Write("))) install finished")
+        set_status(parent)
+
     if action == 'qmerge':
         refresh_s(parent)
         refresh_d(parent)
         log_to_output(parent)
         parent.Write("))) qmerge finished")
+        set_status(parent)
+
     if action == 'emerge':
         refresh_s(parent)
         refresh_d(parent)
         parent.filesDir.onRefresh(-1)
         log_to_output(parent)
         parent.Write("))) emerge finished")
+        set_status(parent)
     parent.statusbar.SetStatusText("%s done." % action, 0)
 
 def log_to_output(parent):
@@ -153,17 +172,19 @@ def log_to_output(parent):
     #    parent.Write(l)
     #t = commands.getoutput("sudo cat /var/tmp/abeni/emerge_log")
     status, txt = sudo.cmd("cat /var/tmp/abeni/emerge_log")
+    print txt
+    print "updating log"
     parent.text_ctrl_log.AppendText("%s\n" % txt)
 
 def export_ebuild(parent):
     """Export ebuild directory to tar file"""
     if not verify_saved(parent):
-        filelist = []
-        filelist.append(get_filename(parent))
+        flist = []
+        flist.append(get_filename(parent))
         # auto-add the digest
         fdir = get_files_dir(parent)
-        filelist.append(fdir + "/digest-"+get_p(parent))
-        auxfilelist = [f for f in os.listdir(fdir) if f[:6] != "digest"]
+        flist.append(fdir + "/digest-"+get_p(parent))
+        auxflist = [f for f in os.listdir(fdir) if f[:6] != "digest"]
 
         # add all filenames that are present in the ebuild and ask
         # the user about the others.
@@ -171,32 +192,32 @@ def export_ebuild(parent):
         # I'd like to select all files by default, but I guess that needs a
         # custom dialog then.
         #ebuild_content = parent.ebuildfile.editorCtrl.GetText()
-        ebuild_content = parent.STCeditor.GetText()
-        for f in auxfilelist:
+        ebuild_content = parent.ThisEd().GetText()
+        for f in auxflist:
             if re.search(f + "[^a-zA-Z0-9\-\.\?\*]", ebuild_content):
-                filelist.append(fdir + "/" + f)
+                flist.append(fdir + "/" + f)
                 parent.Write("auto adding file: " + f)
-                auxfilelist.remove(f)
-        if len(auxfilelist) > 0:
+                auxflist.remove(f)
+        if len(auxflist) > 0:
             msg = "Select the files you want to include in the " + \
                   "tarball.\n(don't worry about the digest,\nit " + \
                   "will be included automatically)"
-            fileselectdlg = MultipleChoiceDialog(parent,
-                                                 msg,
-                                                 "Auxiliary file selection",
-                                                 auxfilelist,
-                                                 size=(300, min([500,
-                                                                 150 + len(auxfilelist)*20]
-                                                               )
-                                                       )
-                                                  )
-            if fileselectdlg.ShowModal() == wx.ID_OK:
-                auxfilelist = [fdir +"/"+f for f in list(fileselectdlg.GetValueString())]
+            dlg = MultipleChoiceDialog(parent,
+                                       msg,
+                                       "Auxiliary file selection",
+                                       auxflist,
+                                       size=(300, min([500,
+                                             150 + len(auxflist)*20]
+                                            )
+                                            )
+                                       )
+            if dlg.ShowModal() == wx.ID_OK:
+                auxflist = [fdir +"/"+f for f in list(dlg.GetValueString())]
             else:
                 return 0
-        filelist += auxfilelist
+        flist += auxflist
 
-        filelist = [f.replace(get_category_path(parent)+"/", "") for f in filelist]
+        flist = [f.replace(get_category_path(parent)+"/", "") for f in flist]
 
         tarballname = get_p(parent)+".tar.bz2"
         filemask = "BZipped tarball (*.tar.bz2)|*.tar.bz2|GZipped tarball (*.tar.gz)|*.tar.gz|Uncompressed tarball (*.tar)|*.tar|All files|*"
@@ -215,12 +236,12 @@ def export_ebuild(parent):
         else:
             taroptions = "-cvf"
 
-        parent.ExecuteInLog("tar " + taroptions + " " + tarballname + " -C " + get_category_path(parent) + " " + reduce(lambda a, b: a + " " + b, filelist))
+        parent.ExecuteInLog("tar " + taroptions + " " + tarballname + " -C " + get_category_path(parent) + " " + reduce(lambda a, b: a + " " + b, flist))
 
         # FUTURE: once we have python-2.3 we can use the following:
         #os.chdir(parent.GetCategoryPath())
         #tarball = tarfile.open(tarballname, "w:bz2")
-        #for f in filelist:
+        #for f in flist:
         #    tarball.add(f)
         #tarball.close()
         parent.statusbar.SetStatusText("Ebuild exported to " + tarballname, 0)
@@ -246,27 +267,32 @@ def get_status(parent):
     d = '%s/portage/%s' % (PORTAGE_TMPDIR, p)
     if not os.path.exists(d):
         return
-    fs = ['.unpacked', '.compiled', '.installed']
-    out = []
-    for f in fs:
-        if os.path.exists(os.path.join(d, f)): 
-            out.append(f)
-    if len(out):
-        parent.Write("))) This package is:")
-        for o in out:
-            if o == ".unpacked":
-                parent.Write(")))     unpacked")
-                fix_unpacked(parent)
-            if o == ".compiled":
-                parent.Write(")))     compiled")
-            if o == ".installed":
-                parent.Write(")))     installed")
+
+    files = ['.unpacked', '.compiled', '.installed']
+    status = []
+    for check in files:
+        if os.path.exists(os.path.join(d, check)): 
+            status.append(check)
+
+    return " ".join(status).replace(".", "")
+
+def set_status(parent, page = None):
+    """Set unpack/compile/install status"""
+    if not page:
+        page = parent.ed_shown
+    status = get_status(parent)
+    if status:
+        parent.label_filename.SetLabel("%s    %s" % (parent.filename[page], \
+                                       status))
+    else:
+        parent.label_filename.SetLabel(parent.filename[page])
 
 def fix_unpacked(parent):
     """chmod for portage group read"""
     p = get_p(parent)
     d = '%s/portage/%s/work' % (PORTAGE_TMPDIR, p)
     d1 = '%s/portage/%s' % (PORTAGE_TMPDIR, p)
+    print d1
     do_sudo("chmod +g+xrw -R %s" % d1)
 
 def post_unpack(parent):
@@ -292,7 +318,8 @@ def post_unpack(parent):
             parent.Write("))) S=${WORKDIR}/${P}")
             if parent.FindReplace("S=${WORKDIR}/${P}", "") != -1:
                 set_s(parent, p)
-                parent.Write("))) removed S=${WORKDIR}/${P} from ebuild (its not necessary)")
+                parent.Write("))) removed S=${WORKDIR}/${P} from ebuild" + \
+                             "(its not necessary)")
         else:
             ep = get_s(parent)
             if ep == "${WORKDIR}/${P}":
@@ -310,9 +337,10 @@ def set_s(parent, myp):
 
 def reset(parent):
     """Reset abeni for new/loaded ebuild"""
+    #TODO: Is all this necessary after multi-eds?
     parent.text_ctrl_notes.SetValue('')
     parent.text_ctrl_bugz.SetValue('')
-    parent.window_3.set_uri(None, None)
+    parent.window_3.set_uri(None, None, None, None)
     parent.button_Category.Enable(True)
     parent.text_ctrl_Category.Enable(True)
     parent.text_ctrl_PN.Enable(True)
@@ -320,21 +348,37 @@ def reset(parent):
     parent.text_ctrl_Category.SetValue("")
     parent.text_ctrl_PN.SetValue("")
     parent.text_ctrl_PVR.SetValue("")
-    parent.STCeditor.SetText("")
-    if parent.pref['clearLog'] == 1:
-        parent.text_ctrl_log.Clear()
+    #if parent.pref['clearLog'] == 1:
+    #    parent.text_ctrl_log.Clear()
     parent.text_ctrl_environment.Clear()
-    parent.editing = 0
-    parent.statusbar.SetStatusText('', 1)
-    parent.filename = ""
+    #Reset all file managers:
+    clear_explorers(parent)
     parent.EnableToolbar(True)
 
-def verify_saved(parent):
-    """Check if the ebuild has changed and offer to save if so"""
-    status = 0
+def clear_explorers(parent):
+    """Reset all file managers"""
+    parent.filesDir.clearList()
+    parent.sDir.clearList()
+    parent.dDir.clearList()
 
-    if parent.STCeditor.GetModify() or not parent.saved:
-        dlg = wx.MessageDialog(parent, 'Save modified ebuild?\n' + parent.filename,
+def query_all_modify(parent):
+    """Check if any ebuild has changed and offer to save if so"""
+    buffs =  parent.QueryEditing()
+    modified = 0
+    for buffer in range(buffs):
+        if verify_saved(parent, buffer):
+            #If cancel on any stop asking
+            return 1
+
+def verify_saved(parent, buffer = None):
+    """Check if buffer has changed, focus and offer to save if so"""
+    status = 0
+    if buffer is None:
+        buffer = parent.notebook_editor.GetSelection()
+    if parent.eds[buffer].GetModify():
+        #In case we're going through multiple buffers
+        parent.notebook_editor.SetSelection(buffer)
+        dlg = wx.MessageDialog(parent, 'Save modified ebuild?\n' + parent.filename[buffer],
                 'Save ebuild?', wx.YES_NO | wx.CANCEL | wx.ICON_INFORMATION)
         val = dlg.ShowModal()
         if val == wx.ID_YES:
@@ -346,7 +390,6 @@ def verify_saved(parent):
                 my_message(parent, msg, "Can't save", "error")
                 return status
             write_ebuild(parent)
-            parent.saved = 1
             status = 0
         if val == wx.ID_NO:
             status = 0
@@ -357,7 +400,7 @@ def verify_saved(parent):
 
 def delete_ebuild(parent):
     """Delete ebuild from disk in overlay"""
-    f = parent.filename
+    f = parent.filename[parent.ed_shown]
     try:
         os.unlink(f)
         reset(parent)
@@ -367,7 +410,8 @@ def delete_ebuild(parent):
     d = os.path.split(f)[0]
     if True in [ f[-7:] == '.ebuild' for f in os.listdir(d) ]:
         return
-    msg = "There are no more ebuilds for this package in the overlay.\nWould you like to delete this directory and its entire contents?\n%s" % d
+    msg = "There are no more ebuilds for this package in the overlay.\n" + \
+          "Delete this directory and its entire contents?\n%s" % d
     dlg = wx.MessageDialog(parent, msg,
             'Delete dirctory?', wx.YES_NO)
     val = dlg.ShowModal()
@@ -391,7 +435,6 @@ def save_ebuild(parent):
     msg = check_entries(parent)
     if not msg:
         write_ebuild(parent)
-        parent.saved = 1
         parent.EnableSaveToolbar(False)
         #DoTitle(parent)
         return 1
@@ -402,14 +445,14 @@ def save_ebuild(parent):
 
 def get_filename(parent):
     """Get the full path and filename of ebuild"""
-    return parent.filename
+    return parent.filename[parent.ed_shown]
 
 def set_filename(parent, filename):
     """Set the ebuild full path and filename"""
     #Keep last file for viewing and creating diffs(future feature)
-    #parent.lastFile = parent.filename
-    parent.filename = filename
-    parent.statusbar.SetStatusText(filename, 1)
+    #parent.lastFile = parent.filename[parent.ed_shown]
+    parent.filename[parent.ed_shown] = filename
+    #parent.statusbar.SetStatusText(filename, 1)
     #DoTitle(parent)
 
 def get_cpvr(parent):
@@ -439,7 +482,6 @@ def get_pn(parent):
 def get_pvr(parent):
     """Return PVR from form"""
     return parent.text_ctrl_PVR.GetValue()
-
 
 def get_category_name(parent):
     """Return Category name from form"""
@@ -500,24 +542,19 @@ def get_s(parent):
 
 def is_unpacked(parent):
     """Return 1 if they have unpacked"""
-    #if os.path.exists('%s/portage/%s/.unpacked' % (PORTAGE_TMPDIR, GetP(parent))):
-    if not os.system('sudo ls %s/portage/%s/.unpacked >& /dev/null' % (PORTAGE_TMPDIR, get_p(parent))):
+    if os.path.exists("%s/portage/%s/.unpacked" % (PORTAGE_TMPDIR, get_p(parent))):
+    #if not os.system('sudo ls %s/portage/%s/.unpacked >& /dev/null' \
+    #                 % (PORTAGE_TMPDIR, get_p(parent))):
         return 1
-    else:
-        return 0
 
 def get_envs(parent):
-    """Get the 'major' environmental vars"""
+    """Get the portage-related environmental vars"""
     parent.env = {}
     p = get_p(parent)
     f = '%s/portage/%s/temp/environment' % (PORTAGE_TMPDIR, p)
     if not os.path.exists(f):
-        #cmd = '/usr/sbin/ebuild %s setup' % parent.filename
-        #os.system(cmd)
-        #parent.Write(cmd)
         return
     lines = open(f, 'r').readlines()
-    #TODO: This is a partial list. Should add option to show all vars available.
     env_vars = ['A', 'AA', 'AUTOCLEAN', 'BUILDDIR', 'BUILD_PREFIX', \
             'D', 'DESTTREE', 'EBUILD', 'FEATURES', 'FILESDIR', \
             'INHERITED', 'KV', 'KVERS', 'O', 'P', 'PF', 'PN', 'PV', \
@@ -567,6 +604,21 @@ def get_options(parent):
     """Global options from abenirc file"""
     parent.pref = options.Options().Prefs()
 
+def query_metadata(parent):
+    """Parse metadata.xml in PORTDIR"""
+    if not os.path.exists("%s/metadata.xml" % get_portdir_path(parent)):
+        return ("", "")
+    mdata = parse_metadata.get_metadata(get_portdir_path(parent))
+    if mdata.has_key("herds"):
+        herds = ", ".join(mdata['herds'])
+    else:
+        herds = ""
+    if mdata.has_key("maintainers"):
+        emails = ", ".join(mdata['maintainers'])
+    else:
+        emails = ""
+    return (herds, emails)
+
 def set_notes(parent):
     """Load notes, set uri handler in notes for ${HOMEPAGE}"""
     set_homepage(parent)
@@ -575,8 +627,9 @@ def set_notes(parent):
 
 def set_homepage(parent):
     """Set uri handler for homepage in notes tab"""
+    herds, maint = query_metadata(parent)
     v = parent.FindVar("HOMEPAGE")
-    parent.window_3.set_uri(v, v)
+    parent.window_3.set_uri(v, v, herds, maint)
 
 def ebuild_exists(parent, filename):
     """Display dialog if filename doesn't exist, return 1 if exists"""
@@ -600,46 +653,37 @@ def verify_ebuild_name(parent, filename):
     else:
         return 1
 
-def validate_syntax(parent, filename):
-    """Check if ebuild has bash syntax errors before loading."""
-    cmd = "/bin/bash -n %s" % filename
-    r, out = run_ext_cmd(cmd)
-    if r:
-        parent.Write("Ebuild syntax is incorrect - /bin/bash found an error:")
-        for l in out:
-            parent.Write(l)
-        msg = "The ebuild has a syntax error."
-        dlg = wx.MessageDialog(parent, msg,
-                'Syntax Error', wx.OK | wx.ICON_ERROR)
-        dlg.ShowModal()
-    else:
-        return 1
-
 def get_portdir_path(parent):
-    cat_dir = os.path.join (PORTDIR, get_category_name(parent))
+    cat_dir = os.path.join(PORTDIR, get_category_name(parent))
     try:
         return os.path.join(cat_dir, get_pn(parent))
     except:
         return None
 
-def load_ebuild(parent, filename):
-    """Load ebuild from filename"""
-    filename = filename.strip()
-    if not ebuild_exists(parent, filename):
-        return
-    if not verify_ebuild_name(parent, filename):
-        return
+def get_categories():
+    """Get list of all valid categories"""
+    c = open('%s/profiles/categories' % PORTDIR).readlines()
+    def strp(s):
+        return s.strip()
+    c = map(strp, c)
+    c = filter(None, c)
+    if os.path.exists("/etc/portage/categories"):
+        d = open("/etc/portage/categories")
+        d = map(strp, d)
+        d = filter(None, d)
+        c += d
+    c.sort()
+    return c
 
-    if not validate_syntax(parent, filename):
-        return
+def switch_ebuilds(parent):
+    """switch gui when page changes"""
+    filename = parent.filename[parent.ed_shown]
     s = filename.split("/")
     # ebuild file, no path:
     parent.ebuild_file = s[len(s)-1]
     category = s[len(s)-3]
     parent.ebuild_dir = filename.replace(parent.ebuild_file, '')
     p = parent.ebuild_file[:-7]
-    my_ebuild = open(filename, 'r').read()
-    parent.STCeditor.SetText(my_ebuild)
     cat, pkg, ver, rev = gentoolkit.split_package_name("%s/%s" % (category, p))
     parent.text_ctrl_Category.SetValue(cat)
     parent.text_ctrl_PN.SetValue(pkg)
@@ -647,38 +691,105 @@ def load_ebuild(parent, filename):
         parent.text_ctrl_PVR.SetValue("%s" % ver)
     else:
         parent.text_ctrl_PVR.SetValue("%s-%s" % (ver, rev))
-    parent.editing = 1
-    parent.STCeditor.Show()
+    view_environment(parent)
+    parent.filesDir.clearList()
+    filesdir = "%s/files/" % os.path.split(filename)[0]
+    parent.filesDir.populate(filesdir)
+    parent.label_filesdir.SetLabel("${FILESDIR}: %s" % filesdir)
+    s_dir = get_s(parent)
+    if s_dir:
+        # its unpacked:
+        if os.path.exists(s_dir):
+            parent.sDir.populate(s_dir)
+            parent.label_s_dir.SetLabel("${S}: %s" % s_dir)
+            try:
+                # its installed in ${D}:
+                d_dir = get_d(parent)
+                parent.dDir.populate(d_dir)
+                parent.label_d_dir.SetLabel("${D}: %s" % d_dir)
+                parent.button_d_view.Enable(True)
+                parent.button_d_refresh.Enable(True)
+            except:
+                parent.label_d_dir.SetLabel("${D}: ")
+        else:
+            parent.sDir.clearList()
+    else:
+        parent.label_d_dir.SetLabel("${D}: ")
+        parent.label_s_dir.SetLabel("${S}: ")
+        parent.sDir.clearList()
+        parent.dDir.clearList()
+    enable_browser_olay(parent, filename)
+    set_notes(parent)
+
+def load_ebuild(parent, filename):
+    """Load ebuild from filename"""
+    filename = filename.strip()
+    #file exists on filesystem
+    if not ebuild_exists(parent, filename):
+        return
+    #make sure its a valid ebuild name
+    if not verify_ebuild_name(parent, filename):
+        return
+    #file is already opened
+    if filename in parent.filename:
+        parent.Write("!!! Ebuild already open.")
+        return
+
+    s = filename.split("/")
+    # ebuild file, no path:
+    parent.ebuild_file = s[len(s)-1]
+    category = s[len(s)-3]
+    parent.ebuild_dir = filename.replace(parent.ebuild_file, '')
+    p = parent.ebuild_file[:-7]
+    my_ebuild = open(filename, 'r').read()
+    parent.loading_ebuild = 1
+    parent.AddEditor(filename, p)
+    parent.loading_ebuild = 0
+    parent.ThisEd().SetText(my_ebuild)
+    cat, pkg, ver, rev = gentoolkit.split_package_name("%s/%s" % (category, p))
+    parent.text_ctrl_Category.SetValue(cat)
+    parent.text_ctrl_PN.SetValue(pkg)
+    if rev == "r0":
+        parent.text_ctrl_PVR.SetValue("%s" % ver)
+    else:
+        parent.text_ctrl_PVR.SetValue("%s-%s" % (ver, rev))
+    parent.ThisEd().Show()
     parent.recentList.append(filename)
-    parent.saved = 1
-    parent.STCeditor.EmptyUndoBuffer()
-    parent.STCeditor.SetSavePoint()
+    parent.ThisEd().EmptyUndoBuffer()
+    parent.ThisEd().SetSavePoint()
     set_filename(parent, filename)
-    parent.STCeditor.SetFocus()
+    parent.ThisEd().SetFocus()
     parent.ApplyPrefs()
     view_environment(parent)
-    get_status(parent)
+    set_status(parent)
     set_notes(parent)
     parent.filesDir.clearList()
-    f = "%s/files/" % os.path.split(filename)[0]
-    parent.filesDir.populate(f)
+    filesdir = "%s/files/" % os.path.split(filename)[0]
+    parent.filesDir.populate(filesdir)
+    parent.label_filesdir.SetLabel("${FILESDIR}: %s" % filesdir)
     s_dir = get_s(parent)
     if s_dir:
         if os.path.exists(s_dir):
             parent.sDir.populate(s_dir)
+            parent.label_s_dir.SetLabel("${S}: %s" % s_dir)
             try:
                 d_dir = get_d(parent)
                 parent.dDir.populate(d_dir)
+                parent.label_d_dir.SetLabel("${D}: %s" % d_dir)
                 parent.button_d_view.Enable(True)
                 parent.button_d_refresh.Enable(True)
             except:
-                pass
+                parent.label_d_dir.SetLabel("${D}: ")
         else:
             parent.sDir.clearList()
     else:
+        parent.label_d_dir.SetLabel("${D}: ")
+        parent.label_s_dir.SetLabel("${S}: ")
         parent.sDir.clearList()
         parent.dDir.clearList()
     enable_browser_olay(parent, filename)
+    if parent.QueryEditing() == 1:
+        parent.EnableMenus()
 
 def enable_browser_olay(parent, filename):
     if is_overlay(filename):
@@ -691,8 +802,8 @@ def enable_browser_olay(parent, filename):
         parent.button_filesdir_new.Enable(False)
         parent.button_filesdir_download.Enable(False)
         parent.button_filesdir_delete.Enable(False)
-        parent.Write("))) Save ebuild to copy it to your overlay.")
-    enable_browser_buttons(parent, olay = is_overlay(parent.filename))
+        #parent.Write("))) Save ebuild to copy it to your overlay.")
+    enable_browser_buttons(parent, olay = is_overlay(parent.filename[parent.ed_shown]))
 
 
 def enable_browser_buttons(parent, olay):
@@ -724,6 +835,9 @@ def enable_browser_buttons(parent, olay):
         parent.button_s_patch.Enable(False)
         parent.button_s_refresh.Enable(False)
 
+def get_notes_info(parent):
+    """Get bugzilla nbr and notes"""
+    return parent.text_ctrl_bugz.GetValue(), parent.text_ctrl_notes.GetValue()
 
 def load_db_record(parent):
     """Load db record for current ebuild"""
@@ -774,11 +888,13 @@ def cmd_exists(cmd):
 
 def create_dir(parent, path, verbose = 0):
     """Create a directory, or fail show dialog, return -1"""
+    #TODO CRITICAL: chown user:portage if not owner
     try:
         os.mkdir(path)
         if verbose:
             parent.Write("))) Created %s" % path)
-    except IOError, msg:
+    #except IOError, msg:
+    except OSError, msg:
         my_message(parent, msg, "Failed to create ebuild in overlay.", \
                    icon_type="error", cancel=0)
         return -1
@@ -800,7 +916,7 @@ def write_ebuild(parent):
     parent.ebuild_dir = get_ebuild_dir(parent)
     filename = make_ebuild_pathname(parent)
 
-    if not is_overlay(parent.filename):
+    if not is_overlay(parent.filename[parent.ed_shown]):
         new_ebuild = 1
         if not os.path.exists(filename):
             if create_ebuild_paths(parent) == -1:
@@ -812,14 +928,15 @@ def write_ebuild(parent):
                 return
 
     set_filename(parent, filename)
+    set_status(parent)
     parent.filehistory.AddFileToHistory(filename.strip())
     strip_cvs_header(parent)
     txt = strip_whitespace(parent)
     f_out = open(filename, 'w')
     f_out.write(txt)
     f_out.close()
-    parent.STCeditor.EmptyUndoBuffer()
-    parent.STCeditor.SetSavePoint()
+    parent.ThisEd().EmptyUndoBuffer()
+    parent.ThisEd().SetSavePoint()
     parent.recentList.append(filename)
     parent.statusbar.SetStatusText("Saved", 0)
     if parent.db:
@@ -832,6 +949,7 @@ def write_ebuild(parent):
         create_dir(parent, filesdir, verbose = 1)
     parent.filesDir.populate(filesdir)
     set_homepage(parent)
+    parent.notebook_editor.SetPageText(parent.ed_shown, get_p(parent))
 
 def strip_cvs_header(parent):
     """Strip cvs header."""
@@ -840,14 +958,14 @@ def strip_cvs_header(parent):
 
 def strip_whitespace(parent):
     """Strip trailing whitespace editor, update editor with text."""
-    txt = parent.STCeditor.GetText()
+    txt = parent.ThisEd().GetText()
     out = '\n'.join([t.rstrip() for t in txt.splitlines() if t != '\n'])
     out = "%s\n" % out
     if txt != out:
         parent.Write("))) Stripped trailing whitespace.")
         #TODO: Get cursor position and move back there after this:
         #Currently it moves cursor to top row
-        parent.STCeditor.SetText(out)
+        parent.ThisEd().SetText(out)
     return out
 
 def db_write_record(parent):

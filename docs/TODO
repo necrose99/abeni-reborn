@@ -2,12 +2,22 @@ This is the TODO file for Abeni.
 
 Immediate:
 
-When opening ebuild, if unpacked etc, refresh appropriate
-file explorer tabs
+* repoman console:
 
-Add widget to explorer showing ${S}=/whatever
+  stop button
 
-CVS tab to explorer, fix CVS
+  After copying ebuild from overlay-> cvs, notify if
+  non-digest in overlay/files exist that don't exist in cvs
+
+  confirm deletion in repoconsole
+
+  update cvs dir=/whatever label
+
+  warn if ebuild is diff from overlay
+  warn if ebuild has epatch but files in $FILESDIR not added to cvs?
+
+  cp ebuild to cvs in repoman menu option, in case they don't want to use 
+  repoman console
 
 When copying ebuild from PORTDIR to PORTDIR_OVERLAY, check if non-digest files 
 in PORTDIR/FILESDIR and warn, tell them to press F8 to copy them if needed.
@@ -15,11 +25,9 @@ in PORTDIR/FILESDIR and warn, tell them to press F8 to copy them if needed.
 Figure out decent command line options, opening file from cli, etc.
 
 Convert files from unicode to ascii before displaying in
-vanilla text viewer.
+vanilla text viewer, or use wxStyledTxtCtrl if that doesn't
+crash on unicode.
 
-On notebook page change to Notes or save, update HOMEPAGE
-
-New icons for unpack-qmerge with fkeys displayed
 _____________________________________________________________________________
 If you are interested in working on any of these, please
 email pythonhead AT gentoo DOT org
@@ -28,27 +36,19 @@ email pythonhead AT gentoo DOT org
  - Option to archive ebuild in archive directory or sql db instead of just deleting it
 
 * General:
- - Flash Stop button when executing background command, like launching
+ - Flash Stop button when executing background'ed command, like launching
    web browser so we know something is happening.
  - Improve open from overlay dialog to use notebook and let you choose from
    multiple overlays
  - Option to use different overlay directories for saving ebuilds to by default
- - Removed file from history when deleting ebuild
  - When you inherit an eclass, scan the functions and add them to Scintilla's
    keyword list for highlighting and auto-completion
- - Improve find / search&replace dialog: "whole word", "match case" don't work
- - Lowercase PN when given URI on new ebuilds in GetURIDialog.py
- - New feature: Launch browser to HOMEPAGE url
- - Need function to extract variables from editor (see genone's ebuild.py)
+ - Improve find / search&replace dialog: "whole word", "match case" not implemented
  - Don't let user edit current ebuild through Files tab
 
 * Repoman/CVS:
- - Add otpion to copy ebuild to CVS/cat/PN - If we are going to commit
-   multiple versions of a package, this is necessary.
- - Ask if you want to removed ebuild from OVERLAY after committing/copying
- - Test signing of manifests (Future: need to run gpg-agent when it gets in portage)
  - Don't allow CVS operations if ssh-agent/gpg-agent isn't running 
- - When committing to CVS we can include bug# in sql db automatically.
+   Future: When gpg-agent is stable
 
 * Website:
 
@@ -56,7 +56,8 @@ email pythonhead AT gentoo DOT org
 
 * Syntax checking/formatting ebuilds:
 
- - Give warning if /usr/local is in ${D}
+ - Warning if /usr/local is in ${D}
+ - Warn if ${D}/var/tmp/portage/pkg... 
  - Dynamic slots like in mod_php are a bad thing because portage can't detect them.
  - Give warning if inherit isn't first thing in ebuild after comments, unless CVS vars
 

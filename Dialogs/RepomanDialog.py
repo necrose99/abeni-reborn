@@ -5,30 +5,15 @@
 import shutil
 import sys
 import os
+
 import wx
 
-from FileBrowser import MyBrowser
+from FileBrowser import CvsBrowser
 from MyLog import MyLog
-#import abeniCVS
-
+import MetadataXMLDialog
 import utils
-import options
+import cvs_utils
 
-codes={}
-codes["bold"]="\x1b[01m"
-codes["teal"]="\x1b[36;06m"
-codes["turquoise"]="\x1b[36;01m"
-codes["fuscia"]="\x1b[35;01m"
-codes["purple"]="\x1b[35;06m"
-codes["blue"]="\x1b[34;01m"
-codes["darkblue"]="\x1b[34;06m"
-codes["green"]="\x1b[32;01m"
-codes["darkgreen"]="\x1b[32;06m"
-codes["yellow"]="\x1b[33;01m"
-codes["brown"]="\x1b[33;06m"
-codes["red"]="\x1b[31;01m"
-codes["darkred"]="\x1b[31;06m"
-codes["reset"] = "\x1b[0m"
 
 class MyFrame(wx.Frame):
 
@@ -38,19 +23,63 @@ class MyFrame(wx.Frame):
         # begin wxGlade: MyFrame.__init__
         kwds["style"] = wx.DEFAULT_FRAME_STYLE
         wx.Frame.__init__(self, *args, **kwds)
+        
+        # Menu Bar
+        self.repoman_console_menubar = wx.MenuBar()
+        self.SetMenuBar(self.repoman_console_menubar)
+        global exitID; exitID = wx.NewId()
+        global copyID; copyID = wx.NewId()
+        global filesID; filesID = wx.NewId()
+        global cvsupID; cvsupID = wx.NewId()
+        global addID; addID = wx.NewId()
+        global rmID; rmID = wx.NewId()
+        global scanID; scanID = wx.NewId()
+        global fullID; fullID = wx.NewId()
+        global pretendID; pretendID = wx.NewId()
+        global commitID; commitID = wx.NewId()
+        global echangelogID; echangelogID = wx.NewId()
+        global digestID; digestID = wx.NewId()
+        global metadataID; metadataID = wx.NewId()
+        wxglade_tmp_menu = wx.Menu()
+        wxglade_tmp_menu.Append(exitID, "E&xit\tAlt-x", "", wx.ITEM_NORMAL)
+        wxglade_tmp_menu.Append(copyID, "&Copy ebuild from overlay\tF2", "", wx.ITEM_NORMAL)
+        wxglade_tmp_menu.Append(filesID, "Copy from &FILESDIR in overlay\tF3", "", wx.ITEM_NORMAL)
+        self.repoman_console_menubar.Append(wxglade_tmp_menu, "&File")
+        wxglade_tmp_menu = wx.Menu()
+        wxglade_tmp_menu.Append(cvsupID, "&update\tF1", "", wx.ITEM_NORMAL)
+        wxglade_tmp_menu.Append(addID, "&add file\tF4", "", wx.ITEM_NORMAL)
+        wxglade_tmp_menu.Append(rmID, "&rm and cvs remove file", "", wx.ITEM_NORMAL)
+        self.repoman_console_menubar.Append(wxglade_tmp_menu, "&CVS")
+        wxglade_tmp_menu = wx.Menu()
+        wxglade_tmp_menu.Append(scanID, "&scan\tShift-F8", "", wx.ITEM_NORMAL)
+        wxglade_tmp_menu.Append(fullID, "&full\tF8", "", wx.ITEM_NORMAL)
+        wxglade_tmp_menu.Append(pretendID, "&pretend commit\tF9", "", wx.ITEM_NORMAL)
+        wxglade_tmp_menu.Append(commitID, "&commit\tF10", "", wx.ITEM_NORMAL)
+        self.repoman_console_menubar.Append(wxglade_tmp_menu, "&repoman")
+        wxglade_tmp_menu = wx.Menu()
+        wxglade_tmp_menu.Append(echangelogID, "e&changelog\tF5", "", wx.ITEM_NORMAL)
+        self.repoman_console_menubar.Append(wxglade_tmp_menu, "echange&log")
+        wxglade_tmp_menu = wx.Menu()
+        wxglade_tmp_menu.Append(digestID, "create &digest\tF7", "", wx.ITEM_NORMAL)
+        self.repoman_console_menubar.Append(wxglade_tmp_menu, "&ebuild")
+        wxglade_tmp_menu = wx.Menu()
+        wxglade_tmp_menu.Append(metadataID, "&edit metadata\tF6", "", wx.ITEM_NORMAL)
+        self.repoman_console_menubar.Append(wxglade_tmp_menu, "&metadata")
+        # Menu Bar end
         self.repoman_console_statusbar = self.CreateStatusBar(1, 0)
-        self.button_cvs_up = wx.Button(self, -1, "cvs update")
-        self.button_copy_olay = wx.Button(self, -1, "Copy ebuild from overlay")
-        self.button_filesdir = wx.Button(self, -1, "Copy from FILESDIR")
-        self.button_cvs_add = wx.Button(self, -1, "cvs add file")
-        self.button_metadata = wx.Button(self, -1, "Edit metadata")
-        self.button_digest = wx.Button(self, -1, "Create digest")
-        self.button_repoman_full = wx.Button(self, -1, "repoman full")
-        self.button_commit_pretend = wx.Button(self, -1, "repoman pretend commit")
-        self.button_commit = wx.Button(self, -1, "repoman commit")
+        self.button_cvs_up = wx.Button(self, -1, "cvs update F1")
+        self.button_copy_olay = wx.Button(self, -1, "Copy ebuild from overlay F2")
+        self.button_filesdir = wx.Button(self, -1, "Copy from FILESDIR F3")
+        self.button_cvs_add = wx.Button(self, -1, "cvs add file F4")
+        self.button_echangelog = wx.Button(self, -1, "echangelog F5")
+        self.button_metadata = wx.Button(self, -1, "Edit metadata F6")
+        self.button_digest = wx.Button(self, -1, "Create digest F7")
+        self.button_repoman_full = wx.Button(self, -1, "repoman full F8")
+        self.button_commit_pretend = wx.Button(self, -1, "repoman pretend commit F9")
+        self.button_commit = wx.Button(self, -1, "repoman commit F10")
         self.text_ctrl_log = wx.TextCtrl(self, -1, "", style=wx.TE_MULTILINE|wx.TE_READONLY)
         self.label_dir = wx.StaticText(self, -1, "CVS dir:")
-        self.fileBrowser = MyBrowser(self, )
+        self.fileBrowser = CvsBrowser(self, )
 
         self.__set_properties()
         self.__do_layout()
@@ -69,7 +98,6 @@ class MyFrame(wx.Frame):
         for i in range(len(repoman_console_statusbar_fields)):
             self.repoman_console_statusbar.SetStatusText(repoman_console_statusbar_fields[i], i)
         self.button_cvs_up.SetDefault()
-        self.button_copy_olay.SetDefault()
         # end wxGlade
 
     def __do_layout(self):
@@ -82,6 +110,7 @@ class MyFrame(wx.Frame):
         sizer_3.Add(self.button_copy_olay, 0, wx.BOTTOM|wx.EXPAND|wx.FIXED_MINSIZE, 8)
         sizer_3.Add(self.button_filesdir, 0, wx.BOTTOM|wx.EXPAND|wx.FIXED_MINSIZE, 8)
         sizer_3.Add(self.button_cvs_add, 0, wx.BOTTOM|wx.EXPAND|wx.FIXED_MINSIZE, 8)
+        sizer_3.Add(self.button_echangelog, 0, wx.BOTTOM|wx.EXPAND|wx.FIXED_MINSIZE, 8)
         sizer_3.Add(self.button_metadata, 0, wx.BOTTOM|wx.EXPAND|wx.FIXED_MINSIZE, 8)
         sizer_3.Add(self.button_digest, 0, wx.BOTTOM|wx.EXPAND|wx.FIXED_MINSIZE, 8)
         sizer_3.Add(self.button_repoman_full, 0, wx.BOTTOM|wx.EXPAND|wx.FIXED_MINSIZE, 8)
@@ -102,11 +131,25 @@ class MyFrame(wx.Frame):
 
     def __my_layout(self):
         """Customize frame, add events"""
+        wx.EVT_MENU(self, cvsupID, self.OnCvsUp) 
+        wx.EVT_MENU(self, exitID, self.OnClose)
+        wx.EVT_MENU(self, copyID, self.OnCopyOlay)
+        wx.EVT_MENU(self, filesID, self.OnFilesdir)
+        wx.EVT_MENU(self, addID, self.OnCvsAdd)
+        wx.EVT_MENU(self, scanID, self.OnRepoScan)
+        wx.EVT_MENU(self, fullID, self.OnRepoFull)
+        wx.EVT_MENU(self, pretendID, self.OnCommitPretend)
+        wx.EVT_MENU(self, commitID, self.OnCommit)
+        wx.EVT_MENU(self, echangelogID, self.OnEchangelog)
+        wx.EVT_MENU(self, digestID, self.OnDigest)
+        wx.EVT_MENU(self, metadataID, self.OnMetadata)
+
         wx.EVT_BUTTON(self, self.button_cvs_up.GetId(), self.OnCvsUp) 
         wx.EVT_BUTTON(self, self.button_copy_olay.GetId(), self.OnCopyOlay) 
         wx.EVT_BUTTON(self, self.button_filesdir.GetId(), self.OnFilesdir) 
         wx.EVT_BUTTON(self, self.button_cvs_add.GetId(), self.OnCvsAdd) 
         wx.EVT_BUTTON(self, self.button_metadata.GetId(), self.OnMetadata) 
+        wx.EVT_BUTTON(self, self.button_echangelog.GetId(), self.OnEchangelog) 
         wx.EVT_BUTTON(self, self.button_digest.GetId(), self.OnDigest) 
         wx.EVT_BUTTON(self, self.button_repoman_full.GetId(), self.OnRepoFull) 
         wx.EVT_BUTTON(self, self.button_commit_pretend.GetId(),
@@ -128,24 +171,54 @@ class MyFrame(wx.Frame):
         wx.Log_SetActiveTarget(MyLog(self.text_ctrl_log))
         self.Write("))) Repoman console ready.")
 
-        prefs = options.Options().Prefs()
-        self.cvs_root = prefs["cvsRoot"]
+        self.cvs_root = self.GetParent().pref["cvsRoot"]
         frame = self.GetParent()
         self.cat = utils.get_category_name(frame)
         self.pn = utils.get_pn(frame)
-        ebuild_path = frame.filename
+        ebuild_path = frame.filename[frame.ed_shown]
         ebuild_basename = os.path.basename(ebuild_path)
         self.cvs_ebuild_dir = self.QueryDir()
         self.cvs_ebuild_path = "%s/%s" % (self.cvs_ebuild_dir, ebuild_basename)
         self.orig_ebuild_path = ebuild_path
         self.overlay_dir = os.path.dirname(ebuild_path)
-        if not os.path.exists(self.cvs_ebuild_dir):
-            self.new_pkg = 1
-        else:
-            self.new_pkg = 0
+        self.changelog_msg = ""
         self.cur_dir = os.getcwd()
-        os.chdir(self.cvs_ebuild_dir)
-        self.RefreshBrowser()
+        if not os.path.exists(self.cvs_ebuild_dir):
+            wx.CallAfter(self.AddNewPkg)
+        else:
+            os.chdir(self.cvs_ebuild_dir)
+            self.RefreshBrowser()
+
+
+    def AddNewPkg(self):
+        """Create dir and add to cvs if this is a new package"""
+        self.Write("))) Creating pkg directory and adding it to CVS...")
+        os.mkdir(self.cvs_ebuild_dir)
+        os.chdir(os.path.normpath(self.cvs_ebuild_dir + "/.."))
+        self.action = "new_pkg"
+        cmd = "cvs add %s" % os.path.basename(self.cvs_ebuild_dir)
+        self.ExecuteInLog(cmd)
+
+    def OnEchangelog(self, event):
+        """Dialog for echangelog, with bugz#"""
+        value = "bug# %s" % self.bugz
+        result = self.GetMsg("Enter echangelog message                     ",
+                             "Enter echangelog message", value)
+        if not result:
+            return
+        cmd = 'echangelog "%s"' % self.changelog_msg
+        self.ExecuteInLog(cmd)
+
+    def GetMsg(self, caption, title, value):
+        """Dialog for single line input"""
+        dlg = wx.TextEntryDialog(self, caption, title, value)
+        if dlg.ShowModal() == wx.ID_OK:
+            self.changelog_msg = dlg.GetValue()
+            dlg.Destroy()
+            return 1
+        else:
+            dlg.Destroy()
+            return 0
 
     def DoFilesdir(self):
         """Copy files from overlay ${FILESDIR} to CVS ${FILESDIR} """
@@ -203,117 +276,138 @@ class MyFrame(wx.Frame):
 
     def CvsUpdate(self):
         """cvs update"""
-        self.Write("))) cvs update in %s" % self.cvs_ebuild_dir)
-        cmd = "/usr/bin/cvs update"
+        cmd = "cvs update"
         self.ExecuteInLog(cmd)
 
-    def CopyEbuild(self):
-        """Copy ebuild from PORT_OVERLAY to CVSroot/category/package/"""
-        #TODO: Catch exact exceptions
-        try:
-            shutil.copy(self.orig_ebuild_path, self.cvs_ebuild_dir)
-            return 1
-        except:
-            return 0
-
-    def CopyMetadata(self):
-        """Copy metadata.xml from PORT_OVERLAY to CVSroot/category/package/"""
-        file = "%s/metadata.xml" % self.overlay_dir
-        try:
-            shutil.copy(file, self.cvs_ebuild_dir)
-            return 1
-        except:
-            return 0
-
-
-    def Repoman(self, args):
-        """/usr/bin/repoman"""
-        cmd = "/usr/bin/repoman %s" % (args)
+    def Repoman(self, cmd):
+        """preform repoman command"""
+        cmd = "repoman %s" % (cmd)
         self.Execute(cmd)
 
-    def RepomanCommit(self):
-        msg = self.GetMsg()
-        if msg:
-            cmd = "/usr/bin/repoman commit -m '%s'" %  msg
-            self.SyncExecute(cmd)
-
-    def GetMsg(self, caption, title):
-        dlg = wx.TextEntryDialog(self.parent, caption, title, self.cmsg)
-        if dlg.ShowModal() == wx.ID_OK:
-            self.cmsg = dlg.GetValue()
-            dlg.Destroy()
-            return 1
-        else:
-            dlg.Destroy()
-            return 0
-
     def CreateDigest(self):
-        cmd = "/usr/sbin/ebuild %s digest" % os.path.basename(self.cvs_ebuild_path)
+        cmd = "ebuild %s digest" % os.path.basename(self.cvs_ebuild_path)
         self.SyncExecute(cmd)
-
-    def CVSAddDir(self):
-        cmd = "/usr/bin/cvs add %s" % self.pn
-        cmd = "/usr/bin/cvs add %s/files" % self.pn
-        self.SyncExecute(cmd)
-
-    def CVSAdd(self, file):
-        cmd = "/usr/bin/cvs add %s" % file
-        self.SyncExecute(cmd)
-
-    def StripColor(self, text):
-        for c in codes:
-            if text.find(codes[c]) != -1:
-                text = text.replace(codes[c], '')
-        return text 
-
-    def Echangelog(self, msg):
-        self.SyncExecute("/usr/bin/echangelog %s" % msg)
 
     def OnCvsUp(self, event):
         """"""
         self.CvsUpdate()
 
     def OnCopyOlay(self, event):
-        """"""
-        print "pass"
+        """Copy ebuild from PORT_OVERLAY to CVSroot/category/package/"""
+        #TODO: Catch exact exceptions
+        # Confirm if file exists. Offer to show diff
+        shutil.copy(self.orig_ebuild_path, self.cvs_ebuild_dir)
+        self.Write("))) Copied %s to %s" % (self.orig_ebuild_path,
+                   self.cvs_ebuild_dir))
+        self.RefreshBrowser()
+
+    def EditFile(self):
+        """Edit selected file in external editor"""
+        app = self.GetParent().pref['editor']
+        try:
+            #get full path to selected file:
+            filename = self.fileBrowser.getFilename()
+        except IndexError:
+            self.Write("!!! Select a file to edit.")
+            return
+        os.system("%s %s &" % (app, filename))
+
+    def SetNotesInfo(self, bugz, notes):
+        """Set bugz nbr and notes txt"""
+        self.bugz = bugz
+        self.notes = notes
 
     def OnFilesdir(self, event):
         """"""
         print "pass"
 
+    def CvsRemove(self):
+        """cvs remove selected file"""
+        #get full path to selected file:
+        #TODO: Do sanity checking, so we only add files for this pkg 
+        try:
+            #get full path to selected file:
+            filename = self.fileBrowser.getFilename()
+        except IndexError:
+            self.Write("!!! Select a file to remove from cvs.")
+            return
+        cmd = "cvs remove %s" % os.path.basename(filename)
+        self.ExecuteInLog(cmd)
+
     def OnCvsAdd(self, event):
-        """"""
-        print "pass"
+        """cvs add selected file"""
+        #get full path to selected file:
+        #TODO: Do sanity checking, so we only add files for this pkg 
+        # We could modify browser to not allow cd'ing out of pkg dir
+        try:
+            #get full path to selected file:
+            filename = self.fileBrowser.getFilename()
+        except IndexError:
+            self.Write("!!! Select a file to add to cvs.")
+            return
+        cmd = "cvs add %s" % os.path.basename(filename)
+        self.ExecuteInLog(cmd)
 
     def OnMetadata(self, event):
-        """"""
-        print "pass"
+        """Create metadata.xml"""
+        dlg = MetadataXMLDialog.MyDialog(self, -1, "metadata.xml")
+        dlg.Show(True)
 
     def OnDigest(self, event):
-        """"""
-        print "pass"
+        """create digest for selected ebuild"""
+        try:
+            #get full path to selected file:
+            filename = self.fileBrowser.getFilename()
+        except IndexError:
+            self.Write("!!! Select an ebuild so I can create a digest.")
+            return
+        if filename[-7:] == ".ebuild":
+            rel_name = "./%s" % os.path.basename(filename)
+            cmd = "ebuild %s digest" % rel_name
+            self.ExecuteInLog(cmd)
+        else:
+            self.Write("!!! I'll only create digests for ebuilds.")
+
+    def OnRepoScan(self, event):
+        """repoman full"""
+        self.ExecuteInLog("repoman scan")
 
     def OnRepoFull(self, event):
-        """"""
-        print "pass"
+        """repoman full"""
+        self.ExecuteInLog("repoman full")
 
     def OnCommitPretend(self, event):
-        """"""
-        print "pass"
+        """Get commit msg, repoman --pretend commit msg"""
+        result = self.GetMsg("Enter commit message                     ",
+                             "Enter commit message", self.changelog_msg)
+        if not result:
+            self.Write("!!! repoman --pretend commit cancelled")
+            return
+        cmd = 'repoman --pretend commit -m \\"%s\\"' % self.changelog_msg
+        self.ExecuteInLog(cmd)
 
     def OnCommit(self, event):
-        """"""
-        print "pass"
-
+        """Get commit msg, repoman commit msg"""
+        result = self.GetMsg("Enter commit message                     ",
+                             "Enter commit message", self.changelog_msg)
+        if not result:
+            self.Write("!!! repoman commit cancelled")
+            return
+        cmd = 'repoman commit -m \\"%s\\"' % self.changelog_msg
+        self.ExecuteInLog(cmd)
 
     def OnClose(self, event):
         """Clean up"""
+        parent = self.GetParent()
+        parent.SetLog()
         os.chdir(self.cur_dir)
         self.Destroy()
 
     def Write(self, txt):
         """Send text to log window"""
-        print txt
+        #Ouch
+        #wx.Log_SetActiveTarget(MyLog(self.text_ctrl_log))
+        #print txt
         self.WriteText(txt)
 
     def WriteText(self, text):
@@ -324,22 +418,6 @@ class MyFrame(wx.Frame):
             text = text[:-1]
         #Remove color and other esc codes
         text = text.replace('\b', '')
-        text = text.replace("\x1b[0m" , '')
-        text = text.replace("\x1b[01m", '')
-        text = text.replace("\x1b[32;01m" , '')
-        text = text.replace("\x1b[32;06m" , '')
-        text = text.replace("\x1b[31;06m", '')
-        text = text.replace("\x1b[31;01m", '')
-        text = text.replace("\x1b[33;06m", '')
-        text = text.replace("\x1b[33;01m", '')
-        text = text.replace("\x1b[32;06m", '')
-        text = text.replace("\x1b[32;01m", '')
-        text = text.replace("\x1b[34;06m", '')
-        text = text.replace("\x1b[35;06m", '')
-        text = text.replace("\x1b[34;01m", '')
-        text = text.replace("\x1b[35;01m", '')
-        text = text.replace("\x1b[36;01m", '')
-        text = text.replace("\x1b[36;06m", '')
         # For the [ok]'s
         text = text.replace("\x1b[A", '')
         text = text.replace("\x1b[-7G", '')
@@ -375,6 +453,7 @@ class MyFrame(wx.Frame):
         module_path = "/usr/lib/python%s/site-packages/abeni" % sys.version[0:3]
         py_cmd = "python -u %s/doCmd.py %s" % (module_path, cmd)
         self.pid = wx.Execute(py_cmd, wx.EXEC_ASYNC, self.process)
+        self.Write(cmd)
         #Start timer to keep GUI updated:
         ID_Timer = wx.NewId()
         self.timer = wx.Timer(self, ID_Timer)
@@ -411,21 +490,23 @@ class MyFrame(wx.Frame):
 
     def PostAction(self, action):
         """Perform something after async cmd finishes"""
+        if action == "new_pkg":
+            os.chdir(self.cvs_ebuild_dir)
         self.Write("))) Done.")
         self.RefreshBrowser()
 
-    #def RefreshBrowserFilesdir(self):
-    #    """Populate file browser with CVSdir/FILESDIR"""
-    #    filesdir = os.path.join(self.cvs.cvs_ebuild_dir, "filesdir") 
-    #    #TODO: Make sure its a directory?
-    #    if os.path.exists(filesdir):
-    #        parent.fileBrowser.populate(filesdir)
+    def MarkNonCvs(self):
+        """Mark files not added to cvs as red lines"""
+        not_added = cvs_utils.get_non_added(self.cvs_ebuild_dir)
+        for filename in not_added:
+            self.fileBrowser.setColor(filename, wx.RED)
 
     def RefreshBrowser(self):
         """Populate file browser"""
         if os.path.exists(self.cvs_ebuild_dir):
             self.fileBrowser.populate(self.cvs_ebuild_dir)
-
+            #self.MarkNonCvs()
+            self.fileBrowser.list.SetColumnWidth(0, wx.LIST_AUTOSIZE)
 
 # end of class MyFrame
 

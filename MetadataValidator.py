@@ -1,7 +1,7 @@
-
 #!/usr/bin/env python
 
 import sys
+
 from Metadata_XML import parse_metadata_xml
 
 handler = parse_metadata_xml( "metadata.xml" )
@@ -9,7 +9,10 @@ handler = parse_metadata_xml( "metadata.xml" )
 try:
     lang = handler.maintainers[0].description.keys()[0]
 except:
-    lang = handler.longdescription.keys()[0]
+    try:
+        lang = handler.longdescription.keys()[0]
+    except:
+        lang = "en"
 
 def GetHerds():
     try:
