@@ -27,6 +27,12 @@ class Options:
             if string.find(line, 'editor') != -1:
                 self.editor = string.strip(string.split(line, '=')[1])
 
+            if string.find(line, 'autoTabs') != -1:
+                self.autoTabs = string.strip(string.split(line, '=')[1])
+
+            if string.find(line, 'fileBrowser') != -1:
+                self.fileBrowser = string.strip(string.split(line, '=')[1])
+
             line = f.readline()
         f.close()
 
@@ -38,5 +44,6 @@ class Options:
         pref['xterm'] = self.xterm
         pref['diff'] = self.diff
         pref['editor'] = self.editor
-
+        pref['autoTabs'] = self.autoTabs
+        pref['fileBrowser'] = self.fileBrowser
         return pref

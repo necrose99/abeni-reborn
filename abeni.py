@@ -78,16 +78,18 @@ class MyFrame(wxFrame):
         AddMenu(self)
         AddToolbar(self)
         self.sb = self.CreateStatusBar(1, wxST_SIZEGRIP)
-        splitter = wxSplitterWindow(self, -1, style=wxNO_3D|wxSP_3D)
+        self.splitter = wxSplitterWindow(self, -1, style=wxNO_3D|wxSP_3D)
         def EmptyHandler(evt): pass
-        EVT_ERASE_BACKGROUND(splitter, EmptyHandler)
-        self.nb = wxNotebook(splitter, -1, style=wxCLIP_CHILDREN)
-        self.log = wxTextCtrl(splitter, -1,
+        EVT_ERASE_BACKGROUND(self.splitter, EmptyHandler)
+        self.nb = wxNotebook(self.splitter, -1, style=wxCLIP_CHILDREN)
+        self.log = wxTextCtrl(self.splitter, -1,
                              style = wxTE_MULTILINE|wxTE_READONLY|wxHSCROLL)
+        font = wxFont(12, wxMODERN, wxNORMAL, wxNORMAL, faceName="Lucida Console")
+        self.log.SetFont(font)
         wxLog_SetActiveTarget(MyLog(self.log))
         self.Show(True)
-        splitter.SplitHorizontally(self.nb, self.log, 400)
-        splitter.SetMinimumPaneSize(20)
+        self.splitter.SplitHorizontally(self.nb, self.log, 400)
+        self.splitter.SetMinimumPaneSize(20)
         #Load ebuild if specified on command line, by filename or by full package name
         if len(sys.argv) == 2:
             f = sys.argv[1]
@@ -105,6 +107,30 @@ class MyFrame(wxFrame):
         # No idea why this is used. It was in the demo code. It breaks in wxPython 2.4.2.1
         # because object doesn't exist after notebook is removed then added.
         #del self.filehistory
+
+    def OnMnuLogBottom(self, event):
+        """Switch ouput log to bottom"""
+        if not self.editing:
+            return
+        txt = self.log.GetValue()
+        self.splitter.SplitHorizontally(self.nb, self.log, 400)
+        self.splitter.SetMinimumPaneSize(20)
+        wxLog_SetActiveTarget(MyLog(self.log))
+        self.log.SetValue(txt)
+        self.log.Show(True)
+        self.log.Refresh()
+        self.nb.DeletePage(0)
+
+    def OnMnuLogTab(self, event):
+        """Switch ouput log to tab"""
+        if not self.editing:
+            return
+        txt = self.log.GetValue()
+        self.logWindow=panels.LogWindow(self.nb, self.sb, self.pref)
+        self.nb.InsertPage(0, self.logWindow, "Log")
+        wxLog_SetActiveTarget(MyLog(self.logWindow.log))
+        self.logWindow.log.SetValue(txt)
+        self.splitter.Unsplit()
 
     def WriteText(self, text):
         if text[-1:] == '\n':
@@ -198,14 +224,13 @@ class MyFrame(wxFrame):
         """Run 'repoman-local-5.py' on this ebuild"""
         if not self.editing:
             return
-        d = os.getcwd()
-        os.chdir(self.ebuildDir)
-        cmd = '"/usr/bin/repoman-safe.py ; echo Press ENTER ; read foo"'
+        current = os.getcwd()
+        new = os.chdir(self.ebuildDir)
+        cmd = 'cd %s;/usr/bin/repoman-safe.py' % new
         #cmd2 = self.pref['xterm'] + ' -T "repoman-safe" -e ' + cmd + ' &'
         #os.system(cmd2)
-        #os.chdir(d)
+        os.chdir(current)
         self.ExecuteInLog(cmd)
-
 
     def OnMnuEmerge(self, event):
         """Run 'emerge <options> <this ebuild>' """
@@ -214,7 +239,7 @@ class MyFrame(wxFrame):
         WriteEbuild(self)
         dlg = wxTextEntryDialog(self, 'What arguments do you want to pass?',
                             'Arguments?', '')
-        dlg.SetValue("")
+        #dlg.SetValue("")
         if dlg.ShowModal() == wxID_OK:
             opts = dlg.GetValue()
             dlg.Destroy()
@@ -225,7 +250,7 @@ class MyFrame(wxFrame):
             #cmd = '"/usr/bin/emerge ' + opts + ' ' + self.filename + ' ; echo Done"'
             cmd = '/usr/bin/emerge %s %s' % (opts, self.filename)
         else:
-            if opts == 'unmerge' or opts == '-C':
+            if opts == 'unmerge' or opts == '-C' or opts == '-s' or opts == '--search':
                 #cmd = 'sudo /usr/bin/emerge ' + opts + ' ' + self.package + ' ; echo Done'
                 cmd = 'sudo /usr/bin/emerge %s %s' % (opts, self.package)
                 print cmd
@@ -285,7 +310,7 @@ class MyFrame(wxFrame):
         wxSafeYield()
         sys.stdout.write("\n")
         sys.stdout.flush()
-        self.inp = os.popen('FEATURES="noauto" %s 2>&1 &' % cmd)
+        self.inp = os.popen('FEATURES="noauto notitles" %s 2>&1 &' % cmd)
         l = self.inp.readline()
         self.write(l)
 
@@ -587,10 +612,29 @@ class MyFrame(wxFrame):
         self.OnClose(-1)
 
     def OnMnuPref(self, event):
-        """Global preferences entry dialog"""
-        import OptionFrame
-        dlg = OptionFrame.OptionFrame(None, -1, "Global Preferences")
-        dlg.Show(true)
+        """Modify preferences"""
+        win = dialogs.Preferences(self, -1, "Preferences", \
+                                size=wxSize(350, 200), \
+                                style = wxDEFAULT_DIALOG_STYLE \
+                                )
+        win.CenterOnScreen()
+        val = win.ShowModal()
+        if val == wxID_OK:
+            self.pref['browser'] = win.browser.GetValue()
+            self.pref['xterm'] = win.xterm.GetValue()
+            self.pref['diff'] = win.diff.GetValue()
+            self.pref['editor'] = win.editor.GetValue()
+            self.pref['autoTabs'] = win.autoTabs.GetValue()
+            self.pref['fileBrowser'] = win.fileBrowser.GetValue()
+
+            f = open(os.path.expanduser('~/.abeni/abenirc'), 'w')
+            f.write('browser = %s\n' % self.pref['browser'])
+            f.write('xterm = %s\n' % self.pref['xterm'])
+            f.write('diff = %s\n' % self.pref['diff'])
+            f.write('editor = %s\n' % self.pref['editor'])
+            f.write('autoTabs = %s\n' % self.pref['autoTabs'])
+            f.write('fileBrowser = %s\n' % self.pref['fileBrowser'])
+            f.close()
 
     def OnMnuAbout(self,event):
         """Obligitory About me and my app screen"""
@@ -612,6 +656,7 @@ class MyFrame(wxFrame):
                 return 1
 
     def LoadByPackage(self, f):
+        """Offer list of ebuilds when given a package"""
         ebuilds = []
         for l in os.popen('etcat -v ' + '"^' + f + '$"').readlines():
             if l[0:9] == '        [':
@@ -634,11 +679,10 @@ class MyFrame(wxFrame):
                     fname = portdir_overlay + '/' + cat + '/' + f + '/' + package + '.ebuild'
                 else:
                     fname = portdir + '/' + cat + '/' + f + '/' + package + '.ebuild'
-                try:
-                    os.path.exists(fname)
+                if os.path.exists(fname):
                     LoadEbuild(self, fname, __version__, portdir)
-                except:
-                    self.write("Error: Can't load %s") % fname
+                else:
+                    print "Error: Can't load %s" % fname
             dlg.Destroy()
         else:
             print "Package " + f + " not found. Be sure to use full package name."
@@ -664,6 +708,8 @@ class MyFrame(wxFrame):
 
     def SetToNewPage(self):
         self.nb.SetSelection(self.nb.GetPageCount() -1)
+
+
 
 class MyLog(wxPyLog):
     def __init__(self, textCtrl, logTime=0):

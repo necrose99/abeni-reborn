@@ -137,6 +137,7 @@ class main(wxPanel):
         v = wxTextCtrl(self, wxNewId(), val, wxPoint(525, self.vrow), wxSize(250, 20))
         self.varDict[var] = [t, v]
         v.SetFocus()
+        v.SetInsertionPoint(1)
         self.vrow +=30
         self.boxv.Destroy()
         self.boxv = wxStaticBox( self, -1, "Other Variables", wxPoint(400, 132), wxSize(390, self.vrow -120))
@@ -218,6 +219,22 @@ class main(wxPanel):
         self.EbuildFile.SetValue(self.ebuildName)
         ebuild = string.split(self.ebuildName, '-')
         self.Package.SetValue(ebuild[0])
+
+
+class LogWindow(wxPanel):
+
+    """Show log window in tab"""
+
+    def __init__(self, parent, statusbar, pref):
+        wxPanel.__init__(self, parent, -1)
+        self.log = wxTextCtrl(self, -1,
+                             style = wxTE_MULTILINE|wxTE_READONLY|wxHSCROLL)
+        font = wxFont(12, wxMODERN, wxNORMAL, wxNORMAL, faceName="Lucida Console")
+        self.log.SetFont(font)
+        s = wxBoxSizer(wxHORIZONTAL)
+        s.Add(self.log, 1, wxEXPAND)
+        self.SetSizer(s)
+        self.SetAutoLayout(True)
 
 
 class depend(wxPanel):

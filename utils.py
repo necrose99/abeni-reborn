@@ -363,10 +363,10 @@ def AddMenu(parent):
     # Tools
     menu_tools = wxMenu()
     mnuEbuildID = wxNewId()
-    menu_tools.Append(mnuEbuildID, "Run &ebuild <this ebuild> <command>")
+    menu_tools.Append(mnuEbuildID, "Run &ebuild <this ebuild> <command>\tf4")
     EVT_MENU(parent, mnuEbuildID, parent.OnMnuEbuild)
     mnuEmergeID = wxNewId()
-    menu_tools.Append(mnuEmergeID, "Run e&merge <args> <this ebuild>")
+    menu_tools.Append(mnuEmergeID, "Run e&merge <args> <this ebuild>\tf5")
     EVT_MENU(parent, mnuEmergeID, parent.OnMnuEmerge)
     mnuLintoolID = wxNewId()
     menu_tools.Append(mnuLintoolID, "Run &Lintool on this ebuild")
@@ -393,13 +393,21 @@ def AddMenu(parent):
     menu_view.Append(mnuEditID, "This ebuild in e&xternal editor")
     EVT_MENU(parent, mnuEditID, parent.OnMnuEdit)
     menubar.Append(menu_view, "Vie&w")
-
     # Options
     menu_options = wxMenu()
     mnuPrefID = wxNewId()
     menu_options.Append(mnuPrefID, "&Global Preferences")
-    menubar.Append(menu_options, "&Options")
     EVT_MENU(parent, mnuPrefID, parent.OnMnuPref)
+    menu_options.AppendSeparator()
+    mnuLogBottomID = wxNewId()
+    menu_options.Append(mnuLogBottomID, "Log at &bottom", "", wxITEM_RADIO)
+    EVT_MENU(parent, mnuLogBottomID, parent.OnMnuLogBottom)
+    mnuLogTabID = wxNewId()
+    menu_options.Append(mnuLogTabID, "Log in separate &tab", "", wxITEM_RADIO)
+    EVT_MENU(parent, mnuLogTabID, parent.OnMnuLogTab)
+    menu_options.AppendSeparator()
+
+    menubar.Append(menu_options, "&Options")
     # Help
     menu_help = wxMenu()
     mnuHelpID = wxNewId()
