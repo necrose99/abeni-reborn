@@ -120,7 +120,34 @@ class main(wxPanel):
         vs.Fit(self)
         #self.SetSizer(vs2)
         #vs2.Fit(self)
-        self.boxt = wxStaticBox( self, -1, "Other Variables", wxPoint(400, 5), wxSize(390, 40))
+        self.boxv = wxStaticBox( self, -1, "Other Variables", wxPoint(400, 5), wxSize(390, 40))
+        self.boxs = wxStaticBox( self, -1, "Misc. Statements", wxPoint(400, 55), wxSize(390, 120))
+        self.stext = wxTextCtrl(self, -1, "", size=(360, 70), pos=(410,80), style=wxTE_MULTILINE)
+        self.stext.SetInsertionPoint(0)
+        #EVT_TEXT(self, stext.GetId(), self.EvtText)
+
+    def AddVar(self, var, val):
+        t = wxStaticText(self, -1, var, wxPoint(410, self.vrow))
+        self.textList.append(var)
+        v = wxTextCtrl(self, wxNewId(), val, wxPoint(525, self.vrow), wxSize(250, 20))
+        v.SetFocus()
+        self.varList.append(v)
+        self.vrow += 30
+        st = self.stext.GetValue()
+        self.boxv.Destroy()
+        self.boxs.Destroy()
+        self.stext.Destroy()
+        self.boxv = wxStaticBox( self, -1, "Other Variables", wxPoint(400, 5), wxSize(390, self.vrow))
+
+        self.boxs = wxStaticBox( self, -1, "Misc. Statements", wxPoint(400, self.vrow + 30), wxSize(390, 120))
+        self.stext = wxTextCtrl(self, -1, st, size=(360, 70), pos=(410,self.vrow + 60), style=wxTE_MULTILINE)
+        self.stext.SetInsertionPoint(0)
+
+    def AddStatement(self, statement):
+        txt = self.stext.GetValue()
+        txt += '\n' + statement
+        self.stext.SetValue(txt)
+
 
     def OnCatButton(self, event):
         dlg = wxDirDialog(self, "Choose a Category:", '/usr/portage',
@@ -150,30 +177,8 @@ class main(wxPanel):
             self.License.SetValue(l)
         dlg.Destroy()
 
-    def AddVar(self, var, val):
-        t = wxStaticText(self, -1, var, wxPoint(410, self.vrow))
-        self.textList.append(var)
-        v = wxTextCtrl(self, wxNewId(), val, wxPoint(525, self.vrow), wxSize(250, 20))
-        v.SetFocus()
-        self.varList.append(v)
-        self.vrow += 30
-        self.boxt.Destroy()
-        h = self.vrow + 20
-        self.boxt = wxStaticBox( self, -1, "Other Variables", wxPoint(400, 5), wxSize(390, h))
-
     def GetVars(self):
         return self.textList, self.varList
-
-    def AddStatement(self, var, val):
-        t = wxStaticText(self, -1, var, wxPoint(410, self.vrow))
-        self.text.append(t)
-        v = wxTextCtrl(self, wxNewId(), val, wxPoint(525, self.vrow), wxSize(250, 20))
-        v.SetFocus()
-        self.varList.append(v)
-        self.vrow += 50
-        self.boxt.Destroy()
-        h = self.vrow + 40
-        self.boxt = wxStaticBox(self, -1, "Statements", wxPoint(400, ), wxSize(390, h))
 
     def PopulateDefault(self):
         self.Keywords.SetValue("~x86")
@@ -289,7 +294,8 @@ class Editor(wxPanel):
         # line numbers in the margin
         self.editorCtrl.SetMarginType(1, wxSTC_MARGIN_NUMBER)
         self.editorCtrl.SetMarginWidth(1, 25)
-        self.editorCtrl.SetLexer(wxSTC_LEX_MAKEFILE)
+        self.editorCtrl.SetLexer(wxSTC_LEX_PYTHON)
+        #LEX_MAKEFILE is kinda ok too
 
 #wxStyledTextCtrl::SetLexer
 #void SetLexer(wxSTC_LEX lexer)

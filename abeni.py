@@ -30,6 +30,8 @@ class MyFrame(wxFrame):
         self.funcList = []
         #Misc editor tabs
         self.editorList = []
+        #Misc statements/commands
+        self.statementList = []
         #application icon
         iconFile = ('/usr/share/bitmaps/abeni/mocha.png')
         icon = wxIcon(iconFile, wxBITMAP_TYPE_PNG)
@@ -159,7 +161,9 @@ class MyFrame(wxFrame):
     def ClearNotebook(self):
         """Delete all pages in the notebook"""
         self.nb.DeleteAllPages()
-        self.funcList=[]
+        self.funcList = []
+        self.statementList = []
+        self.editorList = []
 
     def SetFilename(self, filename):
         """Set the ebuild full path and filename"""
@@ -172,7 +176,7 @@ class MyFrame(wxFrame):
     def OnMnuLoad(self, event):
         """Load ebuild file"""
         #TODO: Add an "Are you sure?" dialog
-        # Commands/statements section
+        # statements section
         # Comments: This is going to need a lot of work. I'll need to break up the
         #   ebuild into a tree, by vars, statements and functions, so I can put the
         #   comments back in the right place.
@@ -186,7 +190,7 @@ class MyFrame(wxFrame):
             self.SetFilename(filename)
             vars = {}
             funcs = {}
-            commands = []
+            statements = []
             f = open(filename, 'r')
             while 1:
                 l = f.readline()
@@ -234,12 +238,14 @@ class MyFrame(wxFrame):
                             funcs[fname] = s
                             break
                     continue
-                # Command like rm -rf /tmp/foo
+                # Command like 'inherit cvs'
                 if re.search('^[a-z]', l):
-                    commands.append(l)
+                    self.statementList.append(l)
             f.close()
+
             #DEBUG
-            print "COMMANDS: ", commands
+            #print "Statements: ", self.statementList
+
             s = string.split(filename, "/")
             ebuild_file = s[len(s)-1]
             ebuild = s[len(s)-2]
@@ -261,6 +267,8 @@ class MyFrame(wxFrame):
             # Add function pages to notebook
             for fname in funcs:
                 self.AddFunc(fname, funcs[fname])
+            for s in self.statementList:
+                self.panelMain.AddStatement(s)
             # Add original ebuild file:
             self.AddEditor('Original File', open(filename, 'r').read())
             self.nb.SetSelection(0)
@@ -415,7 +423,7 @@ class MyFrame(wxFrame):
             #This is for pickling data:
             #file = open(self.panelMain.Ebuild.GetValue() + ".abeni", 'w')
             #pickle.dump(myData, file)
-            self.FormatEbuild()
+            self.WriteEbuild()
         #TODO: dialog showing save failed
 
     def checkEntries(self):
@@ -498,8 +506,8 @@ class MyFrame(wxFrame):
         myData['changelog'] = self.panelChangelog.edChangelog.GetText()
         return myData
 
-    def FormatEbuild(self):
-        """Format data into fields ready to output to ebuild file"""
+    def WriteEbuild(self):
+        """Format data into fields and output to ebuild file"""
         #abeniPath = os.path.join(os.path.expanduser('~'), '.abeni')
         #if not os.path.exists(abeniPath):
         #    os.mkdir(abeniPath)
@@ -513,18 +521,23 @@ class MyFrame(wxFrame):
         self.SetFilename(filename)
         f = open(filename, 'w')
 
+        f.write('# Copyright 1999-2003 Gentoo Technologies, Inc.\n')
+        f.write('# Distributed under the terms of the GNU General Public License v2\n')
+        f.write('# $Header: /cvsroot/abeni/abeni/Attic/abeni.py,v 1.18 2003/06/02 20:13:04 robc Exp $\n\n')
+
+        f.write(self.panelMain.stext.GetValue() + '\n')
         textList, varList = self.panelMain.GetVars()
         for i in range(0, len(varList)):
-            f.write(textList[i] + '="' + varList[i].GetValue() + '"\n\n')
+            f.write(textList[i] + '="' + varList[i].GetValue() + '"\n')
 
         #f.write("S=${WORKDIR}/${P}\n\n")
-        f.write('DESCRIPTION="' + self.panelMain.Desc.GetValue() + '"\n\n')
-        f.write('HOMEPAGE="' + self.panelMain.Homepage.GetValue() + '"\n\n')
-        f.write('SRC_URI="' + self.panelMain.URI.GetValue() + '"\n\n')
-        f.write('LICENSE="' + self.panelMain.License.GetValue() + '"\n\n')
-        f.write('SLOT="' + self.panelMain.Slot.GetValue() + '"\n\n')
-        f.write('KEYWORDS="' + self.panelMain.Keywords.GetValue() + '"\n\n')
-        f.write('IUSE="' + self.panelMain.USE.GetValue() + '"\n\n')
+        f.write('DESCRIPTION="' + self.panelMain.Desc.GetValue() + '"\n')
+        f.write('HOMEPAGE="' + self.panelMain.Homepage.GetValue() + '"\n')
+        f.write('SRC_URI="' + self.panelMain.URI.GetValue() + '"\n')
+        f.write('LICENSE="' + self.panelMain.License.GetValue() + '"\n')
+        f.write('SLOT="' + self.panelMain.Slot.GetValue() + '"\n')
+        f.write('KEYWORDS="' + self.panelMain.Keywords.GetValue() + '"\n')
+        f.write('IUSE="' + self.panelMain.USE.GetValue() + '"\n')
         dlist = self.panelDepend.elb1.GetStrings()
         d = 'DEPEND="'
         for ds in dlist:
@@ -552,7 +565,11 @@ class MyFrame(wxFrame):
             f.write(ftext + '\n')
         f.close()
         self.AddEditor('Saved File', open(self.filename, 'r').read())
-        #CHANGELOG.write(self.panelChangelog.ed.GetText())
+
+        changelog = os.path.join(ebuildDir, 'ChangeLog')
+        f = open(changelog, 'w')
+        f.write(self.panelChangelog.edChangelog.GetText())
+        f.close()
 
 
 class GetURIDialog(wxDialog):
