@@ -1,7 +1,36 @@
 Abeni
 
-0.0.4 -------------
+0.0.5 -------------
 
+Jun 24, 2003
+
+You can bring up a list of available ebuilds if you start abeni with 'abeni <package>'
+This will bring up a dialog you can use to choose from (it uses output of etcat -v <package>)
+
+Fixed problem with functions that were getting written even though there were deleted
+
+Better ordering of variables.
+
+Added many more Gentoo keywords to highlight list in Scintilla editor
+
+Fixed editor visual error for variables on multi-lines (no more purple line)
+
+
+Jun 23, 2003
+
+Moved Misc statements up, Other Variables down on the screen.
+
+You are prompted to save changes if you modify function buffers on load/quit
+
+
+Jun 19, 2003
+
+Checks for category and verifies PORTDIR has it before saving.
+
+Changed regex to find functions with opening { on separate line.
+
+
+0.0.4 -------------
 
 Fixed 'emerge unmerge' to use package instead of full path to filename
 

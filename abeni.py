@@ -4,19 +4,23 @@
 Released under the terms of the GNU Public License v2"""
 
 __author__ = 'Rob Cakebread'
-__version__ = '0.0.4'
+__email__ = 'robc@myrealbox.com'
+__version__ = '0.0.5'
+__changelog_ = 'http://abeni.sf.net/ChangeLog'
 
+print "Importging portage config, wxPython, Python and Abeni modules..."
+from portage import config
 from wxPython.wx import *
 from wxPython.lib.dialogs import wxScrolledMessageDialog
-import os, os.path, string, sys, re, urlparse
+import os, string, sys, re, urlparse
 import dialogs, panels, options
-from portage import config
 
 #Get portage path locations from /etc/make.conf
 distdir = config().environ()['DISTDIR']
 portdir = config().environ()['PORTDIR']
 portdir_overlay = config().environ()['PORTDIR_OVERLAY']
 
+defaults = ["SRC_URI", "HOMEPAGE", "DEPEND", "RDEPEND", "DESCRIPTION", "S", "IUSE", "SLOT", "KEYWORDS", "LICENSE"]
 
 class MyFrame(wxFrame):
 
@@ -38,9 +42,7 @@ class MyFrame(wxFrame):
             self.recentList = open(bookmarks, 'r').readlines()
         else:
             self.recentList = []
-
         # Get options from ~/.abeni/abenirc file
-        #TODO: Its in /usr/share/abeni/abenirc, need to copy it to ~/ when first run
         self.GetOptions()
         # Custom functions added instances
         self.funcList = []
@@ -56,8 +58,8 @@ class MyFrame(wxFrame):
         self.filename = ''
         # Previous file opened. For use with diff
         self.lastFile = ''
-        #application icon
-        iconFile = ('/usr/share/pixmaps/abeni/mocha.png')
+        #application icon 16x16
+        iconFile = ('/usr/share/pixmaps/abeni/abeni_logo16.png')
         icon = wxIcon(iconFile, wxBITMAP_TYPE_PNG)
         self.SetIcon(icon)
         #Setup wxNotebook in main frame
@@ -170,7 +172,6 @@ class MyFrame(wxFrame):
         self.tb = self.CreateToolBar(wxTB_HORIZONTAL|wxNO_BORDER|wxTB_FLAT) #wxTB_3DBUTTONS
         #self.tb.SetToolSeparation(10)
         newID = wxNewId()
-        #TODO: Use only png, convert from bmp
         newBmp = ('/usr/share/pixmaps/abeni/new.png')
         self.tb.AddSimpleTool(newID, wxBitmap(newBmp, wxBITMAP_TYPE_PNG), \
                                 "Create new ebuild", "Create New ebuild")
@@ -200,7 +201,7 @@ class MyFrame(wxFrame):
         EVT_TOOL(self, newFunID, self.OnMnuNewFunction)
         self.tb.AddSeparator()
         lintoolID = wxNewId()
-        lintoolBmp = ('/usr/share/pixpams/abeni/lintool.png')
+        lintoolBmp = ('/usr/share/pixmaps/abeni/lintool.png')
         self.tb.AddSimpleTool(lintoolID, wxBitmap(lintoolBmp, wxBITMAP_TYPE_PNG), \
                                 "Lintool - check syntax of ebuild", "Run Lintool on this ebuild")
         EVT_TOOL(self, lintoolID, self.OnMnuLintool)
@@ -217,24 +218,69 @@ class MyFrame(wxFrame):
         EVT_TOOL(self, helpID, self.OnMnuHelp)
         #Load recent ebuilds to File menu
         for ebuild in self.recentList:
-            if ebuild != '\n':
-                self.filehistory.AddFileToHistory(ebuild.strip())
+            self.filehistory.AddFileToHistory(ebuild.strip())
 
         self.tb.Realize()
         EVT_TOOL_ENTER(self, -1, self.OnToolZone)
         EVT_TIMER(self, -1, self.OnClearSB)
         self.timer = None
 
-        #Load ebuild if specified on command line
+        #Load ebuild if specified on command line, by filename or by full package name
         if len(sys.argv) == 2:
-            if os.path.exists(sys.argv[1]):
-                self.LoadEbuild(sys.argv[1])
+            f = sys.argv[1]
+            if os.path.exists(f):
+                self.LoadEbuild(f)
             else:
-                print "Can't open " + sys.argv[1]
+                print "No such file: " + f
+                print "Checking for package: " + f
+                ebuilds = []
+                for l in os.popen('etcat -v ' + '"^' + f + '$"').readlines():
+                    if l[0:9] == '        [':
+                        l = l.strip()
+                        l = l[6:]
+                        ebuilds.append(l)
+                if len(ebuilds):
+                    dlg = wxSingleChoiceDialog(self, 'Choose an ebuild:', 'Ebuilds Available',
+                               ebuilds, wxOK|wxCANCEL)
+                    if dlg.ShowModal() == wxID_OK:
+                        s = dlg.GetStringSelection()
+                        cat = string.split(s[:-4], '/')[0]
+                        package = string.split(s[:-4], '/')[1]
+                        if s[-7:] == 'OVERLAY':
+                            fname = portdir_overlay + '/' + cat + '/' + f + '/' + package + '.ebuild'
+                        else:
+                            fname = portdir + '/' + cat + '/' + f + '/' + package + '.ebuild'
+                        self.LoadEbuild(fname)
+                    dlg.Destroy()
+                else:
+                    print "Package " + f + " not found. Be sure to use full package name."
+
 
     def Cleanup(self, *args):
         """Cleanup for filehistory"""
+        # No idea why this is used. It was in the demo code. It breaks in wxPython 2.4.2.1
+        # because object doesn't exist after notebook is removed then added.
         del self.filehistory
+
+
+    def OnMnuNewVariable(self, event):
+        """Dialog for adding new variable"""
+        if not self.editing:
+            return
+        dlg = wxTextEntryDialog(self, 'New Variable Name:',
+                            'Enter Variable Name', 'test')
+        dlg.SetValue("")
+        if dlg.ShowModal() == wxID_OK:
+            newVariable = dlg.GetValue()
+            self.varOrder.append(newVariable)
+            self.AddNewVar(newVariable, "")
+        dlg.Destroy()
+
+    def AddNewVar(self, var, val):
+        """Add new variable on Main panel"""
+        if val == '':
+            val = '""'
+        self.panelMain.AddVar(var, val)
 
     def OnMnuDelVariable(self, event):
         """Delete custom variable"""
@@ -244,22 +290,23 @@ class MyFrame(wxFrame):
         l = []
         for key in varList:
             l.append(key.GetLabel())
-
         dlg = wxSingleChoiceDialog(self, 'Choose variable to DELETE:', 'Delete Variable',
                             l, wxOK|wxCANCEL)
         if dlg.ShowModal() == wxID_OK:
             f = dlg.GetStringSelection()
-            print f
+            #print f
             for key in varList:
                 if key.GetLabel() == f:
-                    key.Destroy()
                     varList[key].Destroy()
+                    key.Destroy()
                     del varList[key]
                     break
-            #TODO: We need to redraw the variables on the GUI, it just leaves a
-            # blank as it is now. Sizers don't seem to work if you destroy/rebuild them.
-            # Or, more likely, I just don't know sizers yet.
         dlg.Destroy()
+
+    def AddCommand(self, command):
+        t = self.panelMain.stext.GetValue()
+        t += (command + "\n")
+        self.panelMain.stext.SetValue(t)
 
     def OnMnuDiff(self, event):
         """Run diff program on original vs. saved ebuild"""
@@ -286,7 +333,7 @@ class MyFrame(wxFrame):
         diffFile = string.replace(self.ebuild_file, '.ebuild', '.diff')
         #print orgFile, diffFile
         cmd = 'diff -u ' + self.lastFile + ' ' + self.filename + ' > ~/.abeni/' + diffFile
-        print cmd
+        #print cmd
         os.system(cmd)
 
     def OnMnuCreateDigest(self, event):
@@ -383,11 +430,18 @@ class MyFrame(wxFrame):
 
     def OnMnuDelFunction(self, event):
         """Remove current function page"""
-        #TODO: This removes any page
-        self.nb.RemovePage(self.nb.GetSelection())
+        #TODO: This removes any page, change to only move functions.
+        this = self.nb.GetSelection()
+        n = 0
+        for f in self.funcList:
+            if f == self.nb.GetPage(this):
+                self.nb.RemovePage(self.nb.GetSelection())
+                break
+            n += 1
+        del self.funcList[n]
         #Neither of these fix the bug where the tab still shows. If you resize the window, it deletes it.
-        self.nb.Refresh(true)
-        self.Refresh(true)
+        #self.nb.Refresh(true)
+        #self.Refresh(true)
 
     def ClearNotebook(self):
         """Delete all pages in the notebook"""
@@ -427,16 +481,16 @@ class MyFrame(wxFrame):
 
         #Indenting shoud be done with tabs, not spaces
         badSpaces = re.compile('^ +')
+        #Comments should be indented to level of code its refering to.
         badComments = re.compile('^#+')
-
         while 1:
             l = f.readline()
             if not l: #End of file
                 break
-            if len(l) > 1:
+            if l !='\n':
                 l = string.strip(l)
 
-            # Variables always start a line with all caps
+            # Variables always start a line with all caps and has an =
             varTest = re.search('^[A-Z]+.*= ?', l)
 
             # Match any of these:
@@ -444,7 +498,8 @@ class MyFrame(wxFrame):
             #  mine () {   # I hate when people use this one.
             #  my_func() {
             #  my_func () {
-            funcTest = re.search('^[a-zA-Z]*(_[a-zA-Z]*)?(_[a-zA-Z]*)? ?\(\) {', l)
+            #  Any above with { on separate line
+            funcTest = re.search('^[a-zA-Z]*(_[a-zA-Z]*)?(_[a-zA-Z]*)? ?\(\)', l)
 
             if varTest:
                 s = string.split(l, "=")
@@ -461,7 +516,6 @@ class MyFrame(wxFrame):
                             s[1] = v.replace('\t', '')
                             s[1] = s[1].replace('\n\n', '\n')
                             break
-
                 vars[s[0]] = s[1]
                 self.varOrder.append(s[0])
                 continue
@@ -485,34 +539,41 @@ class MyFrame(wxFrame):
                         break
                 continue
             # Command like 'inherit cvs' or a comment
-            if re.search('^([a-z]|#)', l):
+            if re.search('^([a-z]|#|\[)', l):
                 self.statementList.append(l)
-        f.close()
 
+        f.close()
+        '''
+        print self.statementList
+        t = string.join(self.statementList, '\n')
+        print t
+        dups = re.compile(r"""\n\n\n""", re.DOTALL)
+        t = dups.sub('\n', t)
+        print t
+        self.statementList= string.split(t, '\n')
+        print self.statementList
+        '''
         s = string.split(filename, "/")
         self.ebuild_file = s[len(s)-1]
-        ebuild = s[len(s)-2]
+        package = s[len(s)-2]
         category = s[len(s)-3]
-
-        myData = {}
+        defaultVars = {}
         otherVars = {}
-        myData, otherVars = self.SeparateVars(vars)
-        myData['ebuild'] = ebuild
-        myData['ebuild_file'] = self.ebuild_file
-        myData['category'] = category
+        defaultVars, otherVars = self.SeparateVars(vars)
+        defaultVars['package'] = package
+        defaultVars['ebuild_file'] = self.ebuild_file
+        defaultVars['category'] = category
 
         #If S isn't set it equals
-        if myData['S'] == '':
-            myData['S'] = '${WORKDIR}/${P}'
+        if defaultVars['S'] == '':
+            defaultVars['S'] = '${WORKDIR}/${P}'
 
         #You must set IUSE, even if you don't use it.
-        if myData['IUSE'] == '':
-            myData['IUSE'] = '""'
-
+        if defaultVars['IUSE'] == '':
+            defaultVars['IUSE'] = '""'
         self.editing = 1
         self.AddPages()
-
-        self.PopulateForms(myData)
+        self.PopulateForms(defaultVars)
         clog = string.replace(filename, self.ebuild_file, '') + 'ChangeLog'
         self.ebuildDir = string.replace(filename, self.ebuild_file, '')
         self.panelChangelog.Populate(clog)
@@ -528,41 +589,57 @@ class MyFrame(wxFrame):
                 if v == self.varOrder[n]:
                     self.AddNewVar(v, otherVars[v])
 
-        # Add function pages to notebook
-
-        #un-ordered:
-        #for fname in funcs:
-        #    self.AddFunc(fname, funcs[fname])
-
         #Add functions in order they were in in ebuild:
         for n in range(len(self.funcOrder)):
             self.AddFunc(self.funcOrder[n], funcs[self.funcOrder[n]])
+        self.panelMain.stext.SetValue(string.join(self.statementList, '\n'))
 
-        for s in self.statementList:
-            self.panelMain.AddStatement(s)
         # Add original ebuild file:
         self.AddEditor('Original File', open(filename, 'r').read())
         self.nb.SetSelection(0)
+
         # Set titlebar of app to ebuild name
         self.SetTitle(self.ebuild_file + ' | Abeni ' + __version__)
 
     def SeparateVars(self, vars):
-        """Separates variables into defaults (myData) and all others (otherVars)"""
+        """Separates variables into defaults (defaultVars) and all others (vars)"""
         l = ["SRC_URI", "HOMEPAGE", "DEPEND", "RDEPEND", "DESCRIPTION", "S", "IUSE", "SLOT", "KEYWORDS", "LICENSE"]
-        myData = {}
+        defaultVars = {}
         for key in l:
             if vars.has_key(key):
-                myData[key] = vars[key]
+                defaultVars[key] = vars[key]
                 del vars[key]
             else:
-                myData[key] = ""
-        return myData, vars
+                defaultVars[key] = ""
+        return defaultVars, vars
+
+    def VerifySaved(self):
+        modified = 0
+        status = 0
+        for fns in self.funcList:
+            if fns.edNewFun.GetModify():
+                modified = 1
+                break
+        if modified:
+            dlg = wxMessageDialog(self, 'Save modified ebuild?\n' + self.filename,
+                    'Save ebuild?', wxYES_NO | wxCANCEL | wxICON_INFORMATION)
+            val = dlg.ShowModal()
+            if val == wxID_YES:
+                self.WriteEbuild()
+                status = 0
+            if val == wxID_NO:
+                status = 0
+            if val == wxID_CANCEL:
+                status = 1
+            dlg.Destroy()
+        return status
 
     def OnFileHistory(self, evt):
+        """Load ebuild on FileHistory event"""
         # get the file based on the menu ID
         fileNum = evt.GetId() - wxID_FILE1
         path = self.filehistory.GetHistoryFile(fileNum)
-        if os.path.exists(path):
+        if os.path.exists(path) and not self.VerifySaved():
             self.ClearNotebook()
             self.LoadEbuild(path)
             # add it back to the history so it will be moved up the list
@@ -570,45 +647,41 @@ class MyFrame(wxFrame):
 
     def OnMnuLoad(self, event):
         """Load ebuild file"""
-        #TODO: Add an "Are you sure?" dialog
-        # statements section
-        # Comments: This is going to need a lot of work. I'll need to break up the
-        #   ebuild into a tree, by vars, statements and functions, so I can put the
-        #   comments back in the right place.
-        wildcard = "ebuild files (*.ebuild)|*.ebuild"
-        dlg = wxFileDialog(self, "Choose a file", portdir, "", \
-                            wildcard, wxOPEN)
-        if dlg.ShowModal() == wxID_OK:
-            filename = dlg.GetPath()
-            if os.path.exists(filename):
-                if self.editing:
-                    self.ClearNotebook()
-                self.LoadEbuild(filename)
-                self.filehistory.AddFileToHistory(filename)
-        dlg.Destroy()
+        if not self.VerifySaved():
+            wildcard = "ebuild files (*.ebuild)|*.ebuild"
+            dlg = wxFileDialog(self, "Choose a file", portdir, "", \
+                                wildcard, wxOPEN)
+            if dlg.ShowModal() == wxID_OK:
+                filename = dlg.GetPath()
+                if os.path.exists(filename):
+                    if self.editing:
+                        self.ClearNotebook()
+                    self.LoadEbuild(filename)
+                    self.filehistory.AddFileToHistory(filename)
+            dlg.Destroy()
 
-    def PopulateForms(self, myData):
+    def PopulateForms(self, defaultVars):
         """Fill forms with saved data"""
-        self.panelMain.Ebuild.SetValue(myData['ebuild'])
-        self.package = myData['ebuild']
-        self.panelMain.EbuildFile.SetValue(myData['ebuild_file'])
-        self.panelMain.Category.SetValue(myData['category'])
-        self.panelMain.URI.SetValue(myData['SRC_URI'])
-        self.panelMain.Homepage.SetValue(myData['HOMEPAGE'])
-        self.panelMain.Desc.SetValue(myData['DESCRIPTION'])
-        self.panelMain.S.SetValue(myData['S'])
-        self.panelMain.USE.SetValue(myData['IUSE'])
-        self.panelMain.Slot.SetValue(myData['SLOT'])
-        self.panelMain.Keywords.SetValue(myData['KEYWORDS'])
-        self.panelMain.License.SetValue(myData['LICENSE'])
-        d = string.split(myData['DEPEND'], '\n')
+        self.panelMain.Package.SetValue(defaultVars['package'])
+        self.package = defaultVars['package']
+        self.panelMain.EbuildFile.SetValue(defaultVars['ebuild_file'])
+        self.panelMain.Category.SetValue(defaultVars['category'])
+        self.panelMain.URI.SetValue(defaultVars['SRC_URI'])
+        self.panelMain.Homepage.SetValue(defaultVars['HOMEPAGE'])
+        self.panelMain.Desc.SetValue(defaultVars['DESCRIPTION'])
+        self.panelMain.S.SetValue(defaultVars['S'])
+        self.panelMain.USE.SetValue(defaultVars['IUSE'])
+        self.panelMain.Slot.SetValue(defaultVars['SLOT'])
+        self.panelMain.Keywords.SetValue(defaultVars['KEYWORDS'])
+        self.panelMain.License.SetValue(defaultVars['LICENSE'])
+        d = string.split(defaultVars['DEPEND'], '\n')
         depends = []
         for s in d:
             s = s.replace('"', '')
             depends.append(s)
         self.panelDepend.elb1.SetStrings(depends)
 
-        r = string.split(myData['RDEPEND'], '\n')
+        r = string.split(defaultVars['RDEPEND'], '\n')
         rdepends = []
         for s in r:
             s = s.replace('"', '')
@@ -639,12 +712,6 @@ class MyFrame(wxFrame):
         """Catch event when page in notebook is changed"""
         self.nbPage = event.GetSelection()
         event.Skip()
-
-    def AddCommand(self, command):
-        t = self.panelMain.stext.GetValue()
-        t += (command + "\n")
-        self.panelMain.stext.SetValue(t)
-
 
     def OnMnuEclassCVS(self, event):
         if not self.editing:
@@ -683,22 +750,6 @@ class MyFrame(wxFrame):
         self.AddCommand("inherit distutils")
         self.AddFunc("src_install", (src_install))
 
-    def OnMnuNewVariable(self, event):
-        """Dialog for adding new variable"""
-        if not self.editing:
-            return
-        dlg = wxTextEntryDialog(self, 'New Variable Name:',
-                            'Enter Variable Name', 'test')
-        dlg.SetValue("")
-        if dlg.ShowModal() == wxID_OK:
-            newVariable = dlg.GetValue()
-            self.AddNewVar(newVariable, "")
-        dlg.Destroy()
-
-    def AddNewVar(self, var, val):
-        """Add new variable on Main panel"""
-        self.panelMain.AddVar(var, val)
-
     def OnMnuNewFunction(self, event):
         """Dialog to add new function"""
         if not self.editing:
@@ -719,6 +770,7 @@ class MyFrame(wxFrame):
             self.funcList.append(n)
         self.nb.AddPage(n, newFunction)
         n.edNewFun.SetText(val)
+        n.edNewFun.SetSavePoint()
         self.nb.SetSelection(self.nb.GetPageCount() -1)
 
     def AddEditor(self, name, val):
@@ -743,15 +795,28 @@ class MyFrame(wxFrame):
         """Save ebuild file to disk"""
         if not self.editing:
             return
-        if self.checkEntries():
-            myData = self.GatherData()
+        msg = self.checkEntries()
+        if not msg:
+            defaultVars = self.getDefaultVars()
             self.WriteEbuild()
-        #TODO: dialog showing save failed
+        else:
+            dlg = wxMessageDialog(self, msg, 'Abeni: Error Saving', wxOK | wxICON_INFORMATION)
+            dlg.ShowModal()
+            dlg.Destroy()
 
     def checkEntries(self):
         """Validate entries on forms"""
-        # TODO: some sanity checking here
-        return 1
+        category = self.panelMain.Category.GetValue()
+        categoryDir = self.GetCategory()
+        valid_cat = os.path.join(portdir, category)
+        if categoryDir == portdir_overlay + '/':
+            msg = "You must specify a category."
+            return msg
+        if not os.path.exists(valid_cat):
+            msg = category + " isn't a valid category."
+            return msg
+
+        return 0
 
     def OnMnuNew(self,event):
         """Creates a new ebuild from scratch"""
@@ -769,17 +834,16 @@ class MyFrame(wxFrame):
         if self.URI == 'http://' or self.URI == '':
             return
         if self.URI == "CVS" or self.URI == "cvs":
-            self.URI = "package-cvs-n.n.n"
-        # If they click OK and filled out URI entry, create notebook
+            self.URI = "package-cvs-0.0.1"
         if val == wxID_OK and self.URI:
             self.AddPages()
             self.panelMain.PopulateDefault()
             self.panelMain.SetURI(self.URI)
-            print 'seturi'
+            #print 'seturi'
             self.panelMain.SetName(self.URI)
-            print 'setname'
-            self.panelMain.SetEbuild()
-            print 'setebuild'
+            #print 'setname'
+            self.panelMain.SetPackage()
+            #print 'setebuild'
             self.panelChangelog.Populate(filename= portdir + '/skel.ChangeLog')
             #We are in the middle of createing an ebuild. Should probably check for
             #presence of wxNotebook instead
@@ -799,15 +863,17 @@ class MyFrame(wxFrame):
         self.nb.AddPage(self.panelChangelog, "ChangeLog")
 
     def OnClose(self, event):
-        bookmarks = os.path.expanduser('~/.abeni/recent.txt')
-        f = open(bookmarks, 'w')
-        for ebuild in self.recentList:
-            if ebuild != '\n':
-                l = string.strip(ebuild)
-                f.write(l + '\n')
-        f.close()
-        print "Exited safely."
-        self.Destroy()
+        """Called when trying to close application"""
+        if not self.VerifySaved():
+            bookmarks = os.path.expanduser('~/.abeni/recent.txt')
+            f = open(bookmarks, 'w')
+            for ebuild in self.recentList:
+                if ebuild != '\n':
+                    l = string.strip(ebuild)
+                    f.write(l + '\n')
+            f.close()
+            print "Exited safely."
+            self.Destroy()
 
     def OnMnuExit(self,event):
         """Exits and closes application"""
@@ -821,78 +887,89 @@ class MyFrame(wxFrame):
 
     def OnMnuAbout(self,event):
         """Obligitory About me and my app screen"""
-        dlg = wxMessageDialog(self, 'Abeni ' + __version__ + ' is a Python and wxPython application\n \
-            by Rob Cakebread released under the GPL license.\n\n', \
-                              'About Abeni ' + __version__, wxOK | wxICON_INFORMATION)
+        dlg = wxMessageDialog(self, 'Abeni ' + __version__ + ' is a Python and wxPython application\n' +
+                                'by Rob Cakebread released under the GPL license.\n\n', \
+                                'About Abeni ' + __version__, wxOK | wxICON_INFORMATION)
         dlg.ShowModal()
         dlg.Destroy()
 
-    def GatherData(self):
-        """Gather data from form"""
-        myData = {}
-        myData['ebuild'] = self.panelMain.Ebuild.GetValue()
-        myData['ebuild_file'] = self.panelMain.EbuildFile.GetValue()
-        myData['DESCRIPTION'] = self.panelMain.Desc.GetValue()
-        myData['HOMEPAGE'] = self.panelMain.Homepage.GetValue()
-        myData['SRC_URI'] = self.panelMain.URI.GetValue()
-        myData['LICENSE'] = self.panelMain.License.GetValue()
-        myData['SLOT'] = self.panelMain.Slot.GetValue()
-        myData['KEYWORDS'] = self.panelMain.Keywords.GetValue()
-        myData['S'] = self.panelMain.S.GetValue()
-        myData['IUSE'] = self.panelMain.USE.GetValue()
-        myData['DEPEND'] = self.panelDepend.elb1.GetStrings()
-        myData['RDEPEND'] = self.panelDepend.elb2.GetStrings()
-        if myData.has_key('S'):
+    def getDefaultVars(self):
+        """Gather default variables from Main form"""
+        defaultVars = {}
+        defaultVars['package'] = self.panelMain.Package.GetValue()
+        defaultVars['ebuild_file'] = self.panelMain.EbuildFile.GetValue()
+        defaultVars['DESCRIPTION'] = self.panelMain.Desc.GetValue()
+        defaultVars['HOMEPAGE'] = self.panelMain.Homepage.GetValue()
+        defaultVars['SRC_URI'] = self.panelMain.URI.GetValue()
+        defaultVars['LICENSE'] = self.panelMain.License.GetValue()
+        defaultVars['SLOT'] = self.panelMain.Slot.GetValue()
+        defaultVars['KEYWORDS'] = self.panelMain.Keywords.GetValue()
+        defaultVars['S'] = self.panelMain.S.GetValue()
+        defaultVars['IUSE'] = self.panelMain.USE.GetValue()
+        defaultVars['DEPEND'] = self.panelDepend.elb1.GetStrings()
+        defaultVars['RDEPEND'] = self.panelDepend.elb2.GetStrings()
+        if defaultVars.has_key('S'):
             pass
         else:
-            myData['S'] = "S=${WORKDIR}/${P}"
-        myData['changelog'] = self.panelChangelog.edChangelog.GetText()
-        return myData
+            defaultVars['S'] = "S=${WORKDIR}/${P}"
+        defaultVars['changelog'] = self.panelChangelog.edChangelog.GetText()
+        return defaultVars
+
+    def GetCategory(self):
+        """Return category of ebuild"""
+        categoryDir = os.path.join (portdir_overlay, self.panelMain.Category.GetValue())
+        return categoryDir
+
+    def isDefault(self, var):
+        """ Return 1 if varibale is in list of default ebuild variables"""
+        for l in defaults:
+            if var == l:
+                return 1
 
     def WriteEbuild(self):
         """Format data into fields and output to ebuild file"""
-        #abeniPath = os.path.join(os.path.expanduser('~'), '.abeni')
-        #if not os.path.exists(abeniPath):
-        #    os.mkdir(abeniPath)
-        categoryDir = os.path.join (portdir_overlay, self.panelMain.Category.GetValue())
+        categoryDir = self.GetCategory()
         if not os.path.exists(categoryDir):
             os.mkdir(categoryDir)
-        self.ebuildDir = os.path.join (categoryDir, self.panelMain.Ebuild.GetValue())
+        self.ebuildDir = os.path.join (categoryDir, self.panelMain.Package.GetValue())
         if not os.path.exists(self.ebuildDir):
             os.mkdir(self.ebuildDir)
         filename = os.path.join(self.ebuildDir, self.panelMain.EbuildFile.GetValue())
         self.SetFilename(filename)
         self.filehistory.AddFileToHistory(filename.strip())
         f = open(filename, 'w')
-
         f.write('# Copyright 1999-2003 Gentoo Technologies, Inc.\n')
         f.write('# Distributed under the terms of the GNU General Public License v2\n')
-        f.write('# ' + '$' + 'Header:' + ' $\n\n')
-        # Heh. CVS fills this in, have to trick it with above.
+        # Heh. CVS fills this line in, have to trick it with:
+        f.write('# ' + '$' + 'Header:' + ' $\n')
 
-        f.write(self.panelMain.stext.GetValue() + '\n')
+        #Misc statements
+        f.write('\n')
+        t = self.panelMain.stext.GetValue()
+        if t:
+            f.write(t + '\n')
+            f.write('\n')
+
+        #Misc variables
         varList = self.panelMain.GetVars()
+        for n in range(len(self.varOrder)):
+            if not self.isDefault(self.varOrder[n]):
+                f.write(self.varOrder[n] + '=' + varList[self.varOrder[n]].GetValue() + '\n')
 
-        newVars = 1
-        #print self.varOrder
-        #print varList.keys()
-        for n in range(len(self.varOrder) -1):
-            for key in varList.keys():
-                if key.GetLabel() == self.varOrder[n]:
-                    newVars = 0
-                    f.write(key.GetLabel() + '=' + varList[key].GetValue() + '\n')
+        #TODO: Write these in the order they were imported? Or keep like in skel.ebuild?
+        # This would print them in original order imported:
+        #for n in range(len(self.varOrder)):
+        #    if self.isDefault(self.varOrder[n]):
+        #        f.write(self.varOrder[n] + '=' + varList[self.varOrder[n]].GetValue() + '\n')
 
-        if newVars:
-            for key in varList.keys():
-                f.write(key.GetLabel() + '=' + varList[key].GetValue() + '\n')
-
+        #Default variables
+        f.write('S=' + self.panelMain.S.GetValue() + '\n')
         f.write('DESCRIPTION=' + self.panelMain.Desc.GetValue() + '\n')
         f.write('HOMEPAGE=' + self.panelMain.Homepage.GetValue() + '\n')
         f.write('SRC_URI=' + self.panelMain.URI.GetValue() + '\n')
         f.write('LICENSE=' + self.panelMain.License.GetValue() + '\n')
         f.write('SLOT=' + self.panelMain.Slot.GetValue() + '\n')
         f.write('KEYWORDS=' + self.panelMain.Keywords.GetValue() + '\n')
-        f.write('S=' + self.panelMain.S.GetValue() + '\n')
         f.write('IUSE=' + self.panelMain.USE.GetValue() + '\n')
 
         dlist = self.panelDepend.elb1.GetStrings()
@@ -930,7 +1007,6 @@ class MyFrame(wxFrame):
             if rd and d:
                 f.write(rd + '\n')
                 f.write(d + '\n')
-
         f.write('\n')
 
         #Write functions:
@@ -938,6 +1014,10 @@ class MyFrame(wxFrame):
             ftext = fun.edNewFun.GetText()
             f.write(ftext + '\n')
         f.close()
+
+        # Mark functions as saved
+        for fns in self.funcList:
+            fns.edNewFun.SetSavePoint()
 
         #TODO: We need to get each notebook's tab/label for this:
         #for n in range(len(self.funcOrder)):
@@ -957,7 +1037,6 @@ class MyApp(wxPySimpleApp):
 
     def OnInit(self):
         """Set up the main frame"""
-
         # Enable gif, jpg, bmp, png handling for wxHtml and icons
         wxInitAllImageHandlers()
         frame=MyFrame(None, -1, 'Abeni - The ebuild Builder ' + __version__)

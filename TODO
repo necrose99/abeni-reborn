@@ -1,7 +1,106 @@
-Abeni 0.0.4
+Abeni 0.0.5
 
 
-There are minor bugs/new features needed noted in the software with #TODO
+There are minor bugs/new features needed noted in the source code with #TODO. Mostly these are
+message dialogs that need to be created for error and confirmation msgs.
+
+
+Bugs:
+
+    Ebuilds that don't load properly:
+    PORTDIR/app-emacs/cdrw/cdrw-1.2.ebuild
+    It isn't detecting variable SITEFILE=50cdrw-gentoo.el
+
+
+    IMPORTANT:
+
+    Need to check if people have saved/changed ebuilds before loading/creating new one
+    # UPDATE: If you modify a function buffer, it'll prompt you to save/ignore/cancel when loading/quitting
+    # Still need to check if variables have changed.
+
+
+    COSMETIC:
+
+    Editors (wxStyledTextCtrl) needs work on syntax and keyword highlighting.
+        * Syntax highlighting is buggy for multi-line variables, see RDEPENDS/DEPENDS
+        * UPDATE: Got rid of purple line but first and last variable's font are too small.
+
+    Order of funtions is not kept when saving.
+        * Save in logical order: src_unpack, src_compile, src_install etc.
+
+    When you delete a notebook page, the control gets screwy looking. I'm sure
+    this is a wxPython bug, but I may be able to .refresh() the window to fix it?
+        * Seems to be a wxPython 2.4.0.7 bug. Who shall release first, Abeni 1.0 or wxpython 2.4.0.8?
+        * This problem isn't resolved in wxPython 2.4.1.2. Bah.
+
+    When you delete a variable it leaves a space, need to work on wxSizer.
+
+Add Features:
+
+    Add command line options:
+        * As of 0.0.5 you can abeni <filename> to load an ebuild.
+          Need to add these:
+
+        * -c, --create <src_uri>            Create ebuild using src_uri to determine package and filename
+        * -e, --eclass <eclass name>        Add inherit and appropriate functions for eclass, used with --created
+        * -v, --variable <x=val, y=val...>  Add variable(s) and their value(s)
+        * -f, --function <func1, func2...>  Add function name(s)
+        * -h, --help                        Show list of command line options
+        * -b, --bump                        Bump the given ebuild up one version
+        * -d, --digest                      Create digest. Used with --bump
+        * -t, --category <category>         Set package category
+        * -l, --license <license>           Set LICENSE
+        * -i, --iuse <iuse>                 Set IUSE
+        * -t, --description <description>   Set DESCRIPTION
+        * -a, --homepage <homepage>         Set HOMEPAGE
+        * -k, --keywords <keywords>         Set KEYWORDS
+        * -o, --slot <slot>                 Set SLOT
+        * -s, --s <s>                       Set S
+        * -p, --pretend                     Show which package would be used with --bump, and version numbers.
+
+        Example One:
+        We have a python program that uses 'python setup.py install':
+
+        abeni --create 'http://abeni.sf.net/foo-0.1.tgz' --eclass 'distutils' --category 'app-admin' --digest
+
+        This would create an ebuild named foo-0.1.ebuild in PORTDIR_OVERLAY/app-admin, fetch the source code and
+        create the digest, creating a complete ebuild, ready to be emerged.
+
+        Example Two:
+        We have package app-admin/cheese with cheese-0.0.1.ebuild. cheese-0.0.2.tar.gz was released today. We
+        simply want to create a bumped-up version of the ebuild:
+
+        abeni --bump app-admin/cheese --pretend
+        (Output shows:)
+        cheese-0.0.1.ebuild will be bumped up to cheese-0.0.2.ebuild
+
+        This is what we want so we issue:
+        abeni --bump app-admin/cheese --digest
+
+        cheese-0.0.2.ebuild is created in PORTDIR_OVERLAY/app-admin/cheese/
+        The digest is updated. cheese-0.0.2.ebuild is ready to emerge.
+
+    Add config option for fixing tabs/indent on import
+
+    Add config option to run ebuild/emerge without checking for password when people have commands setup with sudo.
+
+    If running root, don't ask for password. Bad idea?
+
+    Create diff of ebuild
+        * Need dialog to verify 'diff file-x file-y' or let them choose.
+        * Right now it diffs current ebuild vs last loaded.
+
+    Eclass templates for the most common secnarios:
+        * KDE, Gnome etc.
+        * Done: distutils, CVS eclasses
+        * Show help dialog for more difficult, such as CVS
+
+    View /usr/portage/skel.ebuild for reference
+
+    Download, unpack and view Makefile.am/configure from source tarball
+    ** Browse ${WORKDIR} and let them open files with editor?
+
+    Live variable evaluations ${P} ${D} ${PV} etc.
 
 
 Documentation:
@@ -21,55 +120,3 @@ Documentation:
     Link to Daniel Robbins Bash/ebuild tutorial
     	* http://www-106.ibm.com/developerworks/library/bash3.html
 
-
-Bugs:
-
-
-    Need to check if people have saved/changed ebuilds before loading/creating new one
-
-    Editors (wxStyledTextCtrl) needs work on syntax and keyword highlighting.
-        * Need 'all' Gentoo public/private functions added (panels.py)
-        * Syntax highlighting is buggy for multi-line variables, see RDEPENDS/DEPENDS
-
-    Order of funtions is not kept when importing, then saving. This is a cosmetic problem
-    only. It'd be nice to order them logically: src_unpack, src_compile, src_install etc.
-        * Got the importing done, need to fix saving. Note: Doesn't affect performance, just cosmetic.
-
-    When you delete a notebook page, the control gets screwy looking. I'm sure
-    this is a wxPython bug, but I may be able to .refresh() the window to fix it?
-        * Seems to be a wxPython 2.4.0.7 bug. Who shall release first, Abeni 1.0 or wxpython 2.4.0.8?
-
-
-Add Features:
-
-    Add confirmation dialog when creating or viewing diffs and add option to choose file to compare opened ebuild with.
-
-    Add option to run ebuild/emerge without checking for password when people have commands setup with sudo.
-
-    If running root, don't ask for password. Bad idea?
-
-    Options screen:
-        Not sure if I should add these:
-        * Run lintool after loading ebuild <yes/no>
-        * Run lintool after saving <yes/no>
-        * Create digest after saving <yes/no>
-
-    Create diff of ebuild
-        Need dialog to verify 'diff filex filey' or let them choose.
-        Right now it diffs current ebuild vs last loaded.
-
-    Feature to check online to see if there is a newer version of Abeni available
-
-    Eclass templates for the most common secnarios:
-        * Python distutils
-        * KDE etc.
-        * Done: distutils, CVS eclasses
-
-    View /usr/portage/skel.ebuild for reference
-
-    Download, unpack and view Makefile/configure from source tarball
-
-
-Misc:
-
-    Create abeni-cvs ebuild for testing nightly builds

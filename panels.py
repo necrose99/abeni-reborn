@@ -1,10 +1,9 @@
 from wxPython.wx import *
-import urlparse, string
-import os
+import urlparse, string, os, keyword
 from wxPython.gizmos import *
-from wxPython.lib.editor import wxEditor # REMOVE
+#from wxPython.lib.editor import wxEditor # REMOVE
 from wxPython.stc import *
-import keyword
+
 
 faces = { 'times': 'Times',
         'mono' : 'Courier',
@@ -26,7 +25,7 @@ class main(wxPanel):
 
         #Custom variable globals
         self.varList = {}
-        self.vrow = 30
+        self.vrow = 160
 
         row = 20
         col = 130
@@ -34,7 +33,7 @@ class main(wxPanel):
         self.group1_ctrls = []
 
         text0 = wxStaticText(self, -1, "Package")
-        self.Ebuild = wxTextCtrl(self, wxNewId(), "", wxPoint(0,0), wxSize(250, 20))
+        self.Package = wxTextCtrl(self, wxNewId(), "", wxPoint(0,0), wxSize(250, 20))
         row+=30
         text1 = wxStaticText(self, -1, "Ebuild File")
         self.EbuildFile = wxTextCtrl(self, wxNewId(), "", wxPoint(0,0), wxSize(250, 20))
@@ -72,7 +71,7 @@ class main(wxPanel):
         EVT_BUTTON(self, butID, self.OnLicButton)
         self.License = wxTextCtrl(self, wxNewId(), "", wxPoint(0,0), wxSize(250, 20))
 
-        self.group1_ctrls.append((text0, self.Ebuild))
+        self.group1_ctrls.append((text0, self.Package))
         self.group1_ctrls.append((text1, self.EbuildFile))
         self.group1_ctrls.append((catButton, self.Category))
         self.group2_ctrls.append((text3, self.URI))
@@ -124,35 +123,29 @@ class main(wxPanel):
         vs.Fit(self)
         #self.SetSizer(vs2)
         #vs2.Fit(self)
-        self.boxv = wxStaticBox( self, -1, "Other Variables", wxPoint(400, 5), wxSize(390, 40))
-        self.boxs = wxStaticBox( self, -1, "Misc. Statements", wxPoint(400, 55), wxSize(390, 120))
-        self.stext = wxTextCtrl(self, -1, "", size=(360, 70), pos=(410,80), style=wxTE_MULTILINE)
+        self.boxs = wxStaticBox( self, -1, "Misc. Statements", wxPoint(400, 5), wxSize(390, 117))
+        self.stext = wxTextCtrl(self, -1, "", size=(360, 70), pos=(410,30), style=wxTE_MULTILINE)
         self.stext.SetInsertionPoint(0)
+        self.boxv = wxStaticBox( self, -1, "Other Variables", wxPoint(400, 132), wxSize(390, 40))
         #EVT_TEXT(self, stext.GetId(), self.EvtText)
-
 
     def AddVar(self, var, val):
         """Add custom variable"""
-        #TODO: This needs to be replaced with sizers. It leaves 'holes' in the GUI when you delete variables.
         t = wxStaticText(self, wxNewId(), var, wxPoint(410, self.vrow))
         v = wxTextCtrl(self, wxNewId(), val, wxPoint(525, self.vrow), wxSize(250, 20))
-        self.varList[t] = v
+        self.varList[var] = v
         v.SetFocus()
         self.vrow +=30
-        st = self.stext.GetValue()
         self.boxv.Destroy()
-        self.boxs.Destroy()
-        self.stext.Destroy()
-        self.boxv = wxStaticBox( self, -1, "Other Variables", wxPoint(400, 5), wxSize(390, self.vrow))
-
-        self.boxs = wxStaticBox( self, -1, "Misc. Statements", wxPoint(400, self.vrow + 30), wxSize(390, 120))
-        self.stext = wxTextCtrl(self, -1, st, size=(360, 70), pos=(410,self.vrow + 60), style=wxTE_MULTILINE)
-        self.stext.SetInsertionPoint(0)
+        self.boxv = wxStaticBox( self, -1, "Other Variables", wxPoint(400, 132), wxSize(390, self.vrow -120))
 
     def AddStatement(self, statement):
         """Add command/statement"""
         txt = self.stext.GetValue()
-        txt += statement + '\n'
+        if statement == '\n' or statement == '\n\n':
+            txt += statement
+        else:
+            txt += statement + '\n'
         self.stext.SetValue(txt)
 
 
@@ -164,9 +157,6 @@ class main(wxPanel):
             c = string.split(c, '/')
             c = c[len(c)-1]
             self.Category.SetValue(c)
-        #TODO: If more than 3 '/', you aren't picking a proper category
-        #Should also check that first two dirs are /usr/portage
-        #/usr/portage/foo-boo
         dlg.Destroy()
 
     def OnLicButton(self, event):
@@ -204,12 +194,9 @@ class main(wxPanel):
 
     def SetName(self, uri):
         """Set ebuild name"""
-        print 'uri ', uri
         path = urlparse.urlparse(uri)[2]
-        print 'path ', path
         path = string.split(path, '/')
         file = path[len(path)-1]
-        print 'file ', file
         file = string.replace(file, ".tgz", "")
         file = string.replace(file, ".tar.gz", "")
         file = string.replace(file, ".tar.bz2", "")
@@ -224,11 +211,11 @@ class main(wxPanel):
         """Return name of ebuild"""
         return self.ebuildName
 
-    def SetEbuild(self):
+    def SetPackage(self):
         """Set ebuild package name"""
         self.EbuildFile.SetValue(self.ebuildName)
         ebuild = string.split(self.ebuildName, '-')
-        self.Ebuild.SetValue(ebuild[0])
+        self.Package.SetValue(ebuild[0])
 
 
 class depend(wxPanel):
@@ -301,7 +288,6 @@ class NewFunction(wxPanel):
         self.edNewFun.SetLexer(wxSTC_LEX_PYTHON)
 
 
-
 class Editor(wxPanel):
 
     """Add notebook page for editor"""
@@ -341,8 +327,13 @@ class PythonSTC(wxStyledTextCtrl):
         self.CmdKeyAssign(ord('B'), wxSTC_SCMOD_CTRL, wxSTC_CMD_ZOOMIN)
         self.CmdKeyAssign(ord('N'), wxSTC_SCMOD_CTRL, wxSTC_CMD_ZOOMOUT)
 
-        gentooKeywords = 'inherit pkg_preinst src_install src_compile dodir pkg_mv_plugins src_mv_plugins einfo epatch \
-            dobin dosym'
+        gentooKeywords = 'inherit pkg_postinst pkg_postrm pkg_preinst pkg_setup src_unpack src_install \
+        pkg_prerm pkg_nofetch pkg_config unpack src_compile dodir pkg_mv_plugins src_mv_plugins einfo epatch \
+        use has_version best_version use_with use_enable doexe exeinto econf emake dodoc dohtml dobin dosym \
+        einstall check_KV keepdir die einfo eerror into dohard doinfo doins dolib dolib.a dolib.so doman domo \
+        donewins dosbin dosed fowners fperms newbin newdoc newexe newins newlib.a newlib.so newman newsbin pmake \
+        prepalldocs prepallinfo prepallman prepall addwrite replace-sparc64-flags edit_makefiles'
+        #addwrite is undocumented?
         #self.SetKeyWords(0, " ".join(keyword.kwlist))
         self.SetKeyWords(0, gentooKeywords)
         self.SetProperty("fold", "0")
@@ -427,8 +418,11 @@ class PythonSTC(wxStyledTextCtrl):
         #self.StyleSetSpec(wxSTC_P_IDENTIFIER, "fore:#808080,face:%(helv)s,size:%(size)d" % faces)
         # Comment-blocks
         self.StyleSetSpec(wxSTC_P_COMMENTBLOCK, "fore:#7F7F7F,size:%(size)d" % faces)
+
         # End of line where string is not closed
-        self.StyleSetSpec(wxSTC_P_STRINGEOL, "fore:#000000,face:%(mono)s,back:#E0C0E0,eol,size:%(size)d" % faces)
+        #Gentoo/bash
+        # This gets rid of purple line with multi line variables, but the font is too small now. Grrr.
+        #self.StyleSetSpec(wxSTC_P_STRINGEOL, "fore:#000000,face:%(mono)s,back:#E0C0E0,eol,size:%(size)d" % faces)
 
         self.SetCaretForeground("BLUE")
 
