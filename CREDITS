@@ -1,12 +1,6 @@
-
 Abeni was written by Rob Cakebread <robc@myrealbox.com>
 
-repoman-local.py is a modified version of repoman.py, which is copyright Gentoo, Inc. Genone, e97_far@e.kth.se, created repoman-local.py
+repoman-local.py is a modified version of repoman.py, which is copyright Gentoo, Inc. 
+Marius Mauch, <genone@genone.de>, created repoman-local.py
 
 I snarfed a few functions from liquidx@gentoo.org's excellent etcat
-
-
-
-
-
-

@@ -2,41 +2,57 @@ Abeni 0.0.9
 
 Search dialog for configure/Makefiles
 
-If people have multiple overlay directories, put an option in the Preferences dialog to choose where Abeni stores them. Official developers may use this feature. It might be nice to store all your own in one overlay and other people's that you are using in a separate overlay dir.
+If people have multiple overlay directories, put an option in the Preferences 
+dialog to choose where Abeni stores them. Official developers may use this 
+feature. It might be nice to store all your own in one overlay and other 
+people's that you are using in a separate overlay dir.
 
-After unpacking check for COPYING and grep for GNU stuff, then fill in the LICENSE variable with GPL-2
+After unpacking check for COPYING and grep for GNU stuff, then fill in the 
+LICENSE variable with GPL-2
 
-Need to check if external apps exist every time someone tries to launch the editor, web browser etc.
+Need to check if external apps exist every time someone tries to launch 
+the editor, web browser etc.
 
-The /usr/sbin/ebuild icon on the toolbar brings up a list of all the "standard" functions.
-It should scan the ebuild in case the user added custom-named functions.
+The /usr/sbin/ebuild icon on the toolbar brings up a list of all the "standard" 
+functions. It should scan the ebuild in case the user added custom-named 
+functions.
 
-When you inherit an eclass, scan the functions and add them to Scintilla's keyword list for highlighting
-and auto-completion
+When you inherit an eclass, scan the functions and add them to Scintilla's 
+keyword list for highlighting and auto-completion
 
-Project Manager can get tweaked if ebuilds are in the wrong directory (/usr/local/portage/duh.ebuild for example)
+Project Manager can get tweaked if ebuilds are in the wrong directory 
+(/usr/local/portage/duh.ebuild for example)
 
 The preference menu's fields are not in order when you 'tab through' them
 
 recent.txt file has dups
 
-When user cancels download, popup dialog letting them know there is a bug in ebuild command and
-they must cancel wget manually. Verify this?
+The first entry in the MRU list is shown without the path, the other entries
+contain the full path
+
+When user cancels download, popup dialog letting them know there is a bug 
+in ebuild command and they must cancel wget manually. Verify this?
 
 Make New Function descripts more clear i.e.
  src_compile ./configure && make
  Also make user supported templates (Done in 0.0.9pre)
 
-Add a submit button to ProjMan to submit new ebuilds to bugzilla (we should exclude the bugzilla stuff to its own class)
+Add a submit button to ProjMan to submit new ebuilds to bugzilla (we 
+should exclude the bugzilla stuff to its own class)
 
-Export function to generate a tarball with all necessary files (for uploading on a website)
+Export function to generate a tarball with all necessary files (mostly done)
 
 make the "Abeni status" combo list configurable
 
+seperate the GUI code from the backend code
+
+better format for TODO
+
 ---------
 
-There are minor bugs and new features needed noted in the source code with #TODO. Mostly these are
-message dialogs that need to be created for error and confirmation msgs.
+There are minor bugs and new features needed noted in the source code with 
+#TODO. Mostly these are message dialogs that need to be created for error and 
+confirmation msgs.
 
 
 Bugs:
@@ -50,10 +66,11 @@ Bugs:
     MISC:
 
 
-    The CVS eclass template needs to put the CVS variables before the 'inherit cvs'
-    statement.
+    The CVS eclass template needs to put the CVS variables before the 
+	'inherit cvs' statement.
 
-    If opening ${PORTDIR} ebuild, copy files in ${FILESDIR} to PORTDIR_OVERLAY/${FILESDIR} when user saves.
+    If opening ${PORTDIR} ebuild, copy files in ${FILESDIR} to 
+	PORTDIR_OVERLAY/${FILESDIR} when user saves.
 
     Watch to see if/when repoman gets patched for users so I can stop using
     my custom repoman-safe.py:
@@ -64,7 +81,8 @@ Bugs:
     COSMETIC:
 
 
-    Although I always set FEATURES='notitles', some escape codes are still sent in emerge:
+    Although I always set FEATURES='notitles', some escape codes are still 
+	sent in emerge:
      http://bugs.gentoo.org/show_bug.cgi?id=21430
 
     Order of funtions should be logical no matter the sequence created:
@@ -72,58 +90,63 @@ Bugs:
 
     When you delete a notebook page, the control gets screwy looking.
         * This problem isn't resolved in wxPython 2.4.1.2. Bah.
-        * Fixed, but very kludgy. I manually resize the entire app by one pixel horizontally.
-        * Robin Dunn (wxPython author) is stumped. Could be Gentoo specific due to site-wide gtkrc?
+        * Fixed, but very kludgy. I manually resize the entire app by one 
+		  pixel horizontally.
+        * Robin Dunn (wxPython author) is stumped. Could be Gentoo specific 
+		  due to site-wide gtkrc?
 
 
 Add Features:
 
-    Add command line options:
-        * As of 0.0.5 you can 'abeni <filename>|<package name>' to load an ebuild.
-          Need to add these:
+  Add command line options:
+    * As of 0.0.5 you can 'abeni <filename>|<package name>' to load an 
+      ebuild. Need to add these:
 
-        * -c, --create <src_uri>            Create ebuild using src_uri to determine package and filename
-        * -e, --eclass <eclass name>        Add inherit and appropriate functions for eclass, used with --created
-        * -v, --variable <x=val, y=val...>  Add variable(s) and their value(s)
-        * -f, --function <func1, func2...>  Add function name(s)
-        * -h, --help                        Show list of command line options
-        * -b, --bump                        Bump the given ebuild up one version
-        * -d, --digest                      Create digest. Used with --bump
-        * -t, --category <category>         Set package category
-        * -l, --license <license>           Set LICENSE
-        * -i, --iuse <iuse>                 Set IUSE
-        * -t, --description <description>   Set DESCRIPTION
-        * -a, --homepage <homepage>         Set HOMEPAGE
-        * -k, --keywords <keywords>         Set KEYWORDS
-        * -o, --slot <slot>                 Set SLOT
-        * -s, --s <s>                       Set S
-        * -p, --pretend                     Show which package would be used with --bump, and version numbers.
+    * -c, --create <src_uri>            Create ebuild using src_uri to determine package and filename
+    * -e, --eclass <eclass name>        Add inherit and appropriate functions for eclass, used with --created
+    * -v, --variable <x=val, y=val...>  Add variable(s) and their value(s)
+    * -f, --function <func1, func2...>  Add function name(s)
+    * -h, --help                        Show list of command line options
+    * -b, --bump                        Bump the given ebuild up one version
+    * -d, --digest                      Create digest. Used with --bump
+    * -t, --category <category>         Set package category
+    * -l, --license <license>           Set LICENSE
+    * -i, --iuse <iuse>                 Set IUSE
+    * -t, --description <description>   Set DESCRIPTION
+    * -a, --homepage <homepage>         Set HOMEPAGE
+    * -k, --keywords <keywords>         Set KEYWORDS
+    * -o, --slot <slot>                 Set SLOT
+    * -s, --s <s>                       Set S
+    * -p, --pretend                     Show which package would be used with --bump, and version numbers.
 
-        Example One:
-        We have a python program that uses 'python setup.py install':
+    Example One:
+    We have a python program that uses 'python setup.py install':
 
-        abeni --create 'http://abeni.sf.net/foo-0.1.tgz' --eclass 'distutils' --category 'app-admin' --digest
+    abeni --create 'http://abeni.sf.net/foo-0.1.tgz' --eclass 'distutils' --category 'app-admin' --digest
 
-        This would create an ebuild named foo-0.1.ebuild in PORTDIR_OVERLAY/app-admin, fetch the source code and
-        create the digest, creating a complete ebuild, ready to be emerged.
+    This would create an ebuild named foo-0.1.ebuild in 
+	PORTDIR_OVERLAY/app-admin, fetch the source code and create the digest, 
+    creating a complete ebuild, ready to be emerged.
 
-        Example Two:
-        We have package app-admin/cheese with cheese-0.0.1.ebuild. cheese-0.0.2.tar.gz was released today. We
-        simply want to create a bumped-up version of the ebuild:
+    Example Two:
+    We have package app-admin/cheese with cheese-0.0.1.ebuild. 
+	cheese-0.0.2.tar.gz was released today. We simply want to create a 
+    bumped-up version of the ebuild:
 
-        abeni --bump app-admin/cheese --pretend
-        (Output shows:)
-        cheese-0.0.1.ebuild will be bumped up to cheese-0.0.2.ebuild
+    abeni --bump app-admin/cheese --pretend
+    (Output shows:)
+    cheese-0.0.1.ebuild will be bumped up to cheese-0.0.2.ebuild
 
-        This is what we want so we issue:
-        abeni --bump app-admin/cheese --digest
+    This is what we want so we issue:
+    abeni --bump app-admin/cheese --digest
 
-        cheese-0.0.2.ebuild is created in PORTDIR_OVERLAY/app-admin/cheese/
-        The digest is updated. cheese-0.0.2.ebuild is ready to emerge.
+    cheese-0.0.2.ebuild is created in PORTDIR_OVERLAY/app-admin/cheese/
+    The digest is updated. cheese-0.0.2.ebuild is ready to emerge.
 
     Create diff of ebuild
         * Need dialog to verify 'diff file-x file-y' or let them choose.
         * As of now it diffs current ebuild vs last loaded.
-        Holding off on this as some developers do not like diffs. liquidx said it was prefered.
+        Holding off on this as some developers do not like diffs. 
+		liquidx said it was prefered.
 
     Do something to make patches with ease.
