@@ -380,20 +380,26 @@ class MyFrame(wxFrame):
         """Display html help file"""
         #TODO: Fix index. Doesn't die when you exit.
         #Add: /usr/portage/profiles/use.desc
-        import glob
-        from wxPython.tools import helpviewer
-        if __name__ == '__main__':
-            basePath = os.path.dirname(sys.argv[0])
-        else:
-            basePath = os.path.dirname(__file__)
+
+        dlg = wxMessageDialog(self, 'Look for help in release 0.0.2',
+                          'Better luck next time...', wxOK | wxICON_INFORMATION)
+        dlg.ShowModal()
+        dlg.Destroy()
+
+        #import glob
+        #from wxPython.tools import helpviewer
+        #if __name__ == '__main__':
+        #    basePath = os.path.dirname(sys.argv[0])
+        #else:
+        #    basePath = os.path.dirname(__file__)
         # setup the args
-        args = ['',
-                '--cache='+basePath,
-                os.path.join(basePath, 'docs.zip'),
-                ]
+        #args = ['',
+        #        '--cache='+basePath,
+        #        os.path.join(basePath, 'docs.zip'),
+        #        ]
 
         # launch helpviewer
-        helpviewer.main(args)
+        #helpviewer.main(args)
 
 
     def OnOLDMnuLoad(self, event):
@@ -523,7 +529,7 @@ class MyFrame(wxFrame):
 
         f.write('# Copyright 1999-2003 Gentoo Technologies, Inc.\n')
         f.write('# Distributed under the terms of the GNU General Public License v2\n')
-        f.write('# $Header: /cvsroot/abeni/abeni/Attic/abeni.py,v 1.18 2003/06/02 20:13:04 robc Exp $\n\n')
+        f.write('# $Header: /cvsroot/abeni/abeni/Attic/abeni.py,v 1.19 2003/06/03 01:09:08 robc Exp $\n\n')
 
         f.write(self.panelMain.stext.GetValue() + '\n')
         textList, varList = self.panelMain.GetVars()
