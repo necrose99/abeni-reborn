@@ -190,13 +190,17 @@ class main(wxPanel):
 
     def PopulateDefault(self):
         """Set default variables in new ebuild"""
-        self.Keywords.SetValue("~x86")
-        self.Slot.SetValue("0")
-        self.Homepage.SetValue("http://")
+        self.Desc.SetValue('""')
+        self.S.SetValue('""')
+        self.USE.SetValue('""')
+        self.Keywords.SetValue('"~x86"')
+        self.Slot.SetValue('"0"')
+        self.Homepage.SetValue('"http://"')
+        self.License.SetValue('""')
 
     def SetURI(self, uri):
         """Set URI"""
-        self.URI.SetValue(uri)
+        self.URI.SetValue('"' + uri + '"')
 
     def SetName(self, uri):
         """Set ebuild name"""

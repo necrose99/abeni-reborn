@@ -4,17 +4,13 @@
 Released under the terms of the GNU Public License v2"""
 
 __author__ = 'Rob Cakebread'
-__version__ = '0.0.2'
+__version__ = '0.0.4'
 
 from wxPython.wx import *
-from wxPython.help import *
 from wxPython.lib.dialogs import wxScrolledMessageDialog
 import os, os.path, string, sys, re, urlparse
-import panels, options
+import dialogs, panels, options
 from portage import config
-
-#Directory Abeni was started from
-appdir = os.path.abspath(os.path.join(os.getcwd(), sys.path[0]))
 
 #Get portage path locations from /etc/make.conf
 distdir = config().environ()['DISTDIR']
@@ -52,8 +48,16 @@ class MyFrame(wxFrame):
         self.editorList = []
         #Misc statements/commands instances
         self.statementList = []
+        # Keep track of order variables are set
+        self.varOrder = []
+        # Keep track of order functions are set
+        self.funcOrder = []
+        # Ebuild's path and filename
+        self.filename = ''
+        # Previous file opened. For use with diff
+        self.lastFile = ''
         #application icon
-        iconFile = ('/usr/share/bitmaps/abeni/mocha.png')
+        iconFile = ('/usr/share/pixmaps/abeni/mocha.png')
         icon = wxIcon(iconFile, wxBITMAP_TYPE_PNG)
         self.SetIcon(icon)
         #Setup wxNotebook in main frame
@@ -103,18 +107,28 @@ class MyFrame(wxFrame):
         menu_edit.Append(mnuDelFunctionID, "&Delete Function")
         EVT_MENU(self, mnuDelFunctionID, self.OnMnuDelFunction)
         menubar.Append(menu_edit, "&Edit")
+        # Eclass
+        menu_eclass = wxMenu()
+
+        mnuDistutilsID = wxNewId()
+        menu_eclass.Append(mnuDistutilsID, "distutils")
+        EVT_MENU(self, mnuDistutilsID, self.OnMnuEclassDistutils)
+
+        mnuCVSID = wxNewId()
+        menu_eclass.Append(mnuCVSID, "cvs")
+        EVT_MENU(self, mnuCVSID, self.OnMnuEclassCVS)
+
+
+        menubar.Append(menu_eclass, "E&class")
+
         # Tools
         menu_tools = wxMenu()
-
         mnuEbuildID = wxNewId()
         menu_tools.Append(mnuEbuildID, "Run &ebuild <this ebuild> <command>")
         EVT_MENU(self, mnuEbuildID, self.OnMnuEbuild)
-
         mnuEmergeID = wxNewId()
         menu_tools.Append(mnuEmergeID, "Run e&merge <args> <this ebuild>")
         EVT_MENU(self, mnuEmergeID, self.OnMnuEmerge)
-
-
         mnuLintoolID = wxNewId()
         menu_tools.Append(mnuLintoolID, "Run &Lintool on this ebuild")
         EVT_MENU(self, mnuLintoolID, self.OnMnuLintool)
@@ -162,48 +176,48 @@ class MyFrame(wxFrame):
         #self.tb.SetToolSeparation(10)
         newID = wxNewId()
         #TODO: Use only png, convert from bmp
-        newBmp = ('/usr/share/bitmaps/abeni/new.bmp')
-        self.tb.AddSimpleTool(newID, wxBitmap(newBmp, wxBITMAP_TYPE_BMP), \
+        newBmp = ('/usr/share/pixmaps/abeni/new.png')
+        self.tb.AddSimpleTool(newID, wxBitmap(newBmp, wxBITMAP_TYPE_PNG), \
                                 "Create new ebuild", "Create New ebuild")
         EVT_TOOL(self, newID, self.OnMnuNew)
 
         openID = wxNewId()
-        openBmp = ('/usr/share/bitmaps/abeni/open.bmp')
-        self.tb.AddSimpleTool(openID, wxBitmap(openBmp, wxBITMAP_TYPE_BMP), \
+        openBmp = ('/usr/share/pixmaps/abeni/open.png')
+        self.tb.AddSimpleTool(openID, wxBitmap(openBmp, wxBITMAP_TYPE_PNG), \
                                 "Open ebuild", "Open ebuild")
         EVT_TOOL(self, openID, self.OnMnuLoad)
         saveID = wxNewId()
-        saveBmp = ('/usr/share/bitmaps/abeni/save.bmp')
-        self.tb.AddSimpleTool(saveID, wxBitmap(saveBmp, wxBITMAP_TYPE_BMP), \
+        saveBmp = ('/usr/share/pixmaps/abeni/save.png')
+        self.tb.AddSimpleTool(saveID, wxBitmap(saveBmp, wxBITMAP_TYPE_PNG), \
                                 "Save ebuild", "Save ebuild")
         EVT_TOOL(self, saveID, self.OnMnuSave)
         self.tb.AddSeparator()
         self.tb.AddSeparator()
         newVarID = wxNewId()
-        newVarBmp = ('/usr/share/bitmaps/abeni/x.png')
+        newVarBmp = ('/usr/share/pixmaps/abeni/x.png')
         self.tb.AddSimpleTool(newVarID, wxBitmap(newVarBmp, wxBITMAP_TYPE_PNG), \
                                 "New Variable", "New Variable")
         EVT_TOOL(self, newVarID, self.OnMnuNewVariable)
         newFunID = wxNewId()
-        newFunBmp = ('/usr/share/bitmaps/abeni/fx.png')
+        newFunBmp = ('/usr/share/pixmaps/abeni/fx.png')
         self.tb.AddSimpleTool(newFunID, wxBitmap(newFunBmp, wxBITMAP_TYPE_PNG), \
                                 "New Function", "New Function")
         EVT_TOOL(self, newFunID, self.OnMnuNewFunction)
         self.tb.AddSeparator()
         lintoolID = wxNewId()
-        lintoolBmp = ('/usr/share/bitmaps/abeni/lintool.png')
+        lintoolBmp = ('/usr/share/pixpams/abeni/lintool.png')
         self.tb.AddSimpleTool(lintoolID, wxBitmap(lintoolBmp, wxBITMAP_TYPE_PNG), \
                                 "Lintool - check syntax of ebuild", "Run Lintool on this ebuild")
         EVT_TOOL(self, lintoolID, self.OnMnuLintool)
         toolDigestID = wxNewId()
-        digestBmp = ('/usr/share/bitmaps/abeni/digest.png')
+        digestBmp = ('/usr/share/pixmaps/abeni/digest.png')
         self.tb.AddSimpleTool(toolDigestID, wxBitmap(digestBmp, wxBITMAP_TYPE_PNG), \
                                 "Create digest for this ebuild", "Create digest for this ebuild")
         EVT_TOOL(self, toolDigestID, self.OnMnuCreateDigest)
         self.tb.AddSeparator()
         helpID = wxNewId()
-        helpBmp = ('/usr/share/bitmaps/abeni/help.bmp')
-        self.tb.AddSimpleTool(helpID, wxBitmap(helpBmp, wxBITMAP_TYPE_BMP ), \
+        helpBmp = ('/usr/share/pixmaps/abeni/help.png')
+        self.tb.AddSimpleTool(helpID, wxBitmap(helpBmp, wxBITMAP_TYPE_PNG), \
                                 "Help", "Abeni Help")
         EVT_TOOL(self, helpID, self.OnMnuHelp)
         #Load recent ebuilds to File menu
@@ -215,6 +229,13 @@ class MyFrame(wxFrame):
         EVT_TOOL_ENTER(self, -1, self.OnToolZone)
         EVT_TIMER(self, -1, self.OnClearSB)
         self.timer = None
+
+        #Load ebuild if specified on command line
+        if len(sys.argv) == 2:
+            if os.path.exists(sys.argv[1]):
+                self.LoadEbuild(sys.argv[1])
+            else:
+                print "Can't open " + sys.argv[1]
 
     def Cleanup(self, *args):
         """Cleanup for filehistory"""
@@ -247,26 +268,29 @@ class MyFrame(wxFrame):
 
     def OnMnuDiff(self, event):
         """Run diff program on original vs. saved ebuild"""
-        #TODO: Total hack. Just for debugging Abeni at this point
-
+        #TODO Add error dialog if last opened wasn't same package, or is empty
         if not self.editing:
             return
 
-        orgFile = string.replace(self.filename, 'local/', '')
-        os.system(self.pref['diff'] + ' ' + orgFile + ' ' + self.filename + ' &')
+        #orgFile = string.replace(self.filename, 'local/', '')
+        if self.lastFile:
+            os.system(self.pref['diff'] + ' ' + self.lastFile + ' ' + self.filename + ' &')
 
     def OnMnuDiffCreate(self, event):
         """Create diff file of original vs. saved ebuild"""
-        #TODO: This only works if PORTDIR_OVERLAY is /usr/local/portage
-        # and PORTDIR is /usr/local
-
+        #TODO: Add error dialog if last opened wasn't same package, or is empty
+        # Add dialog telling them file is saved in ~/.abeni/diffFile
         if not self.editing:
             return
 
-        orgFile = string.replace(self.filename, 'local/', '')
+        #No file to compare with
+        if not self.lastFile:
+            return
+
+        #orgFile = string.replace(self.filename, 'local/', '')
         diffFile = string.replace(self.ebuild_file, '.ebuild', '.diff')
-        print orgFile, diffFile
-        cmd = 'diff -u ' + orgFile + ' ' + self.filename + ' > ~/.abeni/' + diffFile
+        #print orgFile, diffFile
+        cmd = 'diff -u ' + self.lastFile + ' ' + self.filename + ' > ~/.abeni/' + diffFile
         print cmd
         os.system(cmd)
 
@@ -373,10 +397,15 @@ class MyFrame(wxFrame):
         self.funcList = []
         self.statementList = []
         self.editorList = []
+        self.funcOrder = []
+        self.varOrder = []
 
     def SetFilename(self, filename):
         """Set the ebuild full path and filename"""
+        #Keep last file for viewing and creating diffs
+        self.lastFile = self.filename
         self.filename = filename
+        self.sb.SetStatusText(filename, 1)
 
     def GetFilename(self):
         """Get the full path and filename of ebuild"""
@@ -388,26 +417,36 @@ class MyFrame(wxFrame):
         self.recentList.append(filename)
         vars = {}
         funcs = {}
-        self.varOrder = [] # Keep track of order variables are set
-        self.funcOrder = [] # Keep track of order functions are set
         statements = []
         defaultVars = ['DESCRIPTION', 'HOMEPAGE', 'SRC_URI', 'LICENSE', 'SLOT'
                         'KEYWORDS', 'IUSE', 'DEPEND', 'S']
         f = open(filename, 'r')
+        # Read in header, then discard it. We always write clean header.
+        # This may change for developer version in future.
+        f.readline()
+        f.readline()
+        f.readline()
+
+        #Indenting shoud be done with tabs, not spaces
+        badSpaces = re.compile('^ +')
+
         while 1:
             l = f.readline()
             if not l: #End of file
                 break
             if len(l) > 1:
                 l = string.strip(l)
+
             # Variables always start a line with all caps
             varTest = re.search('^[A-Z]', l)
-            # Function like: mine() {   or mine ()
-            funcTest1 = re.search('^[a-z]*\(\) {', l)
-            funcTest2 = re.search('^[a-z]* \(\) {', l)
-            # Function like: my_func() {   or  my_func ()
-            funcTest3 = re.search('^[a-z]*_[a-z]*\(\) {', l)
-            funcTest4 = re.search('^[a-z]*_[a-z]* \(\) {', l)
+
+            # Match any of these:
+            #  mine() {
+            #  mine () {   # I hate when people use this one.
+            #  my_func() {
+            #  my_func () {
+            funcTest = re.search('^[a-z]*(_[a-z]*)? ?\(\) {', l)
+
             if varTest:
                 s = string.split(l, "=")
                 if len(s) > 2:  # RDEPEND = ">=foolib2"   (has two equal signs)
@@ -428,14 +467,16 @@ class MyFrame(wxFrame):
                 self.varOrder.append(s[0])
                 continue
 
-            if funcTest1 or funcTest2 or funcTest3 or funcTest4:
+            if funcTest:
                 tempf = []
                 fname = string.replace(l, "{", "")
                 tempf.append(l + "\n")
                 while 1:
                     l = f.readline()
-                    tempf.append(l)
-                    if l[0] == "}":
+                    #replace spaces with tabs
+                    fixed = badSpaces.sub('\t', l)
+                    tempf.append(fixed)
+                    if fixed[0] == "}":
                         s = ""
                         for ls in tempf:
                             s += ls
@@ -443,8 +484,8 @@ class MyFrame(wxFrame):
                         self.funcOrder.append(fname)
                         break
                 continue
-            # Command like 'inherit cvs'
-            if re.search('^[a-z]', l):
+            # Command like 'inherit cvs' or a comment
+            if re.search('^([a-z]|#)', l):
                 self.statementList.append(l)
         f.close()
 
@@ -502,7 +543,7 @@ class MyFrame(wxFrame):
         self.AddEditor('Original File', open(filename, 'r').read())
         self.nb.SetSelection(0)
         # Set titlebar of app to ebuild name
-        self.SetTitle('Abeni ' + __version__ + ': ' + self.ebuild_file)
+        self.SetTitle(self.ebuild_file + ' | Abeni ' + __version__)
 
     def SeparateVars(self, vars):
         """Separates variables into defaults (myData) and all others (otherVars)"""
@@ -521,8 +562,7 @@ class MyFrame(wxFrame):
         fileNum = evt.GetId() - wxID_FILE1
         path = self.filehistory.GetHistoryFile(fileNum)
         if os.path.exists(path):
-            if self.editing:
-                self.ClearNotebook()
+            self.ClearNotebook()
             self.LoadEbuild(path)
             # add it back to the history so it will be moved up the list
             self.filehistory.AddFileToHistory(path)
@@ -540,10 +580,10 @@ class MyFrame(wxFrame):
         if dlg.ShowModal() == wxID_OK:
             filename = dlg.GetPath()
             if os.path.exists(filename):
-               if self.editing:
+                if self.editing:
                     self.ClearNotebook()
-            self.LoadEbuild(filename)
-            self.filehistory.AddFileToHistory(filename)
+                self.LoadEbuild(filename)
+                self.filehistory.AddFileToHistory(filename)
         dlg.Destroy()
 
     def PopulateForms(self, myData):
@@ -578,10 +618,6 @@ class MyFrame(wxFrame):
         """Global options from apprc file"""
         myOptions = options.Options()
         self.pref = myOptions.Prefs()
-        #self.pref['browser']
-        #self.pref['xterm']
-        #self.pref['diff'] etc.
-
 
     def OnToolZone(self, event):
         """Clear statusbar 3 seconds after mouse moves over toolbar icon"""
@@ -601,6 +637,49 @@ class MyFrame(wxFrame):
         """Catch event when page in notebook is changed"""
         self.nbPage = event.GetSelection()
         event.Skip()
+
+    def AddCommand(self, command):
+        t = self.panelMain.stext.GetValue()
+        t += (command + "\n")
+        self.panelMain.stext.SetValue(t)
+
+
+    def OnMnuEclassCVS(self, event):
+        if not self.editing:
+            return
+
+        src_compile = "src_compile() {\n" + \
+        "\texport WANT_AUTOCONF_2_5=1\n" + \
+        "\tsh autogen.sh\n" + \
+        "\teconf || die 'configure failed'\n" + \
+        "\temake || die 'parallel make failed'\n" + \
+        "}"
+
+        src_install = "src_install() {\n" + \
+        "\teinstall || die 'make install failed'\n" + \
+        "}"
+
+        self.AddNewVar("ECVS_SERVER", "")
+        self.AddNewVar("ECVS_MODULE", "")
+        self.AddNewVar("ECVS_TOD_DIR", "$DIST/")
+        self.AddNewVar("S", "${WORKDIR}/${PN/-cvs/}")
+        self.AddCommand("inherit cvs")
+        self.AddFunc("src_compile", (src_compile))
+        self.AddFunc("src_install", (src_install))
+
+    def OnMnuEclassDistutils(self, event):
+        if not self.editing:
+            return
+
+        # You don't need src_install() with distutils because it gets called automatically.
+        # We add it in case they want to add anything to it.
+
+        src_install = "src_install() {\n" + \
+        "\tdistutils_src_install\n" + \
+        "}"
+
+        self.AddCommand("inherit distutils")
+        self.AddFunc("src_install", (src_install))
 
     def OnMnuNewVariable(self, event):
         """Dialog for adding new variable"""
@@ -677,13 +756,15 @@ class MyFrame(wxFrame):
         #TODO: Add an "Are you sure?" dialog
         if self.editing:
             self.ClearNotebook()
-        win = GetURIDialog(self, -1, "Enter Package URI", \
+        win = dialogs.GetURIDialog(self, -1, "Enter Package URI", \
                             size=wxSize(350, 200), \
                             style = wxDEFAULT_DIALOG_STYLE \
                             )
         win.CenterOnScreen()
         val = win.ShowModal()
         self.URI = win.URI.GetValue()
+        if self.URI == "" or self.URI == "http://":
+            self.URI = "package-cvs-n.n.n"
         # If they click OK and filled out URI entry, create notebook
         if val == wxID_OK and self.URI:
             self.AddPages()
@@ -695,8 +776,9 @@ class MyFrame(wxFrame):
             #We are in the middle of createing an ebuild. Should probably check for
             #presence of wxNotebook instead
             self.editing = 1
+            self.OnMnuEclassCVS(-1)
             # Set titlebar of app to ebuild name
-            self.SetTitle("Abeni " + __version__ + ": " + self.panelMain.GetEbuildName())
+            self.SetTitle(self.panelMain.GetEbuildName() + " | Abeni " + __version__)
 
     def AddPages(self):
         """Add pages to blank notebook"""
@@ -771,6 +853,7 @@ class MyFrame(wxFrame):
             os.mkdir(self.ebuildDir)
         filename = os.path.join(self.ebuildDir, self.panelMain.EbuildFile.GetValue())
         self.SetFilename(filename)
+        self.filehistory.AddFileToHistory(filename.strip())
         f = open(filename, 'w')
 
         f.write('# Copyright 1999-2003 Gentoo Technologies, Inc.\n')
@@ -781,10 +864,18 @@ class MyFrame(wxFrame):
         f.write(self.panelMain.stext.GetValue() + '\n')
         varList = self.panelMain.GetVars()
 
+        newVars = 1
+        #print self.varOrder
+        #print varList.keys()
         for n in range(len(self.varOrder) -1):
             for key in varList.keys():
                 if key.GetLabel() == self.varOrder[n]:
+                    newVars = 0
                     f.write(key.GetLabel() + '=' + varList[key].GetValue() + '\n')
+
+        if newVars:
+            for key in varList.keys():
+                f.write(key.GetLabel() + '=' + varList[key].GetValue() + '\n')
 
         f.write('DESCRIPTION=' + self.panelMain.Desc.GetValue() + '\n')
         f.write('HOMEPAGE=' + self.panelMain.Homepage.GetValue() + '\n')
@@ -814,7 +905,9 @@ class MyFrame(wxFrame):
         rd = string.strip(rd)
         rd += '"'
         f.write(d + '\n\n')
-        f.write(rd + '\n\n')
+        if rd != 'RDEPEND=""':
+            #rd = 'RDEPEND="{$DEPEND}"'
+            f.write(rd + '\n\n')
 
         #Write functions:
         for fun in self.funcList:
@@ -834,58 +927,13 @@ class MyFrame(wxFrame):
         f.close()
         self.recentList.append(filename)
 
-class GetURIDialog(wxDialog):
-
-    """Dialog box that pops up for URI"""
-
-    def __init__(self, parent, ID, title,
-                 pos=wxDefaultPosition, size=wxDefaultSize,
-                 style=wxDEFAULT_DIALOG_STYLE):
-        # Instead of calling wxDialog.__init__ we precreate the dialog
-        # so we can set an extra style that must be set before
-        # creation, and then we create the GUI dialog using the Create
-        # method.
-        pre = wxPreDialog()
-        pre.SetExtraStyle(wxDIALOG_EX_CONTEXTHELP)
-        pre.Create(parent, ID, title, pos, size, style)
-        # This next step is the most important, it turns this Python
-        # object into the real wrapper of the dialog (instead of pre)
-        # as far as the wxPython extension is concerned.
-        self.this = pre.this
-        sizer = wxBoxSizer(wxVERTICAL)
-        box = wxBoxSizer(wxHORIZONTAL)
-        label = wxStaticText(self, -1, "Package URI:")
-        label.SetHelpText("Enter the URI for the package. This can be a URL like 'http://..' or a path to a file.")
-        box.Add(label, 0, wxALIGN_CENTRE|wxALL, 5)
-        self.URI = wxTextCtrl(self, -1, "http://abeni.sf.net/abeni-1.2.3.tgz", size=(280,-1))
-        self.URI.SetHelpText("Enter the URI for the package. This can be a URL like 'http://...' or a path to a file.")
-        box.Add(self.URI, 1, wxALIGN_CENTRE|wxALL, 5)
-        sizer.AddSizer(box, 0, wxGROW|wxALIGN_CENTER_VERTICAL|wxALL, 5)
-        box = wxBoxSizer(wxHORIZONTAL)
-        sizer.AddSizer(box, 0, wxGROW|wxALIGN_CENTER_VERTICAL|wxALL, 5)
-        line = wxStaticLine(self, -1, size=(20,-1), style=wxLI_HORIZONTAL)
-        sizer.Add(line, 0, wxGROW|wxALIGN_CENTER_VERTICAL|wxRIGHT|wxTOP, 5)
-        box = wxBoxSizer(wxHORIZONTAL)
-        btn = wxButton(self, wxID_OK, " OK ")
-        btn.SetDefault()
-        box.Add(btn, 0, wxALIGN_CENTRE|wxALL, 5)
-        btn = wxButton(self, wxID_CANCEL, " Cancel ")
-        box.Add(btn, 0, wxALIGN_CENTRE|wxALL, 5)
-        btn = wxContextHelpButton(self)
-        box.Add(btn, 0, wxALIGN_CENTRE|wxALL, 5)
-        sizer.AddSizer(box, 0, wxALIGN_CENTER_VERTICAL|wxALL, 5)
-        self.SetSizer(sizer)
-        self.SetAutoLayout(True)
-        sizer.Fit(self)
-
 class MyApp(wxPySimpleApp):
 
     """ Main wxPython app class """
 
     def OnInit(self):
         """Set up the main frame"""
-        provider = wxSimpleHelpProvider()
-        wxHelpProvider_Set(provider)
+
         # Enable gif, jpg, bmp, png handling for wxHtml and icons
         wxInitAllImageHandlers()
         frame=MyFrame(None, -1, 'Abeni - The ebuild Builder ' + __version__)

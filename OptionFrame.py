@@ -2,7 +2,6 @@ import string, os
 from wxPython.wx import *
 from options import *
 
-appdir = os.path.abspath(os.path.join(os.getcwd(), sys.path[0]))
 
 class OptionFrame(wxFrame):
     """TODO: Change this to wxDialog"""
@@ -45,7 +44,7 @@ class OptionFrame(wxFrame):
 
     def OnOK(self, event):
         """Write file on OK button"""
-        f = open(('%s/abenirc' % appdir), 'w')
+        f = open(os.path.expanduser('~/.abeni/abenirc'), 'w')
         f.write('browser = %s\n' % self.browser.GetValue())
         f.write('xterm = %s\n' % self.xterm.GetValue())
         f.write('diff = %s\n' % self.diff.GetValue())
