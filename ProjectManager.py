@@ -226,7 +226,6 @@ class CustomDataTable(wxPyGridTableBase):
     def OnBugzFetchButton(self, lines):
         """Update Bugzilla status/resoltn"""
         rs = self.GetNumberRows()
-        cs = self.GetNumberCols()
         bugz = []
         for l in lines:
             bugz.append(self.splitCSVLine(l))
@@ -239,6 +238,15 @@ class CustomDataTable(wxPyGridTableBase):
                         self.SetValue(row, 2, b[5])
                         self.SetValue(row, 3, b[6])
         #print "Done updating"
+
+    def GetBugNbrs(self):
+        rows = self.GetNumberRows()
+        bugNbrs = []
+        for r in range(rows-1):
+            b = self.GetValue(r, 1)
+            if b:
+                bugNbrs.append(b)
+        return bugNbrs
 
     def OnSaveButton(self):
         self.ConnectDB()
@@ -358,6 +366,9 @@ class CustTableGrid(wxGrid):
 
     def GetPackageName(self):
         return self.package
+
+    def GetBugNbrs(self):
+        return self.table.GetBugNbrs()
 
     def PtoPackage(self, p):
         """Given P, return package name"""
@@ -519,25 +530,10 @@ class MyFrame(wxFrame):
         import urllib, options
         myOptions = options.Options()
         pref = myOptions.Prefs()
-        #print "Fetching your bug info from bugs.gentoo.org..."
         wxSafeYield()
-        e = pref['email']
-        if not e:
-            msg = "No email address set in options."
-            dlg = wxMessageDialog(self, msg, "No email set", wxOK)
-            dlg.ShowModal()
-            return
-        uname = e.split("@")[0]
-        host = e.split("@")[1]
-        email = uname+"%40"+host
-        addr1="http://bugs.gentoo.org/buglist.cgi?query_format=&short_desc_type=allwordssubstr&"
-        addr2="short_desc=&long_desc_type=substring&long_desc=&bug_file_loc_type=allwordssubstr&bug_file_loc=&"
-        addr3="keywords_type=allwords&keywords=&bug_status=UNCONFIRMED&bug_status=NEW&bug_status=ASSIGNED&bug_"
-        addr4="status=REOPENED&bug_status=RESOLVED&bug_status=VERIFIED&bug_status=CLOSED&emailassigned_to1=1&"
-        addr5="emailreporter1=1&emailqa_contact1=1&emailcc1=1&emaillongdesc1=1&emailtype1=exact&email1="
-        addr6="%s&emailtype2=substring&email2=&bugidtype=include&bug_id=&votes=&changedin=" % email
-        addr7="&chfieldfrom=&chfieldto=Now&chfieldvalue=&field0-0-0=noop&type0-0-0=noop&value0-0-0=&ctype=csv"
-        addr="%s%s%s%s%s%s%s" % (addr1, addr2, addr3, addr4, addr5, addr6, addr7)
+        bugNbrs = self.grid.GetBugNbrs()
+        bugs = '%2C'.join(bugNbrs)
+        addr = "http://bugs.gentoo.org/buglist.cgi?query_format=&short_desc_type=allwordssubstr&short_desc=&long_desc_type=substring&long_desc=&bug_file_loc_type=allwordssubstr&bug_file_loc=&bugidtype=include&bug_id=%s&ctype=csv" % bugs
         f = urllib.urlopen(addr)
         lines = f.readlines()
         self.grid.OnBugzFetchButton(lines)
