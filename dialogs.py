@@ -32,7 +32,7 @@ class SubmitEbuild(wxDialog):
 
         self.DesctextCtrl = wxTextCtrl(id=wxID_SUBMITEBUILDDESCTEXTCTRL,
               name='DesctextCtrl', parent=self, pos=wxPoint(24, 112),
-              size=wxSize(496, 272), style=0, value='')
+              size=wxSize(496, 272), style=wxTE_MULTILINE, value='')
 
         self.SummarytextCtrl = wxTextCtrl(id=wxID_SUBMITEBUILDSUMMARYTEXTCTRL,
               name='SummarytextCtrl', parent=self, pos=wxPoint(88, 48),
@@ -54,13 +54,56 @@ class SubmitEbuild(wxDialog):
         self.Submitbutton = wxButton(id=wxID_SUBMITEBUILDSUBMITBUTTON,
               label='Submit', name='Submitbutton', parent=self, pos=wxPoint(256,
               416), size=wxSize(80, 22), style=0)
+        EVT_BUTTON(self.Submitbutton, wxID_SUBMITEBUILDSUBMITBUTTON,
+              self.OnSubmitButton)
 
-        self.Cancelbutton = wxButton(id=wxID_SUBMITEBUILDCANCELBUTTON,
+        self.Cancelbutton = wxButton(id=wxID_CANCEL,
               label='Cancel', name='Cancelbutton', parent=self, pos=wxPoint(392,
               416), size=wxSize(80, 22), style=0)
 
     def __init__(self, parent):
         self._init_ctrls(parent)
+        s = "%s (New Package)" % parent.GetP()
+        self.SummarytextCtrl.SetValue(s)
+        desc = parent.panelMain.Desc.GetValue()
+        if desc.startswith('"') or desc.startswith("'"):
+            desc = desc[1:]
+        if desc.endswith('"') or desc.endswith("'"):
+            desc = desc[:-1]
+        self.DesctextCtrl.SetValue(desc)
+        self.filename = parent.filename
+        self.uri = parent.panelMain.Homepage.GetValue()
+
+    def OnSubmitButton(self, event):
+        '''Catch submit event, submit ebuild'''
+        self.summary = self.SummarytextCtrl.GetValue()
+        self.desc = self.DesctextCtrl.GetValue()
+        self.SubmitEbuild()
+
+    def SubmitEbuild(self):
+        ''' Do the actual bug creation and attachment upload'''
+        import BugzInterface
+        a = BugzInterface.HandleForm(self.filename, self.summary, self.desc, self.uri)
+        max = 90
+        dlg = wxProgressDialog("Submitting ebuild",
+                               "Creating new bug...",
+                               max,
+                               self,
+                               wxPD_CAN_ABORT | wxPD_APP_MODAL)
+        count = 33
+        dlg.Update(count, "Loging in to bugs.gentoo.org...")
+        a.Login()
+        count += 33
+        dlg.Update(count, "Entering new bug...")
+        a.EnterNewBug()
+        count += 33
+        dlg.Update(count, "Uploading attachment...")
+        a.UploadAttachment()
+        count += 33
+        dlg.Update(count, "Done.")
+        dlg.Destroy()
+        self.bugNbr = a.bugNbr
+        self.Close()
 
 
 [wxID_BUGZQUERY, wxID_BUGZQUERYBUGNBRBUTTON, wxID_BUGZQUERYBUGNBRSTATICBOX,

@@ -2,6 +2,7 @@ import urllib
 import types
 import string
 import ClientForm
+import os
 from ClientForm import ControlNotFoundError,  ItemNotFoundError, \
      ItemCountError, ParseError, ParseResponse
 from urllib2 import urlopen
@@ -20,9 +21,7 @@ attachment. It connects to the bugzilla on my computer (Rob's),
 NOT bugs.gentoo.org. It hasn't been tested with bugs.gentoo.org
 but should work with very little modification.
 
-Feel free to try it out. The only thing you need to change is
-self.filename. Just set it to a file you want to upload. Its
-set to only upload text/plain. (My computer isn't always online).
+Feel free to try it out but know my computer isn't always online.
 
 '''
 
@@ -30,17 +29,25 @@ set to only upload text/plain. (My computer isn't always online).
 class HandleForm:
     '''Parses bugs.gentoo.org forms, handles cookies and uploads attachments'''
 
-    def __init__(self):
-        self.filename = "/home/rob/all.txt"
+    def __init__(self, filename, summary, desc, uri):
+        self.filename = filename
+        self.ebuild = os.path.basename(filename)
+        self.summary = summary
+        self.desc = desc
+        self.uri = uri
 
     def Login(self, user="genone@127.0.0.1", password="mauch"):
         url = "http://abeni.kicks-ass.net/bugzilla/enter_bug.cgi"
         forms = ParseResponse(ClientCookie.urlopen(url))
         form = forms[0]
         #print forms[0]
-        form["Bugzilla_login"] = "genone@127.0.0.1"
-        form["Bugzilla_password"] = "mauch"
-        response = ClientCookie.urlopen(form.click("GoAheadAndLogIn"))
+        try:
+            form["Bugzilla_login"] = "genone@127.0.0.1"
+            form["Bugzilla_password"] = "mauch"
+            response = ClientCookie.urlopen(form.click("GoAheadAndLogIn"))
+        except:
+            #Already logged in with coookies
+            pass
 
     def urlencode_data(self, Dict):
         pairs = []
@@ -76,9 +83,9 @@ class HandleForm:
             "bug_status":"NEW",
             "assigned_to":"genone@127.0.0.1",
             "cc":"",
-            "bug_file_loc":"http://",
-            "short_desc":"fake-0.1.ebuild (New version)",
-            "comment":"This package is a package.",
+            "bug_file_loc":self.uri,
+            "short_desc":self.summary,
+            "comment":self.desc,
             "keywords":"",
             "form_name":"enter_bug",
         }
@@ -97,21 +104,15 @@ class HandleForm:
         forms = ParseResponse(ClientCookie.urlopen(url))
         form = forms[0]
         #print form
-        form["description"] = "fake-0.1.ebuild"
+        form["description"] = self.ebuild
         form["contenttypemethod"] = ["list"]
         form["contenttypeselection"] = ["text/plain"]
-        form["comment"] = "my comment"
+        form["comment"] = ""
         f = file(self.filename)  # use StringIO if you have a string to upload
-        form.add_file(f, "text/plain", "all.txt")
+        form.add_file(f, "text/plain", self.ebuild)
         request = form.click()
         response2 = ClientCookie.urlopen(request)
         print "Attachment uploaded."
         #print response2.read()
         #print response2.info()
-
-a = HandleForm()
-a.Login()
-a.EnterNewBug()
-a.UploadAttachment()
-
 

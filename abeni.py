@@ -183,6 +183,8 @@ class MyFrame(wxFrame):
         if self.SaveEbuild():
             win = dialogs.SubmitEbuild(self)
             win.ShowModal()
+            self.write("Created bug #" + win.bugNbr)
+            win.Destroy()
 
     def OnMnuGetDeps(self, event):
         #DEPEND
@@ -1527,9 +1529,9 @@ class MyFrame(wxFrame):
         mnuSumID = wxNewId()
         menu_proj.Append(mnuSumID, "Project Manager")
         EVT_MENU(self, mnuSumID, self.OnMnuProjManager)
-        #mnuSubmitID = wxNewId()
-        #menu_proj.Append(mnuSubmitID, "Submit ebuild to bugs.gentoo.org")
-        #EVT_MENU(self, mnuSubmitID, self.OnMnuSubmitEbuild)
+        mnuSubmitID = wxNewId()
+        menu_proj.Append(mnuSubmitID, "Submit ebuild to bugs.gentoo.org")
+        EVT_MENU(self, mnuSubmitID, self.OnMnuSubmitEbuild)
         menubar.Append(menu_proj, "&Project")
 
         # View
