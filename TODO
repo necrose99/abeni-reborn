@@ -23,8 +23,6 @@ keyword list for highlighting and auto-completion
 Project Manager can get tweaked if ebuilds are in the wrong directory 
 (/usr/local/portage/duh.ebuild for example)
 
-The preference menu's fields are not in order when you 'tab through' them
-
 recent.txt file has dups
 
 The first entry in the MRU list is shown without the path, the other entries

@@ -466,16 +466,16 @@ class Preferences(wxDialog):
         self.autoTabs.SetValue(self.pref['autoTabs'])
         self.fileBrowser = wxTextCtrl(self, wxNewId(), "", size=(200,-1))
         self.fileBrowser.SetValue(self.pref['fileBrowser'])
-        self.features = wxTextCtrl(self, wxNewId(), "", size=(200,-1))
-        self.features.SetValue(self.pref['features'])
+        self.statuslist = wxTextCtrl(self, wxNewId(), "", size=(200,-1))
+        self.statuslist.SetValue(self.pref['statuslist'])
         self.use = wxTextCtrl(self, wxNewId(), "", size=(200,-1))
         self.use.SetValue(self.pref['use'])
+        self.features = wxTextCtrl(self, wxNewId(), "", size=(200,-1))
+        self.features.SetValue(self.pref['features'])
         self.log = wxTextCtrl(self, wxNewId(), "", size=(200,-1))
         self.log.SetValue(self.pref['log'])
         self.email = wxTextCtrl(self, wxNewId(), "", size=(200,-1))
         self.email.SetValue(self.pref['email'])
-        self.statuslist = wxTextCtrl(self, wxNewId(), "", size=(200,-1))
-        self.statuslist.SetValue(self.pref['statuslist'])
 
         gs.AddMany([
         (wxStaticText(self, -1, "Web browser"), 0, wxALIGN_LEFT),
