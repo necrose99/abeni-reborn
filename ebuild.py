@@ -8,6 +8,8 @@ overlays = settings['PORTDIR_OVERLAY'].split(" ")
 ERR_FILE_NOT_FOUND  = 1
 ERR_SYNTAX 			= 2
 
+# class for code blocks like variables, functions 
+# or generic statements including leading comments
 class element:
 	def __init__(self, pos, etype = "unknown", content = ""):
 		self.pos = pos
@@ -25,6 +27,36 @@ class element:
 		
 	def getType(self):
 		return self.type
+
+	# get the leading comment for this element
+	def getComment(self):
+		rValue = ""
+		for l in self.content.split("\n"):
+			if l[0] == "#" or l == "":
+				rValue += l+"\n"
+		return rValue
+	
+	# get the name of the function or variable, return "" for statements or unknown
+	def getName(self):
+		if self.type == "unknown" or self.type == "statement":
+			return ""
+		elif self.type == "variable":
+			for l in self.content.split("\n"):
+				vartest = re.search("^[A-Z][_A-Za-z0-9]*=", l)
+				if vartest:
+					return l.split("=")[0]
+			return ""
+		elif self.type == "function":
+			for l in self.content.split("\n"):
+				functest = re.search('^[a-zA-Z][A-Za-z0-9_-]*[A-Za-z0-9] ?\(\) ?\{', l)
+				if functest:
+					return l.replace("()", "").replace("{", "").strip()
+			return ""
+		else:
+			return ""
+	
+	def getBody(self):
+		return ""
 	
 # class that encapsulates all the data from an ebuild
 class ebuild:
@@ -138,6 +170,7 @@ class ebuild:
 			vartest = re.search('^[A-Z]+.*= ?', l)
 			functest = re.search('^[a-zA-Z]*[_a-zA-Z0-9]* ?\(\) ?{', l)
 			
+			# variable here
 			if vartest:
 				v = l
 				#Multi-line variables
@@ -155,8 +188,9 @@ class ebuild:
 				myelement = None
 				tmpcontent = ""
 				continue
+			# function here
 			if functest:
-				myelement = element(pos, "variable", tmpcontent+"\n")
+				myelement = element(pos, "function", tmpcontent+"\n")
 				pos += 1
 				while l.strip() != "}":
 					myelement.addContent(l)
@@ -167,6 +201,7 @@ class ebuild:
 				myelement = None
 				tmpcontent = ""
 				continue
+			# something else
 			if l.strip() == "":
 				continue
 			if myelement == None:
@@ -176,11 +211,15 @@ class ebuild:
 				myelement.addcontent(l)
 			self.elements['statements'].append(myelement)
 			myelement = None
-			
+	
+	# write the ebuild to disk
 	def	writeEbuild(self):
-		self.content = self.getContent()
+		f = open(self.path, "w")
+		f.write(self.getContent())
+		f.close()
 			
 # test code
 sc = ebuild("net-mail", "sylpheed-claws", "0.9.4", "/usr/portage/local")
 sc.readEbuild()
-print sc.getContent()
+for e in sc.elements['functions']:
+	print e.getName()
