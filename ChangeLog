@@ -2,10 +2,70 @@ Abeni
 
 0.0.5 -------------
 
+Jul 21, 2003
+
+Major fix with response of GUI when doing emerge, ebuild commands. Switched
+to wxProcess instead of cheesy DoIdle/wxYield method.
+
+Jun 29, 2003
+
+Automatically opens Makefile, enviornment, and configure files if the exist.
+
+You can now specify category with package name on the command line to get a list of packages quicker.
+
+Added more keywords for highlighting
+
+Jun 28, 2003
+
+Changed license and category dialogs from file to wxSingle/MultipleChoice
+Now you can choose more than one license
+
+New toolbar icon for 'ebuild' command.
+
+Added USE and FEATURES to preferences and use them for ebuild and emerge commands
+
+Jun 26, 2003
+
+Fixed options screen to wxDialog, wxSizers. You no longer need to restart Abeni for changes
+to take effect.
+
+Added config option to convert spaces to tabs when opening ebuild
+This is a Good Thing because it doesn't work perfectly yet.
+
+Moved RDEPEND below DEPENDS and made both wider
+
+Jun 27, 2003
+
+Logging is now done in choice of tab or splitter window at bottom, with a choice in Options menu
+
+Added external editor option to preferences dialog/abenirc
+
+After editing in external editor, ebuild is reloaded in Abeni
+
+Every command requiring root access is now executed via sudo instead of running su -c
+
+Jun 25, 2003
+
+When you add or remove functions or variables file is set to not-saved state.
+
+When you delete a variable it doesn't leave a blank line on the screen.
+
+Major code cleanup. Moved most non-gui functions from abeni.py to utils.py
+
+Added emerge icon on toolbar
+
+Added View Environment in Tools menu. This unpacks ebuild and shows
+the file PORTAGE_TMPDIR/portage/PF/temp/environment. Damn, this is handy.
+
+Removed 'Edit' menu, created Variable and Function menus in its place.
+
+Removed accelerator table code. Use key setup in menu items now.
+Alt-X to exit, F1 for help, F2 for new variable, F3 for new function
+
 Jun 24, 2003
 
 You can bring up a list of available ebuilds if you start abeni with 'abeni <package>'
-This will bring up a dialog you can use to choose from (it uses output of etcat -v <package>)
+This will bring up a dialog you can use to choose from (it uses output of etcat -v ^package$)
 
 Fixed problem with functions that were getting written even though there were deleted
 
@@ -15,13 +75,11 @@ Added many more Gentoo keywords to highlight list in Scintilla editor
 
 Fixed editor visual error for variables on multi-lines (no more purple line)
 
-
 Jun 23, 2003
 
 Moved Misc statements up, Other Variables down on the screen.
 
 You are prompted to save changes if you modify function buffers on load/quit
-
 
 Jun 19, 2003
 

@@ -26,12 +26,16 @@ class GetURIDialog(wxDialog):
         self.this = pre.this
         sizer = wxBoxSizer(wxVERTICAL)
         box = wxBoxSizer(wxHORIZONTAL)
+
         label = wxStaticText(self, -1, "Package URI:")
         label.SetHelpText("Enter the URI for the package or 'CVS' for cvs eclass template.")
         box.Add(label, 0, wxALIGN_CENTRE|wxALL, 5)
+
+
         self.URI = wxTextCtrl(self, -1, "", size=(280,-1))
         self.URI.SetHelpText("Enter the URI for the package or 'CVS' for cvs eclass template.")
         box.Add(self.URI, 1, wxALIGN_CENTRE|wxALL, 5)
+
         sizer.AddSizer(box, 0, wxGROW|wxALIGN_CENTER_VERTICAL|wxALL, 5)
 
         box = wxBoxSizer(wxHORIZONTAL)

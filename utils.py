@@ -474,23 +474,17 @@ def AddToolbar(parent):
     parent.tb.AddSimpleTool(lintoolID, wxBitmap(lintoolBmp, wxBITMAP_TYPE_PNG), \
                          "Lintool - check syntax of ebuild")
     EVT_TOOL(parent, lintoolID, parent.OnMnuLintool)
-
-
-    toolUnpackID = wxNewId()
-    unpackBmp = ('/usr/share/pixmaps/abeni/unpack.png')
-    parent.tb.AddSimpleTool(toolUnpackID, wxBitmap(unpackBmp, wxBITMAP_TYPE_PNG), \
-                         "Unpack this package")
-    EVT_TOOL(parent, toolUnpackID, parent.OnMnuUnpack)
-
-
     toolDigestID = wxNewId()
     digestBmp = ('/usr/share/pixmaps/abeni/digest.png')
     parent.tb.AddSimpleTool(toolDigestID, wxBitmap(digestBmp, wxBITMAP_TYPE_PNG), \
                          "Create digest for this ebuild")
     EVT_TOOL(parent, toolDigestID, parent.OnMnuCreateDigest)
-
+    toolUnpackID = wxNewId()
+    unpackBmp = ('/usr/share/pixmaps/abeni/unpack.png')
+    parent.tb.AddSimpleTool(toolUnpackID, wxBitmap(unpackBmp, wxBITMAP_TYPE_PNG), \
+                         "Unpack this package")
+    EVT_TOOL(parent, toolUnpackID, parent.OnMnuUnpack)
     parent.tb.AddSeparator()
-
     toolEbuildID = wxNewId()
     ebuildBmp = ('/usr/share/pixmaps/abeni/ebuild.png')
     parent.tb.AddSimpleTool(toolEbuildID, wxBitmap(ebuildBmp, wxBITMAP_TYPE_PNG), \

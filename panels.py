@@ -203,13 +203,14 @@ class main(wxPanel):
 
     def SetURI(self, uri):
         """Set URI"""
-        self.URI.SetValue('"' + uri + '"')
+        self.URI.SetValue('"%s"' % uri)
 
     def SetName(self, uri):
         """Set ebuild name"""
         path = urlparse.urlparse(uri)[2]
         path = string.split(path, '/')
         file = path[len(path)-1]
+        file = string.replace(file, ".zip", "")
         file = string.replace(file, ".tgz", "")
         file = string.replace(file, ".tar.gz", "")
         file = string.replace(file, ".tar.bz2", "")
@@ -230,6 +231,8 @@ class main(wxPanel):
         ebuild = string.split(self.ebuildName, '-')
         self.Package.SetValue(ebuild[0])
 
+    def GetPackage(self):
+        return self.Package.GetValue()
 
 class LogWindow(wxPanel):
 

@@ -12,7 +12,7 @@ print "Importing portage config, wxPython, Python and Abeni modules..."
 from portage import config
 from wxPython.wx import *
 from wxPython.lib.dialogs import wxScrolledMessageDialog
-import os, string, sys, urlparse, threading, time, popen2
+import os, string, sys, urlparse, time
 import dialogs, panels
 from utils import *
 
@@ -64,14 +64,16 @@ class MyFrame(wxFrame):
         self.tabs = []
         self.tabsInstance = []
         #Stuff to keep log window updating in "real-time" as shell commands are executed
-        #self.process = None
         #ID_Timer = wxNewId()
-        #self.processTimer = wxTimer(self, ID_Timer)
+        #self.myTimer = wxTimer(self, ID_Timer)
         #EVT_TIMER(self, ID_Timer, self.OnTimer)
+        #self.inp = None
 
-        self.inp = None
+        self.process = None
         EVT_IDLE(self, self.OnIdle)
-        #EVT_END_PROCESS(self, -1, self.OnProcessEnded)
+        EVT_END_PROCESS(self, -1, self.OnProcessEnded)
+
+
         #application icon 16x16
         iconFile = ('/usr/share/pixmaps/abeni/abeni_logo16.png')
         icon = wxIcon(iconFile, wxBITMAP_TYPE_PNG)
@@ -105,6 +107,12 @@ class MyFrame(wxFrame):
                 #Make sure GUI is drawn before we start the slow search
                 wxSafeYield()
                 self.LoadByPackage(f)
+
+    def __del__(self):
+        if self.process is not None:
+            self.process.Detach()
+            self.process.CloseOutput()
+            self.process = None
 
     def OnMnuLogBottom(self, event):
         """Switch ouput log to bottom"""
@@ -185,6 +193,7 @@ class MyFrame(wxFrame):
             if not self.VerifySaved():
                 self.ClearNotebook()
                 #Don't run sudo, we want user owner/perms on ebuild files in PORTDIR_OVERLAY
+                wxSafeYield()
                 os.system('%s %s' % (self.pref['editor'], self.filename))
                 LoadEbuild(self, self.filename, __version__, portdir)
 
@@ -220,11 +229,11 @@ class MyFrame(wxFrame):
         """Run 'ebuild filename digest' on this ebuild"""
         if not self.editing:
             return
-        WriteEbuild(self)
-        #TODO: Strip escape codes so we can put in a text widget for those who use sudo
-        cmd = 'sudo /usr/sbin/ebuild %s digest' % self.filename
-        #os.system(self.pref['xterm'] + ' -T "Creating Digest" -hold -e ' + cmd + ' &')
-        self.ExecuteInLog(cmd)
+        if self.SaveEbuild():
+            #TODO: Strip escape codes so we can put in a text widget for those who use sudo
+            cmd = 'sudo /usr/sbin/ebuild %s digest' % self.filename
+            #os.system(self.pref['xterm'] + ' -T "Creating Digest" -hold -e ' + cmd + ' &')
+            self.ExecuteInLog(cmd)
 
     def OnMnuRepoman(self, event):
         """Run 'repoman-local-5.py' on this ebuild"""
@@ -242,34 +251,34 @@ class MyFrame(wxFrame):
         """Run 'emerge <options> <this ebuild>' """
         if not self.editing:
             return
-        WriteEbuild(self)
-        cmd = 'USE="%s" FEATURES="%s" sudo /usr/bin/emerge %s' % (self.pref['use'], self.pref['features'], self.filename)
-        dlg = wxTextEntryDialog(self, 'What arguments do you want to pass?',
-                            'Arguments?', cmd)
-        #dlg.SetValue("")
-        if dlg.ShowModal() == wxID_OK:
-            cmd = dlg.GetValue()
-            self.write("Executing:\n%s" % cmd)
-            dlg.Destroy()
-        else:
-            dlg.Destroy()
-            return
-        """
-        if opts == '-p' or opts == '--pretend':
-            #cmd = '"/usr/bin/emerge ' + opts + ' ' + self.filename + ' ; echo Done"'
-            cmd = '/usr/bin/emerge %s %s' % (opts, self.filename)
-        else:
-            if opts == 'unmerge' or opts == '-C' or opts == '-s' or opts == '--search':
-                #cmd = 'sudo /usr/bin/emerge ' + opts + ' ' + self.package + ' ; echo Done'
-                cmd = 'sudo /usr/bin/emerge %s %s' % (opts, self.package)
-                print cmd
+        if self.SaveEbuild():
+            cmd = 'USE="%s" FEATURES="%s" sudo /usr/bin/emerge %s' % (self.pref['use'], self.pref['features'], self.filename)
+            dlg = wxTextEntryDialog(self, 'What arguments do you want to pass?',
+                                'Arguments?', cmd)
+            #dlg.SetValue("")
+            if dlg.ShowModal() == wxID_OK:
+                cmd = dlg.GetValue()
+                self.write("Executing:\n%s" % cmd)
+                dlg.Destroy()
             else:
-                #cmd = 'sudo /usr/bin/emerge ' + opts + ' ' + self.filename + ' ; echo Done'
-                cmd = 'sudo /usr/bin/emerge %s %s' % (opts, self.filename)
-        """
-        #cmd2 = self.pref['xterm'] + ' -T "emerge" -hold -e ' + cmd + ' &'
-        #os.system(cmd2)
-        self.ExecuteInLog(cmd)
+                dlg.Destroy()
+                return
+            """
+            if opts == '-p' or opts == '--pretend':
+                #cmd = '"/usr/bin/emerge ' + opts + ' ' + self.filename + ' ; echo Done"'
+                cmd = '/usr/bin/emerge %s %s' % (opts, self.filename)
+            else:
+                if opts == 'unmerge' or opts == '-C' or opts == '-s' or opts == '--search':
+                    #cmd = 'sudo /usr/bin/emerge ' + opts + ' ' + self.package + ' ; echo Done'
+                    cmd = 'sudo /usr/bin/emerge %s %s' % (opts, self.package)
+                    print cmd
+                else:
+                    #cmd = 'sudo /usr/bin/emerge ' + opts + ' ' + self.filename + ' ; echo Done'
+                    cmd = 'sudo /usr/bin/emerge %s %s' % (opts, self.filename)
+            """
+            #cmd2 = self.pref['xterm'] + ' -T "emerge" -hold -e ' + cmd + ' &'
+            #os.system(cmd2)
+            self.ExecuteInLog(cmd)
 
 
     def OnMnuEbuild(self, event):
@@ -289,17 +298,18 @@ class MyFrame(wxFrame):
         else:
             dlg.Destroy()
             return
-        WriteEbuild(self)
-        cmd = 'USE="%s" FEATURES="%s" sudo /usr/sbin/ebuild %s %s' % (self.pref['use'], self.pref['features'], self.filename, opt)
-        self.write('Executing:\n%s' % cmd)
-        #cmd = 'sudo /usr/sbin/ebuild ' + self.filename + ' ' + opt + ' ; echo Done'
-        #cmd = '%s %s sudo /usr/sbin/ebuild %s %s' % (self.pref['use'], self.pref['features'], self.filename, opt)
-        #cmd2 = '%s  -T "ebuild" -hold -e %s' % (self.pref['xterm'], cmd)
-        #os.system(cmd2)
-        #for l in os.popen(cmd).readline():
-        #    self.write(l)
-        self.ExecuteInLog(cmd)
+        if self.SaveEbuild():
+            cmd = 'USE="%s" FEATURES="%s" sudo /usr/sbin/ebuild %s %s' % (self.pref['use'], self.pref['features'], self.filename, opt)
+            self.write('Executing:\n%s' % cmd)
+            #cmd = 'sudo /usr/sbin/ebuild ' + self.filename + ' ' + opt + ' ; echo Done'
+            #cmd = '%s %s sudo /usr/sbin/ebuild %s %s' % (self.pref['use'], self.pref['features'], self.filename, opt)
+            #cmd2 = '%s  -T "ebuild" -hold -e %s' % (self.pref['xterm'], cmd)
+            #os.system(cmd2)
+            #for l in os.popen(cmd).readline():
+            #    self.write(l)
+            self.ExecuteInLog(cmd)
 
+    '''
     def OnIdle(self, event):
         if self.inp is not None:
             wxYield()
@@ -310,28 +320,65 @@ class MyFrame(wxFrame):
                 l = self.inp.readline()
                 self.write(l)
             self.inp = None
-            #self.tb.Enable(True)
             self.tb.EnableTool(self.toolStopID, False)
-            #self.nb.Enable(True)
-            #self.menu.Enable(True)
+            #self.myTimer.Stop()
+    '''
 
+    def OnTimer(self, event):
+        wxYield()
+        print "OnTimer"
+
+    def OnCloseStream(self, evt):
+        #self.write('OnCloseStream\n')
+        #print "b4 CloseOutput"
+        self.process.CloseOutput()
+        #print "after CloseOutput"
+
+    def OnIdle(self, event):
+        if self.process is not None:
+            stream = self.process.GetInputStream()
+
+            if stream.CanRead():
+                text = stream.read()
+                self.write(text)
+
+    def OnProcessEnded(self, evt):
+        #self.log.write('OnProcessEnded, pid:%s,  exitCode: %s\n' %
+        #               (evt.GetPid(), evt.GetExitCode()))
+        print "PROCESS ENDED"
+        stream = self.process.GetInputStream()
+        if stream.CanRead():
+            text = stream.read()
+            self.write(text)
+
+        self.process.Destroy()
+        self.process = None
+        self.tb.EnableTool(self.toolStopID, False)
+
+
+    def ExecuteInLog(self, cmd):
+        self.tb.EnableTool(self.toolStopID, True)
+        self.process = wxProcess(self)
+        self.process.Redirect();
+        pyCmd = "python -u doCmd.py %s" % cmd
+        pid = wxExecute(pyCmd, wxEXEC_ASYNC, self.process)
+        #self.write('"%s" pid: %s\n' % (cmd, pid))
+
+
+    '''
     def ExecuteInLog(self, cmd):
         """Executes cmd and shows output asynchronously in log window"""
         #TODO: add option to run command when complete
         self.tb.EnableTool(self.toolStopID, True)
-        #self.nb.Enable(False)
-        #self.tb.Enable(False)
-        #self.menu.Enable(False)
         wxYield()
-        #self.inp = os.popen('%s 2>&1' % cmd)
         a = popen2.Popen4(cmd, 1)
-        #fooOut, self.inp = self.popen3('%s' % cmd)
         self.inp = a.fromchild
         self.pid = a.pid
         self.write("%s (PID: %s)" % (cmd, self.pid))
-        #print myPipe.pid
         l = self.inp.readline()
         self.write(l)
+        #self.myTimer.Start(500)
+    '''
 
     def KillProc(self, event):
         os.system("sudo kill %s" % self.pid)
@@ -569,18 +616,25 @@ class MyFrame(wxFrame):
         """Save ebuild file to disk"""
         if not self.editing:
             return
+        self.SaveEbuild()
+
+    def SaveEbuild(self):
         msg = self.checkEntries()
         if not msg:
             defaultVars = getDefaultVars(self)
             WriteEbuild(self)
             self.saved = 1
+            return 1
         else:
             dlg = wxMessageDialog(self, msg, 'Abeni: Error Saving', wxOK | wxICON_INFORMATION)
             dlg.ShowModal()
             dlg.Destroy()
+            return 0
 
     def checkEntries(self):
         """Validate entries on forms"""
+        # We're checking category and license now.
+        # TODO: Do sanity checking, like package, ebuild name ($P, $EBUILD)
         category = self.panelMain.Category.GetValue()
         categoryDir = self.GetCategory()
         valid_cat = os.path.join(portdir, category)
@@ -590,6 +644,12 @@ class MyFrame(wxFrame):
         if not os.path.exists(valid_cat):
             msg = category + " isn't a valid category."
             return msg
+
+        l = self.panelMain.Category.GetValue()
+        if not l:
+            msg = "You must specify a license."
+            return msg
+
         return 0
 
     def OnMnuNew(self,event):
@@ -612,13 +672,26 @@ class MyFrame(wxFrame):
                 if self.pref['log'] == 'tab':
                     self.LogTab()
                 self.panelMain.PopulateDefault()
+                self.write(self.URI)
                 if self.URI == "CVS" or self.URI == "cvs":
                     #self.panelMain.SetURI("package-cvs-0.0.1")
                     self.panelMain.SetName("package-cvs-0.0.1")
                 else:
+                    t = self.URI.find('sourceforge')
+                    print "sourceforge", t
+                    if t:
+                        #http://umn.dl.sourceforge.net/sourceforge/tikiwiki/tiki161.zip
+                        #mirror://sourceforge/tikiwiki/tiki161.ip
+                        #a = urlparse.urlparse("http://umn.dl.sourceforge.net/sourceforge/tikiwiki/tiki161.zip")
+                        #('http', 'umn.dl.sourceforge.net', '/sourceforge/tikiwiki/tiki161.zip', '', '', '')
+                        a = urlparse.urlparse(self.URI)
+                        self.URI='mirror:/%s' % a[2]
+
                     self.panelMain.SetURI(self.URI)
                     self.panelMain.SetName(self.URI)
                 self.panelMain.SetPackage()
+                if self.URI.find('sourceforge'):
+                    self.panelMain.Homepage.SetValue('"http://%s.sourceforge.net/"' % self.panelMain.GetPackage().lower())
                 self.panelChangelog.Populate("%s/skel.ChangeLog" % portdir, portdir)
                 self.editing = 1
                 self.saved = 0
@@ -860,14 +933,15 @@ class MyFrame(wxFrame):
             dlg.Destroy()
 
     def CheckUnpacked(self):
-        p = self.panelMain.EbuildFile.GetValue()[:-7]
+        p = self.panelMain.GetPackage()
         if os.path.exists('%s/portage/%s/.unpacked' % (portage_tmpdir, p)):
             return 1
 
     def OnMnuUnpack(self, event):
         if self.editing:
-            self.write("Unpacking %s " % self.filename)
-            self.ExecuteInLog("sudo /usr/sbin/ebuild %s unpack" % self.filename)
+            if self.SaveEbuild():
+                self.write("Unpacking %s " % self.filename)
+                self.ExecuteInLog("sudo /usr/sbin/ebuild %s unpack" % self.filename)
 
     def OnMnuViewSetuppy(self, event):
         """Show setuppy file in editor window"""
@@ -992,35 +1066,6 @@ class MyLog(wxPyLog):
                       ": " + message
         if self.tc:
             self.tc.AppendText(message + '\n')
-
-'''
-class MyThread(threading.Thread):
-    """ test of popen in thread to keep gui perky"""
-    # Need better control of processes before we implement this.
-    # User needs to be able to kill process with a button on toolbar
-    def run(self):
-        self.lines = []
-        self.inp = os.popen('%s 2>&1' % self.cmd)
-        l = self.inp.readline()
-        self.AddLine(l)
-        while l:
-            time.sleep(1)
-            l = self.inp.readline()
-            self.AddLine(l)
-
-    def AddLine(l):
-        self.lines.append(l)
-
-    def GetLines(self):
-        l = self.lines
-        self.lines = []
-        return l
-
-    def SetCmd(self, parent, cmd):
-        self.cmd = cmd
-        self.parent = parent
-        self.inp = None
-'''
 
 class MyApp(wxPySimpleApp):
 
