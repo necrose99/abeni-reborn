@@ -1045,10 +1045,9 @@ class MyFrame(wxFrame):
         if not self.VerifySaved():
             bookmarks = os.path.expanduser('~/.abeni/recent.txt')
             f = open(bookmarks, 'w')
-            for ebuild in self.recentList:
-                if ebuild != '\n':
-                    l = string.strip(ebuild)
-                    f.write(l + '\n')
+            n = self.filehistory.GetNoHistoryFiles()
+            for e in range(n):
+                f.write(self.filehistory.GetHistoryFile(e) + '\n')
             f.close()
             print "Abeni exited safely."
             self.Destroy()
@@ -1437,7 +1436,7 @@ class MyFrame(wxFrame):
         menubar = wxMenuBar()
         menubar.Append(menu_file, "&File")
         EVT_MENU_RANGE(self, wxID_FILE1, wxID_FILE9, self.OnFileHistory)
-        self.filehistory = wxFileHistory()
+        self.filehistory = wxFileHistory(12)
         self.filehistory.UseMenu(self.menu)
         # Variable
         menu_variable = wxMenu()
