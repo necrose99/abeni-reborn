@@ -90,9 +90,51 @@ def myCVS(parent):
 
     parent.AddNewVar("ECVS_SERVER", "")
     parent.AddNewVar("ECVS_MODULE", "")
-    parent.AddNewVar("ECVS_PASS", "")
-    parent.AddNewVar("ECVS_USER", "")
+    parent.AddNewVar("ECVS_TOD_DIR", "$DIST/")
     parent.panelMain.S.SetValue("${WORKDIR}/${PN/-cvs/}")
     parent.AddCommand("inherit cvs")
+    parent.AddFunc("src_compile", (src_compile))
+    parent.AddFunc("src_install", (src_install))
+
+def myCVSGames(parent):
+    """Add CVS-related variables, inherit games etc."""
+
+    src_unpack = """src_unpack() {
+\t#If you don't have aditional files to unpack in SRC_URI
+\t#you can delete this function
+\tunpack ${A}
+\tcvs_src_unpack
+\tcd ${S}
+}"""
+
+    src_compile = """src_compile() {
+\texport WANT_AUTOCONF_2_5=1
+\tif [ -x ./autogen.sh ] ; then
+\t\t/bin/bash ./autogen.sh
+\t\t\t--prefix=${GAMES_PREFIX}
+\t\t\t--host=${CHOST}
+\t\t\t--mandir=/usr/share/man
+\t\t\t--infodir=/usr/share/info
+\t\t\t--datadir=${GAMES_DATADIR}
+\t\t\t--sysconfdir=${GAMES_SYSCONFDIR}
+\t\t\t--localstatedir=${GAMES_STATEDIR}
+\t\t\t"$@" || die "autogen.sh failed"
+\telse
+\t\tdie "no autogen.sh script found"
+\tfi
+\temake || die 'parallel make failed'
+}"""
+
+    src_install = """src_install() {
+\teinstall || die
+\tprepgamesdirs
+}"""
+    parent.AddCommand("inherit cvs games")
+    parent.AddNewVar("ECVS_SERVER", "")
+    parent.AddNewVar("ECVS_MODULE", "")
+    parent.AddNewVar("ECVS_USER", "")
+    parent.AddNewVar("ECVS_PASS", "")
+    parent.panelMain.S.SetValue("${WORKDIR}/${PN/-cvs/}")
+    parent.AddFunc("src_unpack", (src_unpack))
     parent.AddFunc("src_compile", (src_compile))
     parent.AddFunc("src_install", (src_install))
