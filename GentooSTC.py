@@ -1,4 +1,3 @@
-import string
 
 import wx
 
@@ -38,7 +37,8 @@ class GentooSTC(wx.stc.StyledTextCtrl):
         self.SetUseTabs(1)
         self.SetBufferedDraw(False)
 
-        self.SetEdgeMode(wx.stc.STC_EDGE_BACKGROUND)
+        #self.SetEdgeMode(wx.stc.STC_EDGE_BACKGROUND)
+        self.SetEdgeMode(wx.stc.STC_EDGE_LINE)
         self.SetEdgeColumn(80)
 
         self.SetMarginWidth(2, 12)
@@ -54,7 +54,7 @@ class GentooSTC(wx.stc.StyledTextCtrl):
         except:
             my_face = "Courier"
             my_size = "12"
-        my_size = string.atoi(my_size)
+        my_size = int(my_size)
         faces = { 'mono' : my_face,
             'size' : my_size,
             'size2': 10,

@@ -9,7 +9,6 @@ gui.py
 
 import os
 import urlparse
-import string
 import shutil
 import sys
 import tempfile
@@ -19,7 +18,7 @@ import urlparse
 import wx
 import wx.stc
 from wx.lib.dialogs import MultipleChoiceDialog, ScrolledMessageDialog
-from portage import config, settings, pkgsplit
+from portage import config, settings
 
 import __version__ 
 import utils
@@ -43,7 +42,7 @@ import abeniCVS
 import enamer
 
 
-__revision__ = "$Id: MyFrame.py,v 1.1 2005/01/08 03:10:00 robc Exp $"
+__revision__ = "$Id: MyFrame.py,v 1.2 2005/01/10 18:15:22 robc Exp $"
 
 env = config(clone=settings).environ()
 PORTDIR_OVERLAY = env['PORTDIR_OVERLAY'].split(" ")[0]
@@ -430,25 +429,44 @@ class MyFrame(wx.Frame):
     def __my_layout(self):
         """Local changes to __do_layout()"""
         if os.getuid() == 0:
-            utils.my_message(self, "You no longer need run Abeni as root.\nSetup your regular user to use sudo.\nSee http://abeni.sf.net/ if you need\nhelp setting up sudo.",\
-                           "You must NOT be root.", "error")
+            utils.my_message(self,
+                             "You no longer need run Abeni as root.\n" + \
+                             "Setup your regular user to use sudo.\n" + \
+                             "See http://abeni.sf.net/ if you need\n" + \
+                             "help setting up sudo.",
+                             "You must NOT be root.",
+                             "error"
+                             )
             sys.exit(1)
         if commands.getoutput("sudo whoami").find("root") == -1:
-            utils.my_message(self, "You do not appear to have sudo\nsetup correctly for Abeni.\nSee http://abeni.sf.net/ if you need\nhelp setting up sudo.",\
-                           "sudo test failed", "error")
+            utils.my_message(self, "You do not appear to have sudo\n" + \
+                             "setup correctly for Abeni.\n" + \
+                             "See http://abeni.sf.net/ if you need\n" + \
+                             "help setting up sudo.",
+                             "sudo test failed",
+                             "error"
+                             )
             sys.exit(1)
 
         wx.EVT_BUTTON(self, self.button_bugzilla.GetId(), self.OnLaunchBugz) 
-        wx.EVT_BUTTON(self, self.button_env_refresh.GetId(), self.OnViewEnvironment)
+        wx.EVT_BUTTON(self, self.button_env_refresh.GetId(),
+                      self.OnViewEnvironment)
         wx.EVT_BUTTON(self, self.button_Category.GetId(), self.OnCatButton)
         #FILESDIR browser
-        wx.EVT_BUTTON(self, self.button_filesdir_download.GetId(), self.OnFilesdirDownload)
-        wx.EVT_BUTTON(self, self.button_filesdir_new.GetId(), self.OnFilesdirNew)
-        wx.EVT_BUTTON(self, self.button_filesdir_rename.GetId(), self.OnFilesdirRename)
-        wx.EVT_BUTTON(self, self.button_filesdir_delete.GetId(), self.OnFilesdirDelete)
-        wx.EVT_BUTTON(self, self.button_filesdir_view.GetId(), self.OnFilesdirView)
-        wx.EVT_BUTTON(self, self.button_filesdir_edit.GetId(), self.OnFilesdirEdit)
-        wx.EVT_BUTTON(self, self.button_filesdir_refresh.GetId(), self.OnFilesdirRefresh)
+        wx.EVT_BUTTON(self, self.button_filesdir_download.GetId(),
+                      self.OnFilesdirDownload)
+        wx.EVT_BUTTON(self, self.button_filesdir_new.GetId(),
+                      self.OnFilesdirNew)
+        wx.EVT_BUTTON(self, self.button_filesdir_rename.GetId(),
+                      self.OnFilesdirRename)
+        wx.EVT_BUTTON(self, self.button_filesdir_delete.GetId(),
+                      self.OnFilesdirDelete)
+        wx.EVT_BUTTON(self, self.button_filesdir_view.GetId(),
+                      self.OnFilesdirView)
+        wx.EVT_BUTTON(self, self.button_filesdir_edit.GetId(),
+                      self.OnFilesdirEdit)
+        wx.EVT_BUTTON(self, self.button_filesdir_refresh.GetId(),
+                      self.OnFilesdirRefresh)
         #${S} browser:
         wx.EVT_BUTTON(self, self.button_s_refresh.GetId(), self.OnSRefresh)
         wx.EVT_BUTTON(self, self.button_s_view.GetId(), self.OnSView)
@@ -566,8 +584,8 @@ class MyFrame(wx.Frame):
         self.editing = 0
 
         #Load recently accessed ebuilds
-        abeniDir = os.path.expanduser('~/.abeni')
-        bookmarks = '%s/recent.txt' % abeniDir
+        abeni_dir = os.path.expanduser('~/.abeni')
+        bookmarks = '%s/recent.txt' % abeni_dir
         if os.path.exists(bookmarks):
             self.recentList = open(bookmarks, 'r').readlines()
         else:
@@ -583,7 +601,7 @@ class MyFrame(wx.Frame):
         #set to 1 to also send to stdout, not just log window
         self.stdout = 0
         #brief mode for viewing environment:
-        self.envView=0
+        self.env_view = 0
         # Get options from ~/.abeni/abenirc file
         utils.get_options(self)
         if self.pref['logfile'] == 1:
@@ -602,15 +620,17 @@ class MyFrame(wx.Frame):
         # Action performed during external commands
         self.action = None
         self.STCeditor.Hide()
-        
-        points = self.text_ctrl_log.GetFont().GetPointSize()  # get the current size
+        # get the current size
+        points = self.text_ctrl_log.GetFont().GetPointSize()
         f = wx.Font(points, wx.MODERN, wx.NORMAL, True)
-        self.text_ctrl_log.SetDefaultStyle(wx.TextAttr("BLACK", wx.NullColour, f))
+        self.text_ctrl_log.SetDefaultStyle(wx.TextAttr("BLACK",
+                                                       wx.NullColour, f)
+                                           )
         wx.Log_SetActiveTarget(MyLog(self.text_ctrl_log))
         self.Write("))) PORTDIR_OVERLAY=%s\n\n\n" % PORTDIR_OVERLAY)
         if not self.pref['editor']:
-            self.Write("!!! Please set your external editor under the Options menu")
-            self.Write(" *  If you use gvim you will need to use '/usr/bin/gvim -f'")
+            self.Write("!!! Set your external editor under the Options menu")
+            self.Write(" *  For gvim, use '/usr/bin/gvim -f'")
         #wx.EVT_MENU_RANGE(self, wx.ID_FILE1, wx.ID_FILE9, self.OnFileHistory)
 
         self.SetTitle("Abeni - The ebuild Builder " + __version__.version)
@@ -634,12 +654,16 @@ class MyFrame(wx.Frame):
 
         #Restore frame and splitters to last size/positions:
         if self.pref.has_key('splitterPosition'):
-            self.splitter.SetSashPosition(string.atoi(self.pref['splitterPosition']), True)
+            self.splitter.SetSashPosition(int(self.pref['splitterPosition']),
+                                          True
+                                          )
         if self.pref.has_key('splitter2Position'):
-            self.splitter_2.SetSashPosition(string.atoi(self.pref['splitter2Position']), True)
+            self.splitter_2.SetSashPosition(int(self.pref['splitter2Position']),
+                                            True
+                                            )
         if self.pref.has_key('frameSize'):
             x, y = self.pref['frameSize'].split(" ")
-            self.SetSize((string.atoi(x), string.atoi(y)))
+            self.SetSize((int(x), int(y)))
 
     def Write(self, txt):
         """Send text to log window"""
@@ -651,7 +675,7 @@ class MyFrame(wx.Frame):
         """Send text to log window after colorizing"""
         #TODO: No idea why this is output at the end of every ExecuteInLog:
         #TODO: Log file to disk code can go here 
-        #if string.find(text, "md5 src_uri") == 4:
+        #if text.find("md5 src_uri") == 4:
         #    if self.action != 'unpack':
         #        return
 
@@ -700,36 +724,41 @@ class MyFrame(wx.Frame):
         """Set color of text sent to log window"""
         self.text_ctrl_log.SetDefaultStyle(wx.TextAttr(wx.NamedColour(color)))
 
-    def ExecuteInLog(self, cmd, logMsg=''):
-        """Run a program asynchronously and send stdout & stderr to the log window"""
+    def ExecuteInLog(self, cmd, log_msg=''):
+        """Run program asynchronously sending stdout & stderr to log window"""
         # If you want to do something after async job finishes, set 
         # self.action = "foo" See: utils.py PostAction
         if self.running:
             msg = ("Please wait till this finishes:\n %s" % self.running)
-            title = 'Abeni: Error - Wait till external program is finished.'
+            title = "Abeni: Error - Wait till external program is finished."
             utils.my_message(self, msg, title, "error")
             return
-        if logMsg:
-            self.Write(logMsg)
+        if log_msg:
+            self.Write(log_msg)
         self.running = cmd
         self.toolbar.EnableTool(TB_STOP_ID, True)
         self.process = wx.Process(self)
         self.process.Redirect();
-        modulePath = "/usr/lib/python%s/site-packages/abeni" % sys.version[0:3]
-        pyCmd = "python -u %s/doCmd.py %s" % (modulePath, cmd)
-        self.pid = wx.Execute(pyCmd, wx.EXEC_ASYNC, self.process)
+        module_path = "/usr/lib/python%s/site-packages/abeni" % sys.version[0:3]
+        py_cmd = "python -u %s/doCmd.py %s" % (module_path, cmd)
+        self.pid = wx.Execute(py_cmd, wx.EXEC_ASYNC, self.process)
+        #Start timer to keep GUI updated:
         ID_Timer = wx.NewId()
         self.timer = wx.Timer(self, ID_Timer)
-        wx.EVT_TIMER(self,  ID_Timer, self.OnTimer)
+        wx.EVT_TIMER(self,  ID_Timer, self.HandleIdle)
         self.timer.Start(100)
 
     def EnableToolbar(self, state):
         """Disable icons not applicable when ebuild not saved"""
-        ids = [TB_SAVE_ID,TB_EDIT_ID, TB_FUNC_ID, TB_CLEAN_ID, TB_DIGEST_ID, TB_UNPACK_ID, TB_COMPILE_ID, TB_INSTALL_ID, TB_QMERGE_ID,TB_EBUILD_ID, TB_EMERGE_ID,TB_XTERM_ID]
-        for id in ids:
-            self.toolbar.EnableTool(id, state)
+        ids = [TB_SAVE_ID, TB_EDIT_ID, TB_FUNC_ID, TB_CLEAN_ID, TB_DIGEST_ID,
+               TB_UNPACK_ID, TB_COMPILE_ID, TB_INSTALL_ID, TB_QMERGE_ID,
+               TB_EBUILD_ID, TB_EMERGE_ID, TB_XTERM_ID
+               ]
+        for my_id in ids:
+            self.toolbar.EnableTool(my_id, state)
 
     def EnableSaveToolbar(self, state):
+        """Enable save ebuild icon on toolbar"""
         self.toolbar.EnableTool(TB_SAVE_ID, state)
 
     def OnNoauto(self, event):
@@ -750,11 +779,15 @@ class MyFrame(wx.Frame):
         if not self.editing:
             return
         c = os.listdir('%s/licenses' % PORTDIR)
-        def strp(s): return s.strip()
+        def strp(s):
+            return s.strip()
         c = map(strp, c)
         c = filter(None, c)
         c.sort()
-        dlg = MultipleChoiceDialog(self, 'Choose one or more:\n(This replaces any existing)', 'License', c)
+        dlg = MultipleChoiceDialog(self,
+                                   "Choose one or more:\n" + \
+                                   "(This replaces any existing)",
+                                   "License", c)
         if dlg.ShowModal() == wx.ID_OK:
             opt = dlg.GetValueString()
             l = ""
@@ -810,7 +843,7 @@ class MyFrame(wx.Frame):
 
     def OnEnvRadioBox(self, event):
         """set either full or brief mode for enviornment tab"""
-        self.envView = event.GetInt()
+        self.env_view = event.GetInt()
 
     def OnMnuNewFunction(self, event):
         """Dialog to add new function"""
@@ -820,6 +853,7 @@ class MyFrame(wx.Frame):
         dlg.CenterOnScreen()
         v = dlg.ShowModal()
         if v == wx.ID_OK:
+            #TODO: func var not used?
             func, val = dlg.GetFunc()
             self.STCeditor.AddText(val)
         #self.STCeditor.SetCursor(wx.stc.STC_CURSORNORMAL)
@@ -977,7 +1011,8 @@ class MyFrame(wx.Frame):
     def OnCatButton(self, event):
         """Choose ebuild category"""
         c = open('%s/profiles/categories' % PORTDIR).readlines()
-        def strp(s): return s.strip()
+        def strp(s):
+            return s.strip()
         c = map(strp, c)
         c = filter(None, c)
         if os.path.exists("/etc/portage/categories"):
@@ -993,14 +1028,8 @@ class MyFrame(wx.Frame):
             #Mark all games stable: Bugzilla #25708
             self.text_ctrl_Category.SetValue(opt)
             #TODO: games can be marked stable
-            #if opt == 'app-games':
-                #self.Keywords.SetValue(self.Keywords.GetValue().replace('~', ''))
 
-    def OnTimer(self, evt):
-        """Call idle handler every second to update log window"""
-        self.HandleIdle()
-
-    def HandleIdle(self):
+    def HandleIdle(self, event):
         """Keep GUI fresh while executing async commands"""
         if self.process is not None:
             stream = self.process.GetInputStream()
@@ -1015,8 +1044,8 @@ class MyFrame(wx.Frame):
     def OnFileHistory(self, event):
         """Load ebuild on FileHistory event"""
         # get the file based on the menu ID
-        fileNum = event.GetId() - wx.ID_FILE1
-        path = self.filehistory.GetHistoryFile(fileNum)
+        file_num = event.GetId() - wx.ID_FILE1
+        path = self.filehistory.GetHistoryFile(file_num)
         if not utils.verify_saved(self):
             utils.reset(self)
             utils.load_ebuild(self, path)
@@ -1038,7 +1067,8 @@ class MyFrame(wx.Frame):
 
     def OnMnuHelpRef(self, event):
         """Display html help file"""
-        utils.launch_browser(self, "http://abeni.sf.net/docs/ebuild-quick-reference.html")
+        utils.launch_browser(self,
+                        "http://abeni.sf.net/docs/ebuild-quick-reference.html")
 
     def OnLaunchBugz(self, event):
         """Launch browser to bugzilla nbr in Notes tab"""
@@ -1063,8 +1093,11 @@ class MyFrame(wx.Frame):
             utils.my_message(self, msg, "Error", "error")
             return
 
-        dlg = wx.MessageDialog(self, 'DELETE this ebuild from PORTDIR_OVERLAY?\n' + self.filename,
-                'DELETE ebuild?', wx.YES_NO | wx.ICON_INFORMATION)
+        dlg = wx.MessageDialog(self,
+                               "DELETE this ebuild from PORTDIR_OVERLAY?\n"+ \
+                               self.filename,
+                               "DELETE ebuild?",
+                               wx.YES_NO | wx.ICON_INFORMATION)
         val = dlg.ShowModal()
         if val == wx.ID_YES:
             utils.delete_ebuild(self)
@@ -1089,7 +1122,8 @@ class MyFrame(wx.Frame):
                                     '^%s' % target,
                                     wx.stc.STC_FIND_REGEXP
                                     )
-        e = self.STCeditor.GetLineEndPosition(self.STCeditor.LineFromPosition(s))
+        e = self.STCeditor.GetLineEndPosition( \
+                                        self.STCeditor.LineFromPosition(s))
         if s != -1:
             self.STCeditor.SetTargetStart(s)
             self.STCeditor.SetTargetEnd(e)
@@ -1097,12 +1131,12 @@ class MyFrame(wx.Frame):
         else:
             return -1
 
-    def OnMnuNew(self,event):
+    def OnMnuNew(self, event):
         """Creates a new ebuild from scratch"""
         if not utils.verify_saved(self):
-            win = GetURIDialog(self, -1, "Enter Package URI", \
-                               size=wx.Size(350, 200), \
-                               style = wx.DEFAULT_DIALOG_STYLE \
+            win = GetURIDialog(self, -1, "Enter Package URI",
+                               size = wx.Size(350, 200),
+                               style = wx.DEFAULT_DIALOG_STYLE 
                                )
             win.CenterOnScreen()
             val = win.ShowModal()
@@ -1117,7 +1151,8 @@ class MyFrame(wx.Frame):
                     homepage = "http://sourceforge.net/projects/%s" % \
                                tst_uri[2].split("/")[2]
                 else:
-                    self.Write("))) Couldn't convert URI to mirror://sourceforge/ format.")
+                    self.Write("))) Couldn't convert URI to " + \
+                               "mirror://sourceforge/ format.")
             utils.reset(self) 
             if val == wx.ID_OK and uri:
                 if enamer.is_good_filename(uri):
@@ -1132,7 +1167,8 @@ class MyFrame(wx.Frame):
                 self.text_ctrl_PVR.SetValue(pv)
                 self.Write('))) Pkg URI="%s"' % uri)
                 self.Write('))) I will try to determine ${S} when you unpack.')
-                self.STCeditor.SetText(open("/usr/share/abeni/templates/%s" % template, 'r').read())
+                self.STCeditor.SetText(open("/usr/share/abeni/templates/%s" % \
+                                       template, 'r').read())
 
                 if homepage:
                     self.FindReplace('HOMEPAGE', 'HOMEPAGE="%s"' % homepage)
@@ -1164,13 +1200,14 @@ class MyFrame(wx.Frame):
         #Save size of window:
         self.pref['splitterPosition'] = self.splitter.GetSashPosition()
         self.pref['splitter2Position'] = self.splitter_2.GetSashPosition()
-        self.pref['frameSize'] = "%s %s" % (self.GetSize()[0], self.GetSize()[1])
+        self.pref['frameSize'] = "%s %s" % (self.GetSize()[0],
+                                            self.GetSize()[1])
         f = open(os.path.expanduser('~/.abeni/abenirc'), 'w')
         for v in self.pref.keys():
             f.write('%s = %s\n' % (v, self.pref[v]))
         f.close()
 
-    def OnMnuExit(self,event):
+    def OnMnuExit(self, event):
         """Exit application sanely"""
         self.OnClose(-1)
 
@@ -1211,33 +1248,32 @@ class MyFrame(wx.Frame):
 
         if not utils.verify_saved(self):
             self.action = "digest"
-            logMsg = '))) Creating digest...'
+            log_msg = '))) Creating digest...'
             cmd = 'sudo /usr/sbin/ebuild %s digest' % self.filename
-            self.ExecuteInLog(cmd, logMsg)
+            self.ExecuteInLog(cmd, log_msg)
 
     def OnToolbarCompile(self, event):
         """ebuild <this ebuild> compile"""
         if self.editing:
             if not utils.is_overlay(self.filename):
-                utils.my_message(self, "You need to save the ebuild first.", "error")
+                utils.my_message(self, "You need to save the ebuild first.",
+                                 "error")
                 return 0
             if not utils.verify_saved(self):
                 self.action = "compile"
-                logMsg = '))) Compiling...'
+                log_msg = '))) Compiling...'
                 cmd = '''xterm -e "sudo sh -c 'export %s;export USE='%s';sudo ebuild %s compile 2>&1| tee /var/tmp/abeni/emerge_log'"''' \
                          % (self.noauto, self.pref['use'], self.filename)
-                self.ExecuteInLog(cmd, logMsg)
+                self.ExecuteInLog(cmd, log_msg)
 
     def OnMnuClean(self, event):
         """Run 'ebuild filename clean' on this ebuild"""
         if not self.editing:
             return
-        logMsg = '))) Cleaning...'
+        log_msg = '))) Cleaning...'
         self.action = "clean"
-        #cmd = 'FEATURES="%s" USE="%s" sudo /usr/sbin/ebuild %s clean' % \
-        #      (self.pref['features'], self.pref['use'], self.filename)
         cmd = 'sudo /usr/sbin/ebuild %s clean' % self.filename
-        self.ExecuteInLog(cmd, logMsg)
+        self.ExecuteInLog(cmd, log_msg)
 
     def OnToolbarEdit(self, event):
         """Edit ebuild in editor buffer in external editor"""
@@ -1247,12 +1283,11 @@ class MyFrame(wx.Frame):
         """ebuild <this ebuild> unpack"""
         if self.editing:
             if not utils.is_overlay(self.filename):
-                utils.my_message(self, "You need to save the ebuild first.", "error")
+                utils.my_message(self, "You need to save the ebuild first.",
+                                 "error")
                 return 0
             if not utils.verify_saved(self):
                 self.action = 'unpack'
-                #cmd = 'FEATURES="%s" USE="%s" sudo /usr/sbin/ebuild %s unpack' % \
-                #    (self.pref['features'], self.pref['use'], self.filename)
                 cmd = 'sudo /usr/sbin/ebuild %s unpack' % self.filename
                 self.ExecuteInLog(cmd, "))) Unpacking..." )
 
@@ -1260,46 +1295,47 @@ class MyFrame(wx.Frame):
         """ebuild <this ebuild> Install"""
         if self.editing:
             if not utils.is_overlay(self.filename):
-                utils.my_message(self, "You need to save the ebuild first.", "error")
+                utils.my_message(self, "You need to save the ebuild first.",
+                                 "error")
                 return 0
 
             if not utils.verify_saved(self):
                 self.action = 'install'
-                logMsg = '))) Installing...'
-                #cmd = 'FEATURES="%s" USE="%s" sudo /usr/sbin/ebuild %s install' % \
-                #    (self.pref['features'], self.pref['use'], self.filename)
-                #cmd = 'sudo /usr/sbin/ebuild %s install' % self.filename
+                log_msg = '))) Installing...'
                 cmd = '''xterm -e "sudo sh -c 'export %s;export USE='%s';sudo ebuild %s install 2>&1|tee /var/tmp/abeni/emerge_log'"''' \
-                         % (self.noauto, self.pref['use'], self.filename)
+                      % (self.noauto, self.pref['use'], self.filename)
 
 
-                self.ExecuteInLog(cmd, logMsg)
+                self.ExecuteInLog(cmd, log_msg)
 
     def OnToolbarQmerge(self, event):
         """ebuild <this ebuild> qmerge"""
         if self.editing:
             if not utils.is_overlay(self.filename):
-                utils.my_message(self, "You need to save the ebuild first.", "error")
+                utils.my_message(self, "You need to save the ebuild first.",
+                                 "error")
                 return 0
 
             if not utils.verify_saved(self):
                 self.action = 'qmerge'
-                logMsg = '))) Qmerging...'
+                log_msg = '))) Qmerging...'
                 cmd = '''xterm -e "sudo sh -c 'export %s;export USE='%s';sudo ebuild %s qmerge 2>&1|tee /var/tmp/abeni/emerge_log'"''' \
-                         % (self.noauto, self.pref['use'], self.filename)
+                      % (self.noauto, self.pref['use'], self.filename)
                 self.Write(cmd)
-                self.ExecuteInLog(cmd, logMsg)
+                self.ExecuteInLog(cmd, log_msg)
 
     def OnMnuImportPatch(self, event):
         """Import an existing patch"""
         if not self.editing:
             return
         if not utils.is_overlay(self.filename):
-            utils.my_message(self, "You need to save the ebuild first.", "error")
+            utils.my_message(self, "You need to save the ebuild first.",
+                             "error")
             return 0
 
         f = utils.get_files_dir(self)
-        dlg = wx.FileDialog(self, "Choose a file", "/var/tmp/abeni/", "", "*", wx.OPEN)
+        dlg = wx.FileDialog(self, "Choose a file", "/var/tmp/abeni/", "", 
+                            "*", wx.OPEN)
 
         if dlg.ShowModal() == wx.ID_OK:
             orig = dlg.GetPaths()
@@ -1318,7 +1354,8 @@ class MyFrame(wx.Frame):
         if not self.editing:
             return
         if not utils.is_overlay(self.filename):
-            utils.my_message(self, "You need to save the ebuild first.", "error")
+            utils.my_message(self, "You need to save the ebuild first.",
+                             "error")
             return 0
 
         if not utils.is_unpacked(self):
@@ -1330,10 +1367,9 @@ class MyFrame(wx.Frame):
 
     def CreatePatch(self, orig=[]):
         """Creates patch from given file or selected from dialog"""
-        #TODO: Make function for this:
         if not self.pref['editor']:
-            utils.my_message(self, "No editor defined in perferences", \
-              "Error: no editor defined", "error")
+            utils.my_message(self, "No editor defined in perferences", 
+                             "Error: no editor defined", "error")
             return
 
         if not orig:
@@ -1351,8 +1387,6 @@ class MyFrame(wx.Frame):
         os.system("sudo chmod 775 %s" % fdir)
         tmpdir = tempfile.mkdtemp(suffix='', prefix='tmp', dir=None)
         tmp_patch = os.path.join(tmpdir, "tmp_patch")
-        #if not os.path.exists(tmpdir):
-        #    os.system("mkdir %s" % tmpdir)
         base = os.path.basename(orig[0])
         shutil.copy(orig[0], tmpdir)
         out = os.path.join(tmpdir, base)
@@ -1375,25 +1409,28 @@ class MyFrame(wx.Frame):
             pass
 
         #insert inheirt eutils:
-        p = self.STCeditor.FindText(0, self.LastPos(), "^inherit", wx.stc.STC_FIND_REGEXP)
+        p = self.STCeditor.FindText(0, self.LastPos(), "^inherit",
+                                    wx.stc.STC_FIND_REGEXP)
         if p != -1:
             #already have inherit line, check if has eutils 
-            pe = self.STCeditor.FindText(p, p+80, "eutils", wx.stc.STC_FIND_REGEXP)
+            pe = self.STCeditor.FindText(p, p+80, "eutils", 
+                                         wx.stc.STC_FIND_REGEXP)
             if pe == -1:
                 #already have eutils inheritted
                 self.STCeditor.InsertText(p + 8, "eutils ")
-                self.Write("))) Added 'eutils' to inherit in order to use epatch")
+                self.Write("))) Added 'inherit eutils' so you can use epatch.")
         else:
             #find first blank line
             b = self.STCeditor.GetLineEndPosition(2)
             self.STCeditor.InsertText(b+1, "\ninherit eutils\n")
             self.Write("))) Added 'inherit eutils' in order to use epatch")
-        epatch = "epatch ${FILESDIR}/%s || die 'epatch failed on %s'" % (pname, pname)
+        epatch = "epatch ${FILESDIR}/%s || die 'epatch failed on %s'" % \
+                  (pname, pname)
 
         self.SrcUnpackEpatch(epatch)
 
     def SrcUnpackEpatch(self, epatch):        
-        #insert src_unpack with epatch    
+        """Insert src_unpack() with epatch code"""
         
         p = self.STCeditor.FindText(0, self.LastPos(), "src_unpack")
         if p == -1:
@@ -1406,7 +1443,8 @@ class MyFrame(wx.Frame):
             #TODO: use regex
             #TODO: Make function to return first and last pos of given function
             p = self.STCeditor.FindText(0, self.LastPos(), "src_unpack")
-            lp = self.STCeditor.FindText(p, self.LastPos(), "^}", wx.stc.STC_FIND_REGEXP)
+            lp = self.STCeditor.FindText(p, self.LastPos(), "^}", 
+                                         wx.stc.STC_FIND_REGEXP)
             if lp != -1:
                 self.STCeditor.InsertText(lp, "\n\t%s\n" % epatch)
                 self.Write("))) Inserted 'epatch' line in src_unpack()")
@@ -1417,9 +1455,11 @@ class MyFrame(wx.Frame):
     
     def FindVar(self, var):
         """Searches STCeditor for variable name, returns value"""
-        p = self.STCeditor.FindText(0, self.LastPos(), "^%s" % var, wx.stc.STC_FIND_REGEXP)
+        p = self.STCeditor.FindText(0, self.LastPos(), "^%s" % var,
+                                    wx.stc.STC_FIND_REGEXP)
         if p != -1:
-            pend = self.STCeditor.FindText(p, self.LastPos(), "$", wx.stc.STC_FIND_REGEXP)
+            pend = self.STCeditor.FindText(p, self.LastPos(), "$",
+                                           wx.stc.STC_FIND_REGEXP)
             t = self.STCeditor.GetTextRange(p, pend).lstrip().rstrip()
             t = t.split("=")[1]
             t = t.replace('"', '')
@@ -1427,16 +1467,27 @@ class MyFrame(wx.Frame):
             return t.rstrip().lstrip()
 
     def OnMnuRepomanScan(self, event):
-        """repoman scan"""
+        """Run repoman --pretend scan on this ebuild"""
         if not self.editing:
             return
-    
-        if '@gentoo.org' in  self.pref['email']:
-            cvs = CVS(self)
-            cvs.RepomanScan("scan")
-        else:
-            #utils.NotGentooDev()
-            cvs.RepomanScan("--pretend scan")
+        log_msg = "))) repoman --pretend scan\n" + \
+                 "))) Ignore warnings about ChangeLog and metadata.xml " + \
+                 "because we're in the overlay dir"
+        cmd = 'cd %s;/usr/bin/repoman --pretend scan' % \
+               utils.get_ebuild_dir(self)
+        self.ExecuteInLog(cmd, log_msg)
+
+    #def OnMnuRepomanScan(self, event):
+    #    """repoman scan"""
+    #    if not self.editing:
+    #        return
+    # 
+    #    if '@gentoo.org' in  self.pref['email']:
+    #        cvs = CVS(self)
+    #        cvs.RepomanScan("scan")
+    #    else:
+    #        #utils.NotGentooDev()
+    #        cvs.RepomanScan("--pretend scan")
 
     def OnMnuFullCommit(self, event):
         """Complete CVS repoman commit with scan, echangelog etc
@@ -1447,14 +1498,14 @@ class MyFrame(wx.Frame):
 
                 4) If not new package:
                      cvs update (package directory)
-                     show output in log window, if anything wrong such as ebuild
-                     existing, abort
+                     show output in log window, if anything wrong such as 
+                     ebuild existing, abort
 
                 5)  Copy ebuild from PORTDIR_OVERLAY to CVS_DIR
 
                 6)  cvs add ebuild
 
-                7)  Prompt user to copy any files from FILES_DIR to CVS_DIR/FILES
+                7)  Prompt user to copy files from FILES_DIR to CVS_DIR/FILES
 
                 8)  cvs add anything new in CVS_DIR/FILES
 
@@ -1462,8 +1513,8 @@ class MyFrame(wx.Frame):
 
                 10) echangelog dialog
 
-                11) Show dialog with metadata.xml in case they need to change it
-                    or create it
+                11) Show dialog with metadata.xml in case they need to change
+                    it or create it
 
                 12) If new package:
                       cvs add metadta.xml
@@ -1566,9 +1617,11 @@ class MyFrame(wx.Frame):
                 dlg = ScrolledMessageDialog(self, c, "metadata.xml")
                 dlg.Show(True)
             else:
-                utils.my_message(self, "No metadata.xml exists in PORTDIR", "Error", "error")
+                utils.my_message(self, "No metadata.xml exists in PORTDIR",
+                                 "Error", "error")
         else:
-            utils.my_message(self, "No metadata.xml exists in PORTDIR", "Error", "error")
+            utils.my_message(self, "No metadata.xml exists in PORTDIR",
+                             "Error", "error")
  
     def OnMnuViewChangeLog(self, event):
         """View ChangeLog in dialog window"""
@@ -1583,9 +1636,11 @@ class MyFrame(wx.Frame):
                 dlg = ScrolledMessageDialog(self, c, "ChangeLog")
                 dlg.ShowModal()
             else:
-                utils.my_message(self, "No ChangeLog exists in PORTDIR", "Error", "error")
+                utils.my_message(self, "No ChangeLog exists in PORTDIR",
+                                 "Error", "error")
         else:
-            utils.my_message(self, "No ChangeLog exists in PORTDIR", "Error", "error")
+            utils.my_message(self, "No ChangeLog exists in PORTDIR",
+                             "Error", "error")
              
     def OnMnuLoadFromOverlay(self, event):
         """Load an ebuild from list of overlay ebuilds only"""
@@ -1596,8 +1651,10 @@ class MyFrame(wx.Frame):
             out = []
             for l in choices:
                 out.append(l.replace(('%s/' % PORTDIR_OVERLAY), ''))
-            dlg = wx.SingleChoiceDialog(self, 'Load overlay ebuild:', \
-                                      'Load overlay ebuild', out, wx.OK|wx.CANCEL)
+            dlg = wx.SingleChoiceDialog(self, 'Load overlay ebuild:',
+                                        'Load overlay ebuild', out, 
+                                        wx.OK|wx.CANCEL
+                                       )
             if dlg.ShowModal() == wx.ID_OK:
                 e = dlg.GetStringSelection()
                 utils.reset(self)
@@ -1609,8 +1666,10 @@ class MyFrame(wx.Frame):
 
     def OnMnuPrivHelp(self, event):
         """View private portage fnunctions"""
-        win = PortageFuncsDialog.MyDialog(self, -1, "Portage Private Functions",
-                                  style = wx.DEFAULT_DIALOG_STYLE)
+        win = PortageFuncsDialog.MyDialog(self, -1,
+                                          "Portage Private Functions",
+                                          style = wx.DEFAULT_DIALOG_STYLE
+                                         )
         win.CenterOnScreen()
         win.ShowModal()
 
@@ -1620,11 +1679,12 @@ class MyFrame(wx.Frame):
         c = os.listdir(d)
         c.sort()
         dlg = wx.SingleChoiceDialog(self, 'View an Eclass', 'Eclass',
-                                   c, wx.OK|wx.CANCEL)
+                                    c, wx.OK|wx.CANCEL
+                                    )
         if dlg.ShowModal() == wx.ID_OK:
             opt = dlg.GetStringSelection()
-            file = "%s/%s" % (d, opt)
-            msg = open(file, "r").read()
+            my_file = "%s/%s" % (d, opt)
+            msg = open(my_file, "r").read()
             dlg.Destroy()
             dlg = ScrolledMessageDialog(self, msg, opt)
             dlg.Show(True)
@@ -1644,15 +1704,19 @@ class MyFrame(wx.Frame):
         this_ebuild = utils.get_filename(self)
 
         if not os.path.exists(orig_ebuild):
-            utils.my_message(self, "No matching ebuild in PORTDIR found.", "Error", "error")
+            utils.my_message(self, "No matching ebuild in PORTDIR found.",
+                             "Error", "error"
+                            )
             return
 
         if orig_ebuild == this_ebuild:
-            utils.my_message(self, "Can't diff. This is the PORTDIR version!", "Error", "error")
+            utils.my_message(self, "Can't diff. This is the PORTDIR version!",
+                             "Error", "error")
             return
 
         if not os.path.exists(this_ebuild):
-            utils.my_message(self, "Can't diff. Save this ebuild first.", "Error", "error")
+            utils.my_message(self, "Can't diff. Save this ebuild first.",
+                             "Error", "error")
             return
 
         app = self.pref['diff']
@@ -1671,7 +1735,10 @@ class MyFrame(wx.Frame):
         fdir = "%s/files" % fdir_overlay
 
         if not os.path.exists(fdir):
-            dlg = wx.MessageDialog(self, "${FILESDIR} does not exist.\n\nNo digest yet?", "Error", wx.OK)
+            dlg = wx.MessageDialog(self,
+                  "${FILESDIR} does not exist.\n\nNo digest yet?",
+                  "Error", wx.OK
+                  )
             dlg.ShowModal()
             dlg.Destroy()
             return
@@ -1684,9 +1751,9 @@ class MyFrame(wx.Frame):
 
     def OnMnuPref(self, event):
         """Modify preferences"""
-        win = PrefsDialog.MyDialog(self, -1, "Preferences", \
-                                  size=wx.Size(350, 200), \
-                                  style = wx.DEFAULT_DIALOG_STYLE \
+        win = PrefsDialog.MyDialog(self, -1, "Preferences",
+                                   size=wx.Size(350, 200),
+                                   style = wx.DEFAULT_DIALOG_STYLE
                                   )
         win.CenterOnScreen()
         val = win.ShowModal()
@@ -1700,8 +1767,6 @@ class MyFrame(wx.Frame):
             self.pref['cvsRoot'] = win.text_ctrl_cvs_root.GetValue()
             self.pref['stripHeader'] = win.checkbox_strip_header.GetValue()
             self.pref['externalControl'] = win.checkbox_external_control.GetValue()
-            #print "int", int(win.checkbox_strip_header.GetValue())
-            #print "raw", win.checkbox_strip_header.GetValue()
             self.pref['clearLog'] = win.checkbox_clear_log_window.GetValue()
             self.pref['checkSyntax'] = win.checkbox_check_syntax.GetValue()
             self.pref['logfile'] = win.checkbox_logfile.GetValue()
@@ -1712,7 +1777,6 @@ class MyFrame(wx.Frame):
             self.pref['show_whitespace'] = win.checkbox_whitespace.GetValue()
             self.pref['tabsize'] = win.text_ctrl_1.GetValue()
             self.pref['db'] = win.radio_box_database.GetSelection()
-            #self.pref['frameSize'] = "%s %s" % (self.GetSize()[0], self.GetSize()[1])
             f = open(os.path.expanduser('~/.abeni/abenirc'), 'w')
 
             for v in self.pref.keys():
@@ -1731,18 +1795,18 @@ class MyFrame(wx.Frame):
             utils.load_db_record(self)
         face, size = self.pref['font'].split(",")
         self.STCeditor.SetMyStyle() 
-        self.STCeditor.StyleSetFontAttr(0, string.atoi(size), face, 0, 0, 0)
+        self.STCeditor.StyleSetFontAttr(0, int(size), face, 0, 0, 0)
         ##comments: 1
-        self.STCeditor.StyleSetFontAttr(1, string.atoi(size), face, 0, 0, 0)
-        self.STCeditor.StyleSetFontAttr(2, string.atoi(size), face, 0, 0, 0)
-        self.STCeditor.StyleSetFontAttr(3, string.atoi(size), face, 0, 0, 0)
-        self.STCeditor.StyleSetFontAttr(4, string.atoi(size), face, 0, 0, 0)
-        self.STCeditor.StyleSetFontAttr(5, string.atoi(size), face, 0, 0, 0)
-        self.STCeditor.StyleSetFontAttr(6, string.atoi(size), face, 0, 0, 0)
-        self.STCeditor.StyleSetFontAttr(7, string.atoi(size), face, 0, 0, 0)
-        self.STCeditor.StyleSetFontAttr(8, string.atoi(size), face, 0, 0, 0)
-        self.STCeditor.StyleSetFontAttr(9, string.atoi(size), face, 0, 0, 0)
-        self.STCeditor.StyleSetFontAttr(10, string.atoi(size), face, 0, 0, 0)
+        self.STCeditor.StyleSetFontAttr(1, int(size), face, 0, 0, 0)
+        self.STCeditor.StyleSetFontAttr(2, int(size), face, 0, 0, 0)
+        self.STCeditor.StyleSetFontAttr(3, int(size), face, 0, 0, 0)
+        self.STCeditor.StyleSetFontAttr(4, int(size), face, 0, 0, 0)
+        self.STCeditor.StyleSetFontAttr(5, int(size), face, 0, 0, 0)
+        self.STCeditor.StyleSetFontAttr(6, int(size), face, 0, 0, 0)
+        self.STCeditor.StyleSetFontAttr(7, int(size), face, 0, 0, 0)
+        self.STCeditor.StyleSetFontAttr(8, int(size), face, 0, 0, 0)
+        self.STCeditor.StyleSetFontAttr(9, int(size), face, 0, 0, 0)
+        self.STCeditor.StyleSetFontAttr(10, int(size), face, 0, 0, 0)
         if self.pref['logfile'] == 1:
             self.logfile = open(self.pref['logFilename'], 'a')
         else:
@@ -1776,7 +1840,7 @@ class MyFrame(wx.Frame):
         mq = pyipc.MessageQueue(100)
         data = mq.receive()
         if data:
-            cmd, file = data.split("*")
+            cmd, my_file = data.split("*")
             self.Write("))) External command:'%s'" % cmd)
             if cmd[4:] == "digest":
                 self.OnMnuCreateDigest(-1)
@@ -1837,16 +1901,15 @@ class MyFrame(wx.Frame):
         """Kill processes when stop button clicked"""
         #os.system("sudo kill %s" % self.pid)
         #self.Write("Killed %s" % self.pid)
-        try:
-            #pid = open("/var/run/abeni_proc.pid", "r").read().strip()
-            #os.system("sudo kill %s" % pid)
-            #self.Write("sub pid %s killed" % pid)
-            self.Write("If you're running a command in an xterm, press Ctrl-C in that xterm." % pid)
-        except:
-            pass
+        #pid = open("/var/run/abeni_proc.pid", "r").read().strip()
+        #os.system("sudo kill %s" % pid)
+        #self.Write("sub pid %s killed" % pid)
+        self.Write("If you're running a command in an xterm, " + \
+                   "press Ctrl-C in that xterm.")
         event.Skip()
 
     def OnProcessEnded(self, evt):
+        """Clean up after async command finishes"""
         #self.Write('OnProcessEnded, pid:%s,  exitCode: %s\n' %
         #               (evt.GetPid(), evt.GetExitCode()))
         self.timer.Stop()
@@ -1871,7 +1934,8 @@ class MyFrame(wx.Frame):
 
         cvs_dir = self.pref['cvsRoot']
         if not os.path.exists(cvs_dir):
-            msg = "Path doesn't exist: %s\n\nSet your CVS root in Dev Prefs." % cvs_dir
+            msg = "Path doesn't exist: %s\n\nSet your CVS root in Dev Prefs." \
+                  % cvs_dir
             utils.my_message(self, msg, "Error", "error")
             return
         cat = utils.get_category_name(self)
@@ -1891,8 +1955,9 @@ class MyFrame(wx.Frame):
                 except:
                     pass
             else:
-                utils.my_message(self, "Set xterm in preferences", \
-                  "Error - no xterm", "error")
+                utils.my_message(self, "Set xterm in preferences",
+                                 "Error - no xterm", "error"
+                                )
 
 
     def OnXtermInD(self, event):
@@ -1919,8 +1984,9 @@ class MyFrame(wx.Frame):
                 except:
                     pass
             else:
-                utils.my_message(self, "Set xterm in preferences", \
-                  "Error - no xterm", "error")
+                utils.my_message(self, "Set xterm in preferences",
+                                 "Error - no xterm", "error"
+                                )
             os.chdir(c)
 
 
@@ -1948,9 +2014,9 @@ class MyFrame(wx.Frame):
                     pass
             xterm = self.pref['xterm']
             if xterm:
-                #If using konsole, open a new instance if root isn't running one
+                #If using konsole open new instance if root isn't running one
                 #If root is running one, open new tab (session) in it
-                if string.find(xterm, 'konsole') != -1:
+                if xterm.find('konsole') != -1:
                     cmd = 'dcop |grep konsole'
                     err, out = utils.run_ext_cmd(cmd)
                     inst = 0
@@ -1958,7 +2024,10 @@ class MyFrame(wx.Frame):
                         for l in out:
                             inst = l
                         if inst:
-                            os.system('%s %s konsole newSession 2>&1 &' % (dcop, inst))
+                            #TODO: Hmmm dcop?
+                            os.system('%s %s konsole newSession 2>&1 &' % \
+                                      (dcop, inst)
+                                      )
                             os.chdir(c)
                         else:
                             os.system('%s 2>&1 &' % xterm)
@@ -1973,29 +2042,30 @@ class MyFrame(wx.Frame):
                     except:
                         print "Abeni error: Couldn't launch xterm"
             else:
-                utils.my_message(self, "Set xterm in preferences", \
-                  "Error - no xterm", "error")
+                utils.my_message(self, "Set xterm in preferences",
+                                 "Error - no xterm", "error"
+                                 )
 
     def EditFile(self, f):
         """edit filename in external editor"""
         if not self.pref['editor']:
-            utils.my_message(self, "No editor defined in perferences", \
-                            "Error: no editor defined", "error")
+            utils.my_message(self, "No editor defined in perferences",
+                             "Error: no editor defined", "error"
+                             )
             return
-        #TOOD: Copy this to file, chown to regular user then edit
-        # so we don't have to run editor as root.
         os.system('%s %s &' % (self.pref['editor'], f))
 
     def OnMnuEdit(self, event=None, save=1, filename=''):
         """Launch external editor then reload ebuild after editor exits"""
         if self.editing:
             if not utils.cmd_exists(self.pref['editor']):
-                utils.my_message(self, "You need to define an editor in preferences.", \
-                  "Error", "error")
+                utils.my_message(self,
+                                "You need to define an editor in preferences.",
+                                "Error", "error"
+                                )
                 return
             if save:
                 if utils.save_ebuild(self):
-                    #utils.Reset(self)
                     if not filename:
                         f = self.filename
                     else:
@@ -2003,39 +2073,34 @@ class MyFrame(wx.Frame):
                     os.system('%s %s' % (self.pref['editor'], f))
                     utils.load_ebuild(self, f)
 
-    def OnMnuRepomanScan(self, event):
-        """Run repoman --pretend scan on this ebuild"""
-        if not self.editing:
-            return
-        logMsg = "))) repoman --pretend scan\n))) Ignore warnings about ChangeLog and metadata.xml because we're in the overlay dir"
-        cmd = 'cd %s;/usr/bin/repoman --pretend scan' % self.ebuild_dir
-        self.ExecuteInLog(cmd, logMsg)
-
     def OnMnuRepomanFull(self, event):
         """Run repoman --pretend full on this ebuild"""
         if not self.editing:
             return
-        logMsg = "))) repoman --pretend full\n))) Ignore warnings about metadata.xml because we're in the overlay dir"
-        cmd = 'cd %s;/usr/bin/repoman --pretend full' % self.ebuild_dir
-        self.ExecuteInLog(cmd, logMsg)
+        log_msg = "))) repoman --pretend full\n"+ \
+                 "))) Ignore warnings about metadata.xml "+ \
+                 "because we're in the overlay dir"
+        cmd = 'cd %s;/usr/bin/repoman --pretend full' % \
+               utils.get_ebuild_dir(self)
+        self.ExecuteInLog(cmd, log_msg)
 
     def OnMnuEmerge(self, event):
         """Run 'emerge <options> <this ebuild>' """
         if not self.editing:
             return
         if not utils.verify_saved(self):
-            win = EmergeDialog.EmergeDialog(self, -1, "Enter emerge options", \
-                                size=wx.Size(350, 350), \
-                                style = wx.DEFAULT_DIALOG_STYLE \
-                                )
+            win = EmergeDialog.EmergeDialog(self, -1, "Enter emerge options",
+                                            size = wx.Size(350, 350),
+                                            style = wx.DEFAULT_DIALOG_STYLE 
+                                            )
             win.CenterOnScreen()
             val = win.ShowModal()
             if val == wx.ID_OK:
                 self.action = "emerge"
                 cmd = '''xterm -e "sudo sh -c 'export USE='%s';%s | tee /var/tmp/abeni/emerge_log'"''' \
                          % (win.use.GetValue(), win.emerge.GetValue())
-                logMsg = "))) %s" % cmd
-                self.ExecuteInLog(cmd, logMsg)
+                log_msg = "))) %s" % cmd
+                self.ExecuteInLog(cmd, log_msg)
 
     def OnMnuEbuild(self, event):
         """Run 'ebuild <file> <cmd>' """
@@ -2044,10 +2109,11 @@ class MyFrame(wx.Frame):
         c = ['setup', 'depend', 'merge', 'qmerge', 'unpack',
              'compile', 'rpm', 'package', 'prerm', 'postrm',
              'preinst', 'postinst', 'config', 'touch', 'clean',
-             'fetch', 'digest', 'install', 'unmerge']
+             'fetch', 'digest', 'install', 'unmerge'
+            ]
         c.sort()
         dlg = wx.SingleChoiceDialog(self, 'Command:', 'ebuild command',
-                                   c, wx.OK|wx.CANCEL)
+                                    c, wx.OK|wx.CANCEL)
         if dlg.ShowModal() == wx.ID_OK:
             opt = dlg.GetStringSelection()
             dlg.Destroy()
@@ -2059,11 +2125,15 @@ class MyFrame(wx.Frame):
             if opt == 'setup':
                 self.action = 'setup'
             cmd = 'USE="%s" FEATURES="%s" sudo /usr/sbin/ebuild %s %s' % \
-              (self.pref['use'], self.pref['features'], self.filename, opt)
-            logMsg = "))) Executing:\n"
-            logMsg += ")))   USE='%s' FEATURES='%s'\n" % (self.pref['use'], self.pref['features'])
-            logMsg += ")))   sudo ebuild %s %s" % (self.filename, opt)
-            self.ExecuteInLog(cmd, logMsg)
+                    (self.pref['use'], self.pref['features'],
+                     self.filename, opt
+                    )
+            log_msg = "))) Executing:\n"
+            log_msg += ")))   USE='%s' FEATURES='%s'\n" % (self.pref['use'],
+                                                          self.pref['features']
+                                                         )
+            log_msg += ")))   sudo ebuild %s %s" % (self.filename, opt)
+            self.ExecuteInLog(cmd, log_msg)
 
 
 # end of class MyFrame

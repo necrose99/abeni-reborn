@@ -33,7 +33,7 @@ class MyURILink(wx.html.HtmlWindow):
         else:
             text = '''<html>
                 <body bgcolor="#dddaec">
-                Homepage: (Not set)
+                Homepage: 
                 </body>
                 </html>'''
         self.SetPage(text)

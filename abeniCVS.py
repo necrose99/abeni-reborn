@@ -3,7 +3,6 @@ import os
 import popen2
 import shutil
 import utils
-import string
 
 from wxPython.wx import *
 from wxPython.lib.dialogs import wxMultipleChoiceDialog
@@ -352,8 +351,8 @@ class CVS:
 
     def StripColor(self, text):
         for c in codes:
-            if string.find(text, codes[c]) != -1:
-                text = string.replace(text, codes[c], '')
+            if text.find(codes[c]) != -1:
+                text = text.replace(codes[c], '')
         return text 
 
     def Echangelog(self, msg):

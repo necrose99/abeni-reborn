@@ -5,9 +5,8 @@ and sets some sane values on first run.
 
 """
 
-
 import os
-import string
+
 
 class Options:
 
@@ -43,9 +42,9 @@ class Options:
         f = open(fname)
         l = f.readline()
         while l:
-            if string.find(l, '=') != -1:
-                var = string.split(l, '=')[0].strip()
-                val = string.split(l, '=')[1].strip()
+            if l.find('=') != -1:
+                var = l.split("=")[0].strip()
+                val = l.split("=")[1].strip()
                 if val == '1' or val == 'True':
                     val = 1
                 if val == '0' or val == 'False':

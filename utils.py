@@ -9,7 +9,6 @@ __revision__ = "$"
 
 
 import os
-import string
 import sys
 import re
 import popen2
@@ -17,7 +16,7 @@ import commands
 
 import wx
 from wx.lib.dialogs import MultipleChoiceDialog
-from portage import config, portdb, db, settings
+from portage import config, settings
 sys.path.insert(0, "/usr/lib/gentoolkit/pym")
 import gentoolkit
 
@@ -48,65 +47,10 @@ def get_arch():
     """Returns first arch listed in ACCEPT_KEYWORDS in /etc/make.conf"""
     return arch
 
-def search(search_key):
-    matches = []
-    for package in portdb.cp_all():
-        package_parts = package.split("/")
-        if re.search(search_key.lower(), package_parts[1].lower()):
-            matches.append(package)
-    return matches
-
-def versions(query):
-    tup = smart_pkgsplit(query)
-    if tup[0] and tup[1]:
-        matches = [ tup[0] + "/" + tup[1] ]
-    elif tup[1]:
-        matches = search(tup[1])
-    curver = ""
-    for package in matches:
-        curver = db["/"]["vartree"].dep_bestmatch(package)
-        return curver
-
-def smart_pkgsplit(query):
-    cat = ''
-    pkg = ''
-    ver = ''
-    rev = ''
-
-    if len(query.split('/')) == 2:
-        cat = query.split('/')[0]
-        query = query.split('/')[1]
-
-    components = query.split('-')
-    name_components = []
-    ver_components = []
-
-    # seperate pkg-ver-rev
-    for c in components:
-        if ver_components:
-            ver_components.append(c)
-        elif ord(c[0]) > 47 and ord(c[0]) < 58:
-            ver_components.append(c)
-        else:
-            name_components.append(c)
-    pkg = '-'.join(name_components)
-
-    # check if there is a revision number
-    if len(ver_components) > 0 and ver_components[-1][0] == 'r':
-        rev = ver_components[-1]
-        ver_components = ver_components[:-1]
-
-    # check for version number
-    if len(ver_components) > 0:
-        ver = '-'.join(ver_components)
-
-    return [cat, pkg, ver, rev]
-
-
 def launch_browser(parent, url):
     """launch web browser"""
     if not cmd_exists(parent.pref['browser']):
-        my_message(self, "You need to define a browser in preferences.", \
+        my_message(parent, "You need to define a browser in preferences.", \
                    "Error", "error")
         return
     cmd = parent.pref['browser'] + " " + url
@@ -116,8 +60,8 @@ def my_message(parent, msg, title, icon_type="info", cancel=0):
     """Simple informational dialog"""
     if icon_type == "info":
         icon = wx.ICON_INFORMATION
-    elif type == "error":
-        icon_type = wx.ICON_ERROR
+    elif icon_type == "error":
+        icon = wx.ICON_ERROR
     if cancel:
         dlg = wx.MessageDialog(parent, msg, title, wx.OK | wx.CANCEL | icon)
     else:
@@ -210,14 +154,23 @@ def export_ebuild(parent):
         #ebuild_content = parent.ebuildfile.editorCtrl.GetText()
         ebuild_content = parent.STCeditor.GetText()
         for f in auxfilelist:
-            if re.search(f+"[^a-zA-Z0-9\-\.\?\*]", ebuild_content):
-                filelist.append(fdir +"/"+f)
+            if re.search(f + "[^a-zA-Z0-9\-\.\?\*]", ebuild_content):
+                filelist.append(fdir + "/" + f)
                 parent.Write("auto adding file: " + f)
                 auxfilelist.remove(f)
         if len(auxfilelist) > 0:
-            msg = "Select the files you want to include in the tarball.\n(don't worry about the digest,\nit will be included automatically)"
-            fileselectdlg = MultipleChoiceDialog(parent, msg, "Auxiliary file selection",
-                                                   auxfilelist, size=(300,min([500,150+len(auxfilelist)*20])))
+            msg = "Select the files you want to include in the " + \
+                  "tarball.\n(don't worry about the digest,\nit " + \
+                  "will be included automatically)"
+            fileselectdlg = MultipleChoiceDialog(parent,
+                                                 msg,
+                                                 "Auxiliary file selection",
+                                                 auxfilelist,
+                                                 size=(300, min([500,
+                                                                 150 + len(auxfilelist)*20]
+                                                               )
+                                                       )
+                                                  )
             if fileselectdlg.ShowModal() == wx.ID_OK:
                 auxfilelist = [fdir +"/"+f for f in list(fileselectdlg.GetValueString())]
             else:
@@ -243,7 +196,7 @@ def export_ebuild(parent):
         else:
             taroptions = "-cvf"
 
-        parent.ExecuteInLog("tar "+taroptions+" "+tarballname+" -C "+get_category_path(parent)+" "+reduce(lambda a,b: a+" "+b, filelist))
+        parent.ExecuteInLog("tar " + taroptions + " " + tarballname + " -C " + get_category_path(parent) + " " + reduce(lambda a, b: a + " " + b, filelist))
 
         # FUTURE: once we have python-2.3 we can use the following:
         #os.chdir(parent.GetCategoryPath())
@@ -256,7 +209,7 @@ def export_ebuild(parent):
     else:
         return 0
 
-def do_sodo(cmd):
+def do_sudo(cmd):
     """Execute command with sudo"""
     status, output = sudo.cmd(cmd)
     return status, output
@@ -265,8 +218,8 @@ def post_install(parent):
     """Change group perms of files in ${D} so we can read them"""
     p = get_p(parent)
     d = '%s/portage/%s/image' % (PORTAGE_TMPDIR, p)
-    do_sodo("chmod +g+r -R %s" %  d)
-    do_sodo("chmod +g+xr %s" %  d)
+    do_sudo("chmod +g+r -R %s" %  d)
+    do_sudo("chmod +g+xr %s" %  d)
 
 def get_status(parent):
     """Let us know if ebuild has been unpacked, comiled and installed"""
@@ -295,13 +248,12 @@ def fix_unpacked(parent):
     p = get_p(parent)
     d = '%s/portage/%s/work' % (PORTAGE_TMPDIR, p)
     d1 = '%s/portage/%s' % (PORTAGE_TMPDIR, p)
-    do_sodo("chmod +g+xrw -R %s" % d1)
+    do_sudo("chmod +g+xrw -R %s" % d1)
 
 def post_unpack(parent):
     """Report what directories were unpacked, try to set S if necessary"""
     p = get_p(parent)
     d = '%s/portage/%s/work' % (PORTAGE_TMPDIR, p)
-    d1 = '%s/portage/%s' % (PORTAGE_TMPDIR, p)
     fix_unpacked(parent)
     try:
         lines = os.listdir(d)
@@ -402,12 +354,12 @@ def delete_ebuild(parent):
     val = dlg.ShowModal()
     if val == wx.ID_YES:
         try:
-            do_sodo("rm -r %s" % d)
+            do_sudo("rm -r %s" % d)
             #See if category is empty, if not delete it
             pd = os.path.abspath("%s/.." % d)
             if not os.listdir(pd):
                 try:
-                    do_sodo("rmdir %s" % pd)
+                    do_sudo("rmdir %s" % pd)
                 except:
                     msg = "Couldn't delete empty category directory %s" % pd
                     my_message(parent, msg, "Error", "error")
@@ -461,13 +413,6 @@ def get_category_path(parent):
     """Return path to category of ebuild"""
     return os.path.join (PORTDIR_OVERLAY, get_category_name(parent))
 
-def get_portdir_path_version(parent):
-    cat_dir = os.path.join (PORTDIR, get_category_name(parent))
-    try:
-        return os.path.join(cat_dir, get_pn(parent))
-    except:
-        return None
-
 def get_pn(parent):
     """Return PN from form"""
     return parent.text_ctrl_PN.GetValue()
@@ -502,74 +447,6 @@ def check_entries(parent):
     if not pvr:
         msg = "You need to set $PVR (Package Version)"
         return msg
-
-def load_by_package(parent, query):
-    """Offer list of ebuilds when given a package or filename on command line"""
-
-    #TODO: This was all snarfed from an old version of etcat, which was split
-    #      off into gentoolkit.py
-    matches = gentoolkit.find_packages(query, masked=True)
-    matches = gentoolkit.sort_package_list(matches)
-    #if len(matches) > 1:
-    #    print "More than one package matches that name. Use full category/packagename."
-        #for pkg in matches:
-        #    print pkg.get_category()+"/"+pkg.get_name()
-        #return
-    if len(matches):
-        cat = matches[0].get_category()
-        package = matches[0].get_name()
-        pkgs = []
-        
-        #print "* " + matches[0].get_category()+"/"+matches[0].get_name()+ " :"
-        for pkg in matches:
-                
-            state = []
-            overlay = ""
-                
-            # check if masked
-            if pkg.is_masked():
-                state.append("M")
-            else:
-                state.append(" ")
-
-            # check if in unstable
-            kwd = pkg.get_env_var("KEYWORDS")
-            if "~" + gentoolkit.settings["ARCH"] in kwd.split():
-                state.append("~")
-            else:
-                state.append(" ")
-                    
-            # check if installed
-            if pkg.is_installed():
-                state.append("I")
-            else:
-                state.append(" ")
-
-            # check if this is a OVERLAY ebuild
-            if pkg.is_overlay():
-                overlay = " OVERLAY"
-
-            ver = pkg.get_version()
-            slot = pkg.get_env_var("SLOT")
-            #print " "*8 + "[" + string.join(state,"") + "] " + ver + " (" + slot + ")" + overlay
-            pkgs.append (ver + " (" + slot + ")" + overlay)
-
- 
-        dlg = wx.SingleChoiceDialog(parent, cat + "/" + package, 'Ebuilds Available',
-                    pkgs, wx.OK|wx.CANCEL)
-        if dlg.ShowModal() == wx.ID_OK:
-            s = dlg.GetStringSelection().split(' ')
-            version = s[0] 
-            
-            if len(s) == 3:
-                fname = '%s/%s/%s/%s-%s.ebuild' % \
-                        (PORTDIR_OVERLAY, cat, package, package, version)
-            else:
-                fname = '%s/%s/%s/%s-%s.ebuild' % \
-                        (PORTDIR, cat, package, package, version)
-            load_ebuild(parent, fname)
-    else:
-        print "Package " + query + " not found. Use full category/package name."
 
 def get_d(parent):
     """return ${D} if it exists"""
@@ -628,7 +505,7 @@ def get_envs(parent):
             'PVR', 'RESTRICT', 'S', 'SRC_URI', 'T', 'WORKDIR']
     for l in lines:
         if "=" in l:
-            s = string.split(l, '=')
+            s = l.split('=')
             var = s[0]
             val = s[1]
             if var in env_vars:
@@ -646,29 +523,13 @@ def view_environment(parent):
     keys.sort()
     for k in keys:
         txt += '%s=%s\n' % (k, parent.env[k])
-    if parent.envView == 0:
+    if parent.env_view == 0:
         parent.text_ctrl_environment.SetValue(txt)
     else:
         p = get_p(parent)
         f = '%s/portage/%s/temp/environment' % (PORTAGE_TMPDIR, p)
         if os.path.exists(f):
             parent.text_ctrl_environment.SetValue(open(f, 'r').read())
-
-def add_inherit(parent, eclass):
-    """Add inherit"""
-    #TODO: grab code from CreatePatch and replace this function
-    misc = parent.panelMain.stext.GetValue().split("\n")
-    # inherit should always be the first misc statement
-    found = 0
-    for n in range(len(misc)):
-        if misc[n][:7] == "inherit":
-            found = 1
-            if string.find(misc[n], eclass) == -1:
-                misc[n] = "inherit %s%s" % (eclass, misc[n][7:])     
-                parent.panelMain.stext.SetValue(string.join(misc, "\n"))
-    if not found:
-        misc[len(misc)] = "inherit %s" % eclass
-        parent.panelMain.stext.SetValue(string.join(misc, "\n"))
 
 def run_ext_cmd(cmd):
     """Run program and return exit code, output in a list"""
@@ -687,7 +548,7 @@ def get_options(parent):
     """Global options from abenirc file"""
     parent.pref = options.Options().Prefs()
 
-def set_notes(parent, filename):
+def set_notes(parent):
     """Load notes, set uri handler in notes for ${HOMEPAGE}"""
     set_homepage(parent)
     if parent.db:
@@ -698,26 +559,30 @@ def set_homepage(parent):
     v = parent.FindVar("HOMEPAGE")
     parent.window_3.set_uri(v, v)
 
-def load_ebuild(parent, filename):
-    """Load ebuild from filename"""
-    filename = string.strip(filename)
-    if not os.path.exists(filename):
+def ebuild_exists(filename):
+    """Display dialog if filename doesn't exist, return 1 if exists"""
+    if os.path.exists(filename):
+        return 1
+    else:
         parent.Write("File not found: " + filename)
         dlg = wx.MessageDialog(parent, "The file " + filename + " does not exist",
                               "File not found", wx.OK | wx.ICON_ERROR)
         dlg.ShowModal()
         return
 
+def good_ebuild_name(filename):
+    """Display dialog if bad ebuild name"""
     if filename[-7:] != ".ebuild":
         msg = "This file does not end in .ebuild"
         dlg = wx.MessageDialog(parent, msg,
                 'File Error', wx.OK | wx.ICON_ERROR)
         dlg.ShowModal()
         return
+    else:
+        return 1
 
-    #Check if ebuild has syntax errors before loading.
-    #If there are errors ask if they want to edit it in external editor.
-    #Try to load again after exiting external editor.
+def validate_syntax(filename):
+    """Check if ebuild has syntax errors before loading."""
     cmd = "/bin/bash -n %s" % filename
     r, out = run_ext_cmd(cmd)
     if r:
@@ -728,13 +593,24 @@ def load_ebuild(parent, filename):
         dlg = wx.MessageDialog(parent, msg,
                 'Syntax Error', wx.OK | wx.ICON_ERROR)
         dlg.ShowModal()
+    else:
+        return 1
 
-    s = string.split(filename, "/")
+def load_ebuild(parent, filename):
+    """Load ebuild from filename"""
+    filename = filename.strip()
+    if not ebuild_exists(filename):
+        return
+    if not good_ebuild_name(filename):
+        return
+
+    if not validate_syntax(filename):
+        return
+    s = filename.split("/")
     # ebuild file, no path:
     parent.ebuild_file = s[len(s)-1]
-
     category = s[len(s)-3]
-    parent.ebuild_dir = string.replace(filename, parent.ebuild_file, '')
+    parent.ebuild_dir = filename.replace(parent.ebuild_file, '')
     p = parent.ebuild_file[:-7]
     my_ebuild = open(filename, 'r').read()
     parent.STCeditor.SetText(my_ebuild)
@@ -756,7 +632,7 @@ def load_ebuild(parent, filename):
     parent.ApplyPrefs()
     view_environment(parent)
     get_status(parent)
-    set_notes(parent, filename)
+    set_notes(parent)
     parent.filesDir.clearList()
     f = "%s/files/" % os.path.split(filename)[0]
     parent.filesDir.populate(f)
@@ -768,6 +644,9 @@ def load_ebuild(parent, filename):
             parent.sDir.clearList()
     else:
         parent.sDir.clearList()
+    enable_browser_olay(parent, filename)
+
+def enable_browser_olay(parent, filename):
     if is_overlay(filename):
         parent.button_filesdir_edit.Enable(True)
         parent.button_filesdir_new.Enable(True)
@@ -780,6 +659,7 @@ def load_ebuild(parent, filename):
         parent.button_filesdir_delete.Enable(False)
         parent.Write("))) Save ebuild to copy it to your overlay.")
     enable_browser_buttons(parent, olay = is_overlay(parent.filename))
+
 
 def enable_browser_buttons(parent, olay):
     """Enable all the file browser buttons"""
@@ -869,7 +749,7 @@ def create_dir(parent, path, verbose = 0):
                    icon_type="error", cancel=0)
         return -1
 
-def overwrite(parent, filename):
+def overwrite(parent):
     """If file exists and user wants to overwrite return 1"""
     dlg = wx.MessageDialog(parent, \
                            'File exists in overlay.\n' \
@@ -880,15 +760,12 @@ def overwrite(parent, filename):
     if val == wx.ID_YES:
         return 1
 
-def write_ebuild(parent, temp=0):
+def write_ebuild(parent):
     """Write ebuild file in PORTDIR_OVERLAY"""
-    #TODO: temp variable is unused
     new_ebuild = 0
-    cat_dir = get_category_path(parent)
     parent.ebuild_dir = get_ebuild_dir(parent)
     filename = make_ebuild_pathname(parent)
 
-    #print parent.filename
     if not is_overlay(parent.filename):
         new_ebuild = 1
         if not os.path.exists(filename):
@@ -897,7 +774,7 @@ def write_ebuild(parent, temp=0):
 
     if os.path.exists(filename):
         if new_ebuild:
-            if not overwrite(parent, filename):
+            if not overwrite(parent):
                 return
 
     set_filename(parent, filename)
@@ -913,11 +790,9 @@ def write_ebuild(parent, temp=0):
     parent.statusbar.SetStatusText("Saved", 0)
     if parent.db:
         db_write_record(parent)
-    #TODO: Add option in prefs to show this optionally:
     if new_ebuild:
         parent.Write("))) Saved %s" % filename)
         enable_browser_buttons(parent, olay=1)
-    #print os.path.join(parent.ebuild_dir, "files")
     filesdir = os.path.join(parent.ebuild_dir, "files")
     if not os.path.exists(filesdir):
         create_dir(parent, filesdir, verbose = 1)
@@ -942,12 +817,12 @@ def strip_whitespace(parent):
     return out
 
 def db_write_record(parent):
-    """Write Notes tab to db backend"""
+    """Write info in Notes tab to sql db"""
     my_notes = "%s" % parent.text_ctrl_notes.GetValue()
     my_bugz = "%s" % parent.text_ctrl_bugz.GetValue()
     if my_bugz:
         try:
-            my_bugz = string.atoi(my_bugz) 
+            my_bugz = int(my_bugz) 
         except:
             my_bugz = None
     my_cpvr = get_cpvr(parent)

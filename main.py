@@ -32,59 +32,67 @@ wxversion.select("2.5")
 import wx
 from portage import config, settings
 
-import gui
-import __version__
+from MyFrame import MyFrame
 
 
-try:
-    env = config(clone=settings).environ()
-except:
-    print "ERROR: Can't read portage configuration from /etc/make.conf"
-    sys.exit(1)
+def gentoo_sanity_check():
+    """Make sure we have a working portage system"""
+    try:
+        env = config(clone=settings).environ()
+    except:
+        print "ERROR: Can't read portage configuration from /etc/make.conf"
+        sys.exit(1)
 
-distdir = env['DISTDIR']
-portdir = env['PORTDIR']
+    distdir = env['DISTDIR']
+    portdir = env['PORTDIR']
 
-#Exit if they don't have PORTDIR_OVERLAY defined in /etc/make.conf
-# or if defined but directory doesn't exist.
-#TODO: Pop up a dialog instead (MyMessage)
-try:
-    #Users may specify multiple overlay directories, we use the first one:
-    portdir_overlay = env['PORTDIR_OVERLAY'].split(" ")[0]
-    if portdir_overlay[-1] == "/":
-        portdir_overlay = portdir_overlay[:-1]
-except:
-    print "ERROR: You must define PORTDIR_OVERLAY in your /etc/make.conf"
-    print "You can simply uncomment this line:"
-    print "#PORTDIR_OVERLAY='/usr/local/portage'"
-    print "Then: mkdir /usr/local/portage"
-    sys.exit(1)
-if not portdir_overlay:
-    print "ERROR: Create the directory PORTDIR_OVERLAY in /etc/make.conf"
-    sys.exit(1)
+    #Exit if they don't have PORTDIR_OVERLAY defined in /etc/make.conf
+    # or if defined but directory doesn't exist.
+    #TODO: Pop up a dialog instead with utils.my_message
+    try:
+        #Users may specify multiple overlay directories, we use the first one:
+        portdir_overlay = env['PORTDIR_OVERLAY'].split(" ")[0]
+        if portdir_overlay[-1] == "/":
+            portdir_overlay = portdir_overlay[:-1]
+    except:
+        print "ERROR: You must define PORTDIR_OVERLAY in your /etc/make.conf"
+        print "You can simply uncomment this line:"
+        print "#PORTDIR_OVERLAY='/usr/local/portage'"
+        print "Then: mkdir /usr/local/portage"
+        sys.exit(1)
+    if not portdir_overlay:
+        print "ERROR: Create the directory PORTDIR_OVERLAY in /etc/make.conf"
+        sys.exit(1)
 
-abeniDir = os.path.expanduser('~/.abeni')
-if not os.path.exists(abeniDir):
-    os.mkdir(abeniDir)
+def rc_setup():
+    """Copy skeleton rcfile into abeni dir if needed"""
+    abeniDir = os.path.expanduser('~/.abeni')
+    if not os.path.exists(abeniDir):
+        os.mkdir(abeniDir)
 
-rcfile = '%s/abenirc' % abeniDir
-if not os.path.exists(rcfile):
-    shutil.copy("/usr/share/abeni/abenirc", rcfile)
+    rcfile = '%s/abenirc' % abeniDir
+    if not os.path.exists(rcfile):
+        shutil.copy("/usr/share/abeni/abenirc", rcfile)
+
 
 class MyApp(wx.App):
 
     """ Main wxPython app class """
 
     def OnInit(self):
-        """Set up the main frame"""
+        """Display main frame"""
+        from __version__ import version
         # Enable gif, jpg, bmp, png handling for wxHtml and icons
         wx.InitAllImageHandlers()
-        self.frame=gui.MyFrame(None,-1, 'Abeni - The ebuild Builder ' + \
-                               __version__.version)
+        self.frame=MyFrame(None,-1, "Abeni - The ebuild Builder " + \
+                           version)
         self.frame.Show(True)
         self.SetTopWindow(self.frame)
         return True
 
 
-app=MyApp(0)
-app.MainLoop()
+if __name__ == "__main__":
+    gentoo_sanity_check()
+    rc_setup()
+    app=MyApp(0)
+    app.MainLoop()
