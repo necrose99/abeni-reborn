@@ -8,7 +8,7 @@ __version__ = '0.0.1'
 
 from wxPython.wx import *
 from wxPython.help import *
-import os, os.path, string, shutil, time, sys, pickle
+import os, os.path, string, shutil, time, sys, pickle, re
 import panels, options
 
 #Find directory Abeni was started from
@@ -58,8 +58,6 @@ class MyFrame(wxFrame):
         menu_file = wxMenu()
         mnuNewID=wxNewId()
         menu_file.Append(mnuNewID, "&New")
-        mnuNewFromID=wxNewId()
-        menu_file.Append(mnuNewFromID, "New &From Existing ebuild")
         mnuLoadID=wxNewId()
         menu_file.Append(mnuLoadID, "&Load ebuild")
         mnuSaveID=wxNewId()
@@ -95,7 +93,6 @@ class MyFrame(wxFrame):
         EVT_MENU(self, mnuSaveID, self.OnMnuSave)
         EVT_MENU(self, mnuLoadID, self.OnMnuLoad)
         EVT_MENU(self, mnuNewID, self.OnMnuNew)
-        EVT_MENU(self, mnuNewFromID, self.OnMnuNewFrom)
         EVT_MENU(self, mnuNewVariableID, self.OnMnuNewVariable)
         EVT_MENU(self, mnuNewFunctionID, self.OnMnuNewFunction)
         EVT_MENU(self, mnuPrefID, self.OnMnuPref)
@@ -149,6 +146,69 @@ class MyFrame(wxFrame):
         EVT_TOOL_ENTER(self, -1, self.OnToolZone)
         EVT_TIMER(self, -1, self.OnClearSB)
         self.timer = None
+
+    def OnMnuLoad(self, event):
+        """Load ebuild file"""
+        wildcard = "ebuild files (*.ebuild)|*.ebuild"
+        dlg = wxFileDialog(self, "Choose a file", "/usr/portage/", "", \
+                            wildcard, wxOPEN|wxMULTIPLE)
+        if dlg.ShowModal() == wxID_OK:
+            paths = dlg.GetPaths()
+            for path in paths:
+                print path
+            vars = {}
+            funcs = {}
+            commands = []
+            tempf = []
+            f = open(path, 'r')
+            while 1:
+                l = f.readline()
+                if not l:
+                    break
+                # Variables always start a line with all caps
+                varTest = re.search('^[A-Z]', l)
+                # Function like: mine() {
+                funcTest1 = re.search('^[a-z]*\(\) {', l)
+                # Function like: my_func() {
+                funcTest2 = re.search('^[a-z]*_[a-z]*\(\) {', l)
+                if varTest:
+                    s = string.split(l, "=")
+                    vars[s[0]] = s[1]
+                    continue
+                if funcTest1 or funcTest2:
+                    fname = string.replace(l, "{", "")
+                    tempf.append(l)
+                    while 1:
+                        l = f.readline()
+                        tempf.append(l)
+                        if l[0] == "}":
+                            funcs[fname] = tempf
+                            break
+                    continue
+                # Command like rm -rf /tmp/foo
+                if re.search('^[a-z]', l):
+                    commands.append(l)
+
+            print "VARIABLES:\n"
+            for key in vars.keys():
+                print key
+                print vars[key]
+            print "FUNCTIONS:\n"
+            for key in funcs.keys():
+                print key
+                print funcs[key]
+            f.close()
+            print "COMMANDS:\n"
+            print commands
+
+
+        dlg.Destroy()
+
+        #self.URI = myData['src_uri']
+        #self.AddPages()
+        #self.PopulateForms(myData)
+        #self.editing = 1
+
 
     def GetOptions(self):
         """Global options from apprc file"""
@@ -209,7 +269,7 @@ class MyFrame(wxFrame):
         """Display html help file"""
         pass
 
-    def OnMnuLoad(self, event):
+    def OnOLDMnuLoad(self, event):
         """Load raw data from pickled file"""
         wildcard = "Abeni files (*.abeni)|*.abeni"
         dlg = wxFileDialog(self, "Choose a file", "", "", wildcard, wxOPEN|wxMULTIPLE)
@@ -226,6 +286,7 @@ class MyFrame(wxFrame):
         self.AddPages()
         self.PopulateForms(myData)
         self.editing = 1
+
 
     def PopulateForms(self, myData):
         """Fill forms with saved data"""
