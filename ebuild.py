@@ -1,8 +1,10 @@
 import sys
+import string
+import re
+import os
 
 sys.path.insert(0, "/usr/lib/portage/pym")
-
-import portage, string, re, os
+import portage
 
 settings = portage.config().environ()
 portdir = settings['PORTDIR']
