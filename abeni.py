@@ -568,9 +568,9 @@ class MyFrame(wxFrame):
             if os.path.isdir("%s/%s" % (d, l)):
                 self.write(l)
                 dirs.append(l)
-        print len(dirs)
+        #print len(dirs)
         if len(dirs) == 1:
-            #We know we have S. Otherwise there were multiple files unpacked
+            #We know we have S. Otherwise there were multiple directories unpacked
             p = dirs[0]
             if p == self.GetP():
                 self.write("S=${WORKDIR}/${P}")
@@ -883,8 +883,8 @@ class MyFrame(wxFrame):
             # auto-add the digest
             filelist.append(self.env['FILESDIR']+"/digest-"+self.GetP())
             auxfilelist = [f for f in os.listdir(self.env['FILESDIR']) if f[:6] != "digest"]
-            
-            # add all filenames that are present in the ebuild and ask 
+
+            # add all filenames that are present in the ebuild and ask
             # the user about the others.
             # Hmm, the multi-choice dialog does not allow to pre-select anything
             # I'd like to select all files by default, but I guess that needs a custom dialog then.
@@ -896,16 +896,16 @@ class MyFrame(wxFrame):
                     auxfilelist.remove(f)
             if len(auxfilelist) > 0:
                 msg = "Select the files you want to include in the tarball.\n(don't worry about the digest,\nit will be included automatically)"
-                fileselectdlg = wxMultipleChoiceDialog(self, msg, "Auxiliary file selection", 
+                fileselectdlg = wxMultipleChoiceDialog(self, msg, "Auxiliary file selection",
                                                        auxfilelist, size=(300,min([500,150+len(auxfilelist)*20])))
                 if fileselectdlg.ShowModal() == wxID_OK:
                     auxfilelist = [self.env['FILESDIR']+"/"+f for f in list(fileselectdlg.GetValueString())]
                 else:
                     return 0
             filelist += auxfilelist
-            
+
             filelist = [f.replace(self.GetCategory()+"/", "") for f in filelist]
-            
+
             tarballname = self.GetP()+".tar.bz2"
             filemask = "BZipped tarball (*.tar.bz2)|*.tar.bz2|GZipped tarball (*.tar.gz)|*.tar.gz|Uncompressed tarball (*.tar)|*.tar|All files|*"
             filedlg = wxFileDialog(self, "Export ebuild to tarball", "", tarballname, filemask, wxSAVE|wxOVERWRITE_PROMPT)
@@ -915,7 +915,7 @@ class MyFrame(wxFrame):
             else:
                 filedlg.Destroy()
                 return 0
-            
+
             if tarballname[-8:] == ".tar.bz2":
                 taroptions = "-cvjf"
             elif tarballname[-7:] == ".tar.gz":
@@ -924,7 +924,7 @@ class MyFrame(wxFrame):
                 taroptions = "-cvf"
 
             self.ExecuteInLog("tar "+taroptions+" "+tarballname+" -C "+self.GetCategory()+" "+reduce(lambda a,b: a+" "+b, filelist))
-            
+
             # FUTURE: once we have python-2.3 we can use the following:
             #os.chdir(self.GetCategory())
             #tarball = tarfile.open(tarballname, "w:bz2")
@@ -1000,13 +1000,18 @@ class MyFrame(wxFrame):
                 self.panelMain.SetURI(self.URI)
                 self.panelMain.SetName(self.URI)
                 self.panelMain.SetPackageName()
-                n = self.panelMain.GetPackage()
-                if not pkgsplit(n):
+                n = pkgsplit(self.panelMain.GetPackage())
+                if n:
+                    p = ("%s-%s" % (n[0], n[1]))
+                    new_uri = self.URI.replace(p, "${P}")
+                    self.panelMain.URI.SetValue(new_uri)
+                else:
                     self.logColor("RED")
                     self.write("Warning: You need to set the Package Name and ebuild name properly.")
                     self.logColor("BLACK")
                     self.panelMain.Package.SetValue("")
                     self.panelMain.EbuildFile.SetValue("")
+                #This is in case we want to automatically set the SourceForge homepage:
                 #if self.URI.find('sourceforge') != -1:
                 #    self.panelMain.Homepage.SetValue('"http://sourceforge.net/projects/%s"' % \
                 #                                    self.panelMain.GetPackageName().lower())
@@ -1144,7 +1149,8 @@ class MyFrame(wxFrame):
     def OnMnuAbout(self,event):
         """Obligitory About me and my app screen"""
         msg = 'Abeni %s  is a Python and wxPython application\n' \
-              'by Rob Cakebread released under the GPL license.\n\n' % __version__
+              'by Rob Cakebread released under the GPL license.\n\n' \
+              'Contributors: Marius Mauch' % __version__
         title = 'About Abeni %s ' % __version__
         self.MyMessage(msg, title)
 
@@ -1417,7 +1423,7 @@ class MyFrame(wxFrame):
         menu_file.Append(mnuLoadID, "&Load ebuild")
         EVT_MENU(self, mnuLoadID, self.OnMnuLoad)
         mnuLoadOverlayID=wxNewId()
-        menu_file.Append(mnuLoadOverlayID, "&Load ebuild from overlay dir")
+        menu_file.Append(mnuLoadOverlayID, "Load ebuild from &overlay dir")
         EVT_MENU(self, mnuLoadOverlayID, self.OnMnuLoadFromOverlay)
         mnuSaveID=wxNewId()
         menu_file.Append(mnuSaveID, "&Save ebuild")
@@ -1592,7 +1598,7 @@ class MySplashScreen(wxSplashScreen):
         bmp = wxImage("/usr/share/pixmaps/abeni/abeni_logo50.png").ConvertToBitmap()
         wxSplashScreen.__init__(self, bmp,
                                 wxSPLASH_CENTRE_ON_SCREEN|wxSPLASH_TIMEOUT,
-                                2000, None, -1,
+                                500, None, -1,
                                 style = wxSIMPLE_BORDER|wxFRAME_NO_TASKBAR|wxSTAY_ON_TOP)
         EVT_CLOSE(self, self.OnClose)
 
