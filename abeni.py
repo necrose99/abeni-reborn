@@ -1,21 +1,28 @@
-#!/usr/bin/env python
+#!/usr/bin/python
 
 """Abeni - Gentoo Linux Ebuild Editor/Syntax Checker
 Released under the terms of the GNU Public License v2"""
 
 __author__ = 'Rob Cakebread'
 __email__ = 'robc@myrealbox.com'
-__version__ = '0.0.9'
+__version__ = '0.0.10'
 __changelog_ = 'http://abeni.sf.net/ChangeLog'
-
-print "Importing portage config, wxPython, Python and Abeni modules..."
 
 from portage import config, portdb, db, pkgsplit, catpkgsplit
 from wxPython.wx import *
 from wxPython.lib.dialogs import wxScrolledMessageDialog, wxMultipleChoiceDialog
-import os, string, sys, urlparse, time, re, shutil   #, tarfile
+import os
+import string
+import sys
+import urlparse
+import time
+import re
+import shutil
+#import tarfile (when Abeni depends on Python 2.3)
+
 #Abeni modules:
-import dialogs, panels
+import dialogs
+import panels
 from utils import *
 
 modulePath = "/usr/lib/python%s/site-packages/abeni" % sys.version[0:3]
@@ -34,7 +41,7 @@ portdir = env['PORTDIR']
 #TODO: Pop up a dialog instead (MyMessage)
 try:
     #Users may specify multiple overlay directories, we use the first one:
-    portdir_overlay = env['PORTDIR_OVERLAY'].split(":")[0]
+    portdir_overlay = env['PORTDIR_OVERLAY'].split(" ")[0]
     if portdir_overlay[-1] == "/":
         portdir_overlay = portdir_overlay[:-1]
 except:
@@ -75,7 +82,7 @@ class MyFrame(wxFrame):
     """ Main frame that holds the menu, toolbar and notebook """
 
     def __init__(self, parent, id, title):
-        wxFrame.__init__(self, parent, -1, title, size=wxSize(900,600))
+        wxFrame.__init__(self, parent, -1, title, size=wxSize(900,720))
         if os.getuid() != 0:
             self.MyMessage("You must be root, or running Abeni with 'sudo'.",\
                            "You must be root.", "error")
@@ -126,6 +133,8 @@ class MyFrame(wxFrame):
         self.running = None
         # Action performed during external commands
         self.action = None
+        # CVS ebuild?
+        self.CVS = None
         # Ordered list of notebook tabs
         self.tabs = []
         self.tabsInstance = []
@@ -154,6 +163,9 @@ class MyFrame(wxFrame):
         self.log = wxTextCtrl(self.splitter, -1,
                              style = wxTE_MULTILINE|wxTE_READONLY|wxHSCROLL|wxTE_RICH2)
         self.log.SetFont(wxFont(12, wxMODERN, wxNORMAL, wxNORMAL, faceName="Lucida Console"))
+        #self.log.SetBackgroundColour(wxBLACK)
+        #self.log.SetDefaultStyle(wxTextAttr(wxWHITE))
+        #self.log.SetDefaultStyle(wxTextAttr(wxNullColour, wxBLACK))
         wxLog_SetActiveTarget(MyLog(self.log))
         self.Show(True)
         self.splitter.SplitHorizontally(self.nb, self.log, 400)
@@ -396,7 +408,7 @@ class MyFrame(wxFrame):
 
     def write(self, txt):
         """Send text to log window"""
-        self.OnIdle()
+        #self.OnIdle()
         self.WriteText(txt)
 
     def GetP(self):
@@ -547,6 +559,7 @@ class MyFrame(wxFrame):
         else:
             dlg.Destroy()
             return
+
         if self.SaveEbuild():
             cmd = 'USE="%s" FEATURES="%s" /usr/sbin/ebuild %s %s' % (self.pref['use'], self.pref['features'], self.filename, opt)
             self.write('Executing:\n%s' % cmd)
@@ -1032,7 +1045,7 @@ class MyFrame(wxFrame):
                 else:
                     self.panelMain.Package.SetValue("")
                     self.panelMain.EbuildFile.SetValue("")
-                self.panelChangelog.Populate("%s/skel.ChangeLog" % portdir, portdir)
+                #self.panelChangelog.Populate("%s/skel.ChangeLog" % portdir, portdir)
                 if self.URI.find('sourceforge') != -1:
                     a = urlparse.urlparse(self.URI)
                     if a[2].find('sourceforge') != -1:
@@ -1073,7 +1086,6 @@ class MyFrame(wxFrame):
             for e in range(n):
                 f.write(self.filehistory.GetHistoryFile(e) + '\n')
             f.close()
-            print "Abeni exited safely."
             self.Destroy()
 
     def OnMnuExit(self,event):
@@ -1124,6 +1136,20 @@ class MyFrame(wxFrame):
         else:
             dlg.Destroy()
             return
+
+    def OnMnuDevPref(self, event):
+        """Modify developer preferences"""
+        win = dialogs.DevPrefs(self)
+        win.CenterOnScreen()
+        val = win.ShowModal()
+        if val == wxID_OK:
+            self.pref['userName'] = win.userName.GetValue()
+            self.pref['cvsOptions'] = win.cvsOptions.GetValue()
+            self.pref['cvsRoot'] = win.cvsRoot.GetValue()
+            f = open(os.path.expanduser('~/.abeni/abenirc'), 'w')
+            for v in self.pref.keys():
+                f.write('%s = %s\n' % (v, self.pref[v]))
+            f.close()
 
     def OnMnuPref(self, event):
         """Modify preferences"""
@@ -1406,7 +1432,6 @@ class MyFrame(wxFrame):
                 os.system("xterm -hold -e /usr/bin/echangelog")
         win.Destroy()
 
-
     def OnMnuGetTemplate(self, event):
         """"""
         if not self.editing:
@@ -1437,6 +1462,86 @@ class MyFrame(wxFrame):
             if l[0:2] == 'my':
                 c.append(l[2:])
         return c
+
+    def NotGentooDev(self):
+        e = self.pref['email']
+        if not e:
+            msg = "CVS options are for official Gentoo Developers:\n\n \
+            Your email address is not set.\n \
+            Set your email address in Options - Global Preferences."
+        else:
+            msg = "CVS options are for official Gentoo Developers:\n\n \
+            Your email address doesn't end in @gentoo.org\n \
+            Set your email address in Options - Global Preferences."
+        self.MyMessage(msg, "Gentoo Developer?", "error")
+
+    def OnMnuRepomanScan(self, event):
+        """/usr/bin/repoman scan"""
+        if self.editing:
+            if '@gentoo.org' in  self.pref['email']:
+                a = CVS(self)
+                a.RepomanScan()
+            else:
+                self.NotGentooDev()
+
+    def OnMnuCVSupdate(self, event):
+        """/usr/bin/cvs update"""
+        if self.editing:
+            a = CVS(self)
+            a.CVSupdate()
+
+    def OnMnuCopyFile(self, event):
+        """Copy ebuild to cvs dir"""
+        #TODO: Prompt if ebuild changes or if over-writing
+        if self.editing:
+            a = CVS(self)
+            a.CopyEbuild()
+
+    def OnMnuCreateCVSDigest(self, event):
+        """Create digest in CVS dir"""
+        if self.editing:
+            a = CVS(self)
+            a.CreateDigest()
+
+    def OnMnuCVSaddDir(self, event):
+        if self.editing:
+            a = CVS(self)
+            a.AddDir()
+
+    def OnMnuCVSaddEbuild(self, event):
+        if self.editing:
+            a = CVS(self)
+            a.AddEbuild()
+
+    def OnMnuCVSaddDigest(self, event):
+        if self.editing:
+            a = CVS(self)
+            a.AddDigest()
+
+    def OnMnuCVSaddChangeLog(self, event):
+        if self.editing:
+            a = CVS(self)
+            a.AddChangelog()
+
+    def OnMnuCVSaddMetadata(self, event):
+        if self.editing:
+            a = CVS(self)
+            a.AddMetadata()
+
+    def OnMnuMetadataEdit(self, event):
+        if self.editing:
+            a = CVS(self)
+            self.cvsDir = a.cvsDir
+            dlg = dialogs.MetadataDialog(self)
+            dlg.CenterOnScreen()
+            v = dlg.ShowModal()
+            if v == wxID_OK:
+                t = dlg.styledTextCtrl1.GetText()
+                f = open(("%s/metadata.xml" % self.cvsDir), "w")
+                f.write(t)
+                f.close()
+                dlg.Destroy()
+            self.cvsDir = None
 
     def MyMenu(self):
         #Create menus, setup keyboard accelerators
@@ -1503,16 +1608,13 @@ class MyFrame(wxFrame):
         menu_tools.Append(mnuGetDepsID, "Fix la&zy R/DEPEND")
         EVT_MENU(self, mnuGetDepsID, self.OnMnuGetDeps)
         mnuEchangelogID = wxNewId()
-        menu_tools.Append(mnuEchangelogID, "Run ec&hangelog for this ebuild")
-        EVT_MENU(self, mnuEchangelogID, self.OnMnuEchangelog)
-        mnuGetDepsID = wxNewId()
         menu_tools.Append(mnuLintoolID, "Run &Lintool on this ebuild")
         EVT_MENU(self, mnuLintoolID, self.OnMnuLintool)
         mnuRepomanID = wxNewId()
         menu_tools.Append(mnuRepomanID, "Run &Repoman on this ebuild")
         EVT_MENU(self, mnuRepomanID, self.OnMnuRepoman)
         mnuDigestID = wxNewId()
-        menu_tools.Append(mnuDigestID, "&Create Digest")
+        menu_tools.Append(mnuDigestID, "&Create Digest in PORTDIR_OVERLAY")
         EVT_MENU(self, mnuDigestID, self.OnMnuCreateDigest)
         mnuClearLogID = wxNewId()
         menu_tools.Append(mnuClearLogID, "Clear log &window\tF11")
@@ -1528,6 +1630,63 @@ class MyFrame(wxFrame):
         menu_proj.Append(mnuSumID, "&Project Manager")
         EVT_MENU(self, mnuSumID, self.OnMnuProjManager)
         menubar.Append(menu_proj, "&Project")
+
+        #CVS
+        menu_cvs = wxMenu()
+
+        #menuXtermID = wxNewId()
+        #menu_tools.Append(mnuXtermID, "x&term in CVS dir")
+        #EVT_MENU(self, mnuXtermID, self.OnMnuXtermCVS)
+
+        mnuMetadataEditID = wxNewId()
+        menu_cvs.Append(mnuMetadataEditID, "edit/create metadata")
+        EVT_MENU(self, mnuMetadataEditID, self.OnMnuMetadataEdit)
+
+        mnuRepomanScanID = wxNewId()
+        menu_cvs.Append(mnuRepomanScanID, "&repoman scan")
+        EVT_MENU(self, mnuRepomanScanID, self.OnMnuRepomanScan)
+
+        mnuCVSupdateID = wxNewId()
+        menu_cvs.Append(mnuCVSupdateID, "cvs u&pdate")
+        EVT_MENU(self, mnuCVSupdateID, self.OnMnuCVSupdate)
+
+        mnuCopyEbuildID = wxNewId()
+        menu_cvs.Append(mnuCopyEbuildID, "Cop&y ebuild to CVS dir")
+        EVT_MENU(self, mnuCopyEbuildID, self.OnMnuCopyFile)
+
+        mnuDigestID = wxNewId()
+        menu_cvs.Append(mnuDigestID, "&Create Digest in CVS dir")
+        EVT_MENU(self, mnuDigestID, self.OnMnuCreateCVSDigest)
+
+        mnuCVSaddID = wxNewId()
+        menu_cvs.Append(mnuCVSaddID, "&cvs add ebuild")
+        EVT_MENU(self, mnuCVSaddID, self.OnMnuCVSaddEbuild)
+
+        mnuCVSaddMetadataID = wxNewId()
+        menu_cvs.Append(mnuCVSaddMetadataID, "&cvs add metadata.xml")
+        EVT_MENU(self, mnuCVSaddMetadataID, self.OnMnuCVSaddMetadata)
+
+        mnuCVSaddDigestID = wxNewId()
+        menu_cvs.Append(mnuCVSaddDigestID, "&cvs add digest")
+        EVT_MENU(self, mnuCVSaddDigestID, self.OnMnuCVSaddDigest)
+
+        mnuCVSaddDirID = wxNewId()
+        menu_cvs.Append(mnuCVSaddDirID, "&cvs add directory")
+        EVT_MENU(self, mnuCVSaddDirID, self.OnMnuCVSaddDir)
+
+        #~ mnuClearLogID = wxNewId()
+        #~ menu_cvs.Append(mnuEchangelogID, "Run ec&hangelog for this ebuild")
+        #~ EVT_MENU(self, mnuEchangelogID, self.OnMnuEchangelog)
+
+        #~ mnuGetDepsID = wxNewId()
+        #~ menu_cvs.Append(mnuEchangelogID, "Edit ChangeLog in external editor")
+        #~ EVT_MENU(self, mnuEchangelogID, self.OnMnuEditChangeLog)
+
+        #~ mnuRepoCommitID = wxNewId()
+        #~ menu_cvs.Append(mnuRepoScanID, "repoman com&mit")
+        #~ EVT_MENU(self, mnuRepoCommitID, self.OnMnuRepoCommit)
+
+        menubar.Append(menu_cvs, "&CVS")
 
         # View
         menu_view = wxMenu()
@@ -1552,6 +1711,9 @@ class MyFrame(wxFrame):
         mnuPrefID = wxNewId()
         self.menu_options.Append(mnuPrefID, "&Global Preferences")
         EVT_MENU(self, mnuPrefID, self.OnMnuPref)
+        mnuDevPrefID = wxNewId()
+        self.menu_options.Append(mnuDevPrefID, "&Developer Preferences")
+        EVT_MENU(self, mnuDevPrefID, self.OnMnuDevPref)
         self.menu_options.AppendSeparator()
         self.mnuLogBottomID = wxNewId()
         self.menu_options.Append(self.mnuLogBottomID, "Log at &bottom\tf9", "", wxITEM_RADIO)

@@ -1,5 +1,11 @@
 from wxPython.wx import *
-import os, string, sys, re, popen2
+import os
+import string
+import sys
+import re
+import popen2
+import shutil
+#Abeni:
 import options
 
 
@@ -51,15 +57,14 @@ def LoadEbuild(parent, filename, portdir):
     parent.recentList.append(filename)
     vars = {}
     funcs = {}
-    statements = []
     defaultVars = ['DESCRIPTION', 'HOMEPAGE', 'SRC_URI', 'LICENSE', 'SLOT'
                     'KEYWORDS', 'IUSE', 'DEPEND', 'S']
     f = open(filename, 'r')
 
     #Indenting shoud be done with tabs, not spaces
-    badSpaces = re.compile('^ +')
+    #badSpaces = re.compile('^ +')
     #Comments should be indented to level of code its refering to.
-    badComments = re.compile('^#+')
+    #badComments = re.compile('^#+')
     while 1:
         l = f.readline()
         if not l: #End of file
@@ -202,22 +207,28 @@ def WriteEbuild(parent, temp=0):
     # Heh. CVS fills this line in, have to trick it with:
     f.write('# ' + '$' + 'Header:' + ' $\n\n')
 
-
-    #We write the misc variables, then misc statements such as 'inherit cvs'
-    #because some eclasses need variables set ahead of time
-    #Misc variables
-    varDict = parent.panelMain.GetVars()
-    for n in range(len(parent.varOrder)):
-        if not parent.isDefault(parent.varOrder[n]):
-            f.write(parent.varOrder[n] + '=' + varDict[parent.varOrder[n]][1].GetValue() + '\n')
-
-    f.write('\n')
+    if parent.CVS:
+        varDict = parent.panelMain.GetVars()
+        for n in range(len(parent.varOrder)):
+            if not parent.isDefault(parent.varOrder[n]):
+                f.write(parent.varOrder[n] + '=' + varDict[parent.varOrder[n]][1].GetValue() + '\n')
 
     #Misc statements
     sta = parent.panelMain.stext.GetValue()
     if sta:
         f.write(sta + '\n')
         f.write('\n')
+
+    #We write the misc variables, then misc statements such as 'inherit cvs'
+    #because some eclasses need variables set ahead of time
+    #Misc variables
+    if not parent.CVS:
+        varDict = parent.panelMain.GetVars()
+        for n in range(len(parent.varOrder)):
+            if not parent.isDefault(parent.varOrder[n]):
+                f.write(parent.varOrder[n] + '=' + varDict[parent.varOrder[n]][1].GetValue() + '\n')
+
+    f.write('\n')
 
     # This would print them in original order imported:
     #for n in range(len(parent.varOrder)):
@@ -476,3 +487,169 @@ def DelVariable(parent):
         for k in tmpDict.keys():
             parent.panelMain.AddVar(k, tmpDict[k][0])
     dlg.Destroy()
+
+
+class CVS:
+
+    """ CVS utilities """
+
+    def __init__(self, parent):
+        self.parent = parent
+        self.cvsRoot = self.parent.pref['cvsRoot']
+        self.cat = self.parent.GetCat()
+        self.package = self.parent.panelMain.Package.GetValue()
+        self.ebuild = self.parent.panelMain.EbuildFile.GetValue()
+        self.userName = self.parent.pref['userName']
+        self.cvsDir = self.QueryPath()
+        if not os.path.exists(self.cvsDir):
+            self.CreateCVSdir()
+        try:
+            os.chdir(self.cvsDir)
+        except:
+            self.parent.write("ERROR: Couldn't cd to %s" % self.cvsDir)
+        self.cvsEbuild = "%s/%s" % (self.cvsDir, self.ebuild)
+        self.FixPerms()
+
+    def QueryPath(self):
+        """Return CVS directory of this ebuild"""
+        return "%s/%s/%s" % (self.cvsRoot, self.cat, self.package)
+
+    def CreateCVSdir(self):
+        """Create CVSroot/cat/package directory"""
+        catDir = "%s/%s" % (self.cvsRoot, self.cat)
+        if not os.path.exists(catDir):
+            os.mkdir(catDir)
+        try:
+            os.mkdir(self.cvsDir)
+            self.parent.write("Created %s" % self.cvsDir)
+        except:
+            self.parent.write("ERROR: Failed to create %s!" % self.cvsDir)
+
+    def FileExistsInCVS(self):
+        if os.path.exists('./%s' % self.ebuild):
+            return 1
+
+    def CVSupdate(self):
+        """/usr/bin/cvs update"""
+        cmd = "/usr/bin/cvs update"
+        self.Execute(cmd)
+        self.parent.write("(cvs update in this directory: %s)" % self.cvsDir)
+
+    def CopyEbuild(self):
+        """Copy ebuild and ${FILES} contents from PORT_OVERLAY to CVSroot/cat/package/"""
+        # TODO: Copy all files not added to CVS? Just check for patches/config files we added?
+        file = self.parent.GetFilename()
+        shutil.copy(file, self.cvsDir)
+        self.parent.write("Copied %s to %s" % (file, self.cvsDir))
+        self.FixPerms()
+
+    def FixPerms(self):
+        if len(os.listdir('./')):
+            os.system("chown %s -R %s/*" % (self.userName, self.cvsDir))
+        os.system("chown %s -R %s" % (self.userName, self.cvsDir))
+
+    def RepomanScan(self):
+        if not self.FileExistsInCVS():
+            self.parent.write("WARNING: This ebuild hasn't been copied to CVS directory yet.")
+        cmd = "su %s -c '/usr/bin/repoman scan'" % self.userName
+        self.Execute(cmd)
+
+    def RepomanCommitPretend(self):
+        """repoman commmit pretend"""
+        if self.FileExistsInCVS():
+            cmd = """su %s -c '/usr/bin/repoman --pretend commit -m "test msg"'""" % self.userName
+            self.Execute(cmd)
+        else:
+            self.parent.write("ERROR: Ebuild isn't in CVS directory yet.")
+
+    def RepomanCommit(self):
+        if self.FileExistsInCVS():
+            msg = self.GetMsg()
+            if msg:
+                cmd = """su %s -c '/usr/bin/repoman --pretend commit -m "%s"'""" % (self.userName, msg)
+                self.Execute(cmd)
+            else:
+                self.parent.write("ERROR: I won't commit without a message.")
+        else:
+            self.parent.write("ERROR: ebuild isn't in CVS directory yet.")
+
+
+    def GetMsg(self):
+        dlg = wxTextEntryDialog(self.parent, 'Enter commit message:', 'Commit message:', '')
+        if dlg.ShowModal() == wxID_OK:
+            msg = dlg.GetValue()
+        dlg.Destroy()
+        return msg
+
+    def CreateDigest(self):
+        if self.FileExistsInCVS():
+            cmd = "PORTDIR_OVERLAY='%s' /usr/sbin/ebuild %s digest" % (self.cvsRoot, self.ebuild)
+            self.Execute(cmd)
+        else:
+            self.parent.write("ERROR: ebuild isn't in CVS directory yet.")
+
+    def AddDir(self):
+        if self.FileExistsInCVS():
+            os.chdir(os.path.dirname(self.cvsDir))
+            cmd = "su rob -c '''/usr/bin/cvs add %s'''" % os.path.basename(self.cvsDir)
+            self.Execute(cmd)
+        else:
+            self.parent.write("ERROR: ebuild isn't in CVS directory yet.")
+
+    def AddEbuild(self):
+        """/usr/bin/cvs add ebuild"""
+        if self.FileExistsInCVS():
+            cmd = "su rob -c /usr/bin/cvs add %s" % self.ebuild
+            self.Execute(cmd)
+        else:
+            self.parent.write("ERROR: ebuild isn't in CVS directory yet.")
+
+    def AddDigest(self):
+        """/usr/bin/cvs add digest"""
+        if not self.FileExistsInCVS():
+            self.parent.write("ERROR: ebuild isn't in CVS directory yet.")
+            return
+        digest = "digest-%s" % self.ebuild[0:-7]
+        if os.path.exists('./files/%s' % digest):
+            cmd = "/usr/bin/cvs add files/%s" % digest
+            self.Execute(cmd)
+        else:
+            self.parent.write("ERROR: digest doesn't exist in CVS directory yet.")
+
+    def Execute(self, cmd):
+        self.parent.write("Executing: %s" % cmd)
+        self.parent.ExecuteInLog(cmd)
+
+    def AddChangelog(self):
+        if not self.FileExistsInCVS():
+            self.parent.write("ERROR: ebuild isn't in CVS directory yet.")
+            return
+        if os.path.exists('./ChangeLog'):
+            cmd = "/usr/bin/cvs add ChangeLog"
+            self.Execute(cmd)
+        else:
+            self.parent.write("ERROR: ChangeLog doesn't exist in CVS directory")
+
+    def AddMetadata(self):
+        if not self.FileExistsInCVS():
+            self.parent.write("ERROR: ebuild isn't in CVS directory yet.")
+            return
+        if os.path.exists('./metadata.xml'):
+            cmd = "/usr/bin/cvs add metadata.xml"
+            self.Execute(cmd)
+        else:
+            self.parent.write("ERROR: metadata.xml doesn't exist in CVS directory")
+
+
+    def Echangelog(self):
+        dlg = self.parent.dialogs.EchangelogDialog(self.parent, -1, "echangelog entry", \
+                                size=wxSize(350, 200), \
+                                style = wxDEFAULT_DIALOG_STYLE \
+                                )
+        dlg.CenterOnScreen()
+        val = dlg.ShowModal()
+        if val == wxID_OK:
+            l = dlg.inp.GetValue()
+            if l:
+                self.parent.ExecuteInLog("/usr/bin/echangelog %s" % l)
+        dlg.Destroy()

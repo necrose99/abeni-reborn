@@ -3,7 +3,71 @@ from wxPython.help import *
 from options import *
 from wxPython.lib.grids import wxGridSizer, wxFlexGridSizer
 from wxPython.lib.buttons import *
+from wxPython.stc import *
 import os, gadfly
+
+
+[wxID_METADATADIALOG, wxID_METADATADIALOGGENBUTTON1,
+ wxID_METADATADIALOGGENBUTTON2, wxID_METADATADIALOGNOTEBOOK1,
+ wxID_METADATADIALOGPANEL1, wxID_METADATADIALOGSTYLEDTEXTCTRL1,
+ wxID_METADATADIALOGSTYLEDTEXTCTRL2,
+] = map(lambda _init_ctrls: wxNewId(), range(7))
+
+class MetadataDialog(wxDialog):
+    def _init_coll_notebook1_Pages(self, parent):
+        # generated method, don't edit
+
+        parent.AddPage(imageId=-1, page=self.styledTextCtrl1, select=True,
+              text='metadata.xml')
+        parent.AddPage(imageId=-1, page=self.styledTextCtrl2, select=False,
+              text='skel.metadata.xml')
+
+    def _init_ctrls(self, prnt):
+        # generated method, don't edit
+        wxDialog.__init__(self, id=wxID_METADATADIALOG, name='MetadataDialog',
+              parent=prnt, pos=wxPoint(254, 137), size=wxSize(683, 445),
+              style=wxDEFAULT_DIALOG_STYLE, title='Metadata')
+        self.SetClientSize(wxSize(683, 445))
+
+        self.panel1 = wxPanel(id=wxID_METADATADIALOGPANEL1, name='panel1',
+              parent=self, pos=wxPoint(0, 0), size=wxSize(683, 445),
+              style=wxTAB_TRAVERSAL)
+
+        self.notebook1 = wxNotebook(id=wxID_METADATADIALOGNOTEBOOK1,
+              name='notebook1', parent=self.panel1, pos=wxPoint(8, 24),
+              size=wxSize(664, 352), style=0)
+
+        self.genButton1 = wxGenButton(ID=wxID_OK, label='OK',
+              name='genButton1', parent=self.panel1, pos=wxPoint(112, 400),
+              size=wxSize(81, 28), style=0)
+
+        self.genButton2 = wxGenButton(ID=wxID_CANCEL, label='Cancel', name='genButton2',
+              parent=self.panel1, pos=wxPoint(456, 408), size=wxSize(81, 28),
+              style=0)
+
+        self.styledTextCtrl1 = wxStyledTextCtrl(id=wxID_METADATADIALOGSTYLEDTEXTCTRL1,
+              name='styledTextCtrl1', parent=self.notebook1, pos=wxPoint(0, 0),
+              size=wxSize(660, 318), style=0)
+
+        self.styledTextCtrl2 = wxStyledTextCtrl(id=wxID_METADATADIALOGSTYLEDTEXTCTRL2,
+              name='styledTextCtrl2', parent=self.notebook1, pos=wxPoint(0, 0),
+              size=wxSize(660, 318), style=0)
+
+        self._init_coll_notebook1_Pages(self.notebook1)
+
+    def __init__(self, parent):
+        self._init_ctrls(parent)
+        metadata = "%s/metadata.xml" % parent.cvsDir
+        if os.path.exists(metadata):
+            self.styledTextCtrl1.SetText(open(metadata).read())
+
+        skel = open("/usr/portage/skel.metadata.xml").read()
+        self.styledTextCtrl2.EmptyUndoBuffer()
+        #self.styledTextCtrl2.Colourise(0, -1)
+        #self.styledTextCtrl2.SetMarginType(1, wxSTC_MARGIN_NUMBER)
+        #self.styledTextCtrl2.SetMarginWidth(1, 25)
+        self.styledTextCtrl2.SetLexer(wxSTC_LEX_XML)
+        self.styledTextCtrl2.SetText(skel)
 
 
 [wxID_SUBMITEBUILD, wxID_SUBMITEBUILDCANCELBUTTON,
@@ -446,61 +510,6 @@ class BugzillaDialog(wxDialog):
         abenistatus = self.AbeniComboBox.GetStringSelection()
         return bug, notes, status, resolution, mine, abenistatus
 
-class GetURIDialog(wxDialog):
-
-    """Dialog box that pops up for URI"""
-
-    def __init__(self, parent, ID, title,
-                 pos=wxDefaultPosition, size=wxDefaultSize,
-                 style=wxDEFAULT_DIALOG_STYLE):
-        provider = wxSimpleHelpProvider()
-        wxHelpProvider_Set(provider)
-
-        # Instead of calling wxDialog.__init__ we precreate the dialog
-        # so we can set an extra style that must be set before
-        # creation, and then we create the GUI dialog using the Create
-        # method.
-        pre = wxPreDialog()
-        pre.SetExtraStyle(wxDIALOG_EX_CONTEXTHELP)
-        pre.Create(parent, ID, title, pos, size, style)
-        # This next step is the most important, it turns this Python
-        # object into the real wrapper of the dialog (instead of pre)
-        # as far as the wxPython extension is concerned.
-        self.this = pre.this
-        sizer = wxBoxSizer(wxVERTICAL)
-        box = wxBoxSizer(wxHORIZONTAL)
-
-        label = wxStaticText(self, -1, "Package URI:")
-        label.SetHelpText("Enter the URI for the package or 'CVS' for cvs eclass template.")
-        box.Add(label, 0, wxALIGN_CENTRE|wxALL, 5)
-
-
-        self.URI = wxTextCtrl(self, -1, "", size=(280,-1))
-        self.URI.SetHelpText("Enter the URI for the package or leave blank for CVS.")
-        box.Add(self.URI, 1, wxALIGN_CENTRE|wxALL, 5)
-
-        sizer.AddSizer(box, 0, wxGROW|wxALIGN_CENTER_VERTICAL|wxALL, 5)
-
-        box = wxBoxSizer(wxHORIZONTAL)
-        sizer.AddSizer(box, 0, wxGROW|wxALIGN_CENTER_VERTICAL|wxALL, 5)
-        line = wxStaticLine(self, -1, size=(20,-1), style=wxLI_HORIZONTAL)
-        text = wxStaticText(self, -1, "Leave blank if this is a CVS ebuild.")
-        sizer.Add(text, 0, wxALIGN_CENTER|wxALL, 5)
-        sizer.Add(line, 0, wxGROW|wxALIGN_CENTER_VERTICAL|wxRIGHT|wxTOP, 5)
-        box = wxBoxSizer(wxHORIZONTAL)
-        btn = wxButton(self, wxID_OK, " OK ")
-        btn.SetDefault()
-        box.Add(btn, 0, wxALIGN_CENTRE|wxALL, 5)
-        btn = wxButton(self, wxID_CANCEL, " Cancel ")
-        box.Add(btn, 0, wxALIGN_CENTRE|wxALL, 5)
-        btn = wxContextHelpButton(self)
-        box.Add(btn, 0, wxALIGN_CENTRE|wxALL, 5)
-        sizer.AddSizer(box, 0, wxALIGN_CENTER_VERTICAL|wxALL, 5)
-        self.SetSizer(sizer)
-        self.SetAutoLayout(True)
-        sizer.Fit(self)
-
-
 class EmergeDialog(wxDialog):
 
     """Dialog box for running emerge with options"""
@@ -829,4 +838,120 @@ class EchangelogDialog(wxDialog):
         self.SetSizer(sizer)
         self.SetAutoLayout(True)
         sizer.Fit(self)
+
+
+class GetURIDialog(wxDialog):
+
+    """Dialog box that pops up for URI"""
+
+    def __init__(self, parent, ID, title,
+                 pos=wxDefaultPosition, size=wxDefaultSize,
+                 style=wxDEFAULT_DIALOG_STYLE):
+        provider = wxSimpleHelpProvider()
+        wxHelpProvider_Set(provider)
+        # Instead of calling wxDialog.__init__ we precreate the dialog
+        # so we can set an extra style that must be set before
+        # creation, and then we create the GUI dialog using the Create
+        # method.
+        pre = wxPreDialog()
+        pre.SetExtraStyle(wxDIALOG_EX_CONTEXTHELP)
+        pre.Create(parent, ID, title, pos, size, style)
+        # This next step is the most important, it turns this Python
+        # object into the real wrapper of the dialog (instead of pre)
+        # as far as the wxPython extension is concerned.
+        self.this = pre.this
+        sizer = wxBoxSizer(wxVERTICAL)
+        box = wxBoxSizer(wxHORIZONTAL)
+        label = wxStaticText(self, -1, "Package URI:")
+        label.SetHelpText("Enter the URI for the package or leave blank for CVS.")
+        box.Add(label, 0, wxALIGN_CENTRE|wxALL, 5)
+        self.URI = wxTextCtrl(self, -1, "", size=(280,-1))
+        self.URI.SetHelpText("Enter the URI for the package or leave blank for CVS.")
+        box.Add(self.URI, 1, wxALIGN_CENTRE|wxALL, 5)
+        sizer.AddSizer(box, 0, wxGROW|wxALIGN_CENTER_VERTICAL|wxALL, 5)
+        box = wxBoxSizer(wxHORIZONTAL)
+        sizer.AddSizer(box, 0, wxGROW|wxALIGN_CENTER_VERTICAL|wxALL, 5)
+        line = wxStaticLine(self, -1, size=(20,-1), style=wxLI_HORIZONTAL)
+        text = wxStaticText(self, -1, "Leave blank if this is a CVS ebuild.")
+        sizer.Add(text, 0, wxALIGN_CENTER|wxALL, 5)
+        sizer.Add(line, 0, wxGROW|wxALIGN_CENTER_VERTICAL|wxRIGHT|wxTOP, 5)
+        box = wxBoxSizer(wxHORIZONTAL)
+        btn = wxButton(self, wxID_OK, " OK ")
+        btn.SetDefault()
+        box.Add(btn, 0, wxALIGN_CENTRE|wxALL, 5)
+        btn = wxButton(self, wxID_CANCEL, " Cancel ")
+        box.Add(btn, 0, wxALIGN_CENTRE|wxALL, 5)
+        btn = wxContextHelpButton(self)
+        box.Add(btn, 0, wxALIGN_CENTRE|wxALL, 5)
+        sizer.AddSizer(box, 0, wxALIGN_CENTER_VERTICAL|wxALL, 5)
+        self.SetSizer(sizer)
+        self.SetAutoLayout(True)
+        sizer.Fit(self)
+
+
+def create(parent):
+    return DevPrefs(parent)
+
+[wxID_DEVPREFS, wxID_DEVPREFSBUTTON2, wxID_DEVPREFSCVSOPTIONS,
+ wxID_DEVPREFSCVSROOT, wxID_DEVPREFSGENBUTTON1, wxID_DEVPREFSSTATICBOX1,
+ wxID_DEVPREFSSTATICTEXT1, wxID_DEVPREFSSTATICTEXT2, wxID_DEVPREFSSTATICTEXT3,
+ wxID_DEVPREFSSTATICTEXT5, wxID_DEVPREFSUSERNAME,
+] = map(lambda _init_ctrls: wxNewId(), range(11))
+
+class DevPrefs(wxDialog):
+    def _init_ctrls(self, prnt):
+        # generated method, don't edit
+        wxDialog.__init__(self, id=wxID_DEVPREFS, name='DevPrefs', parent=prnt,
+              pos=wxPoint(296, 275), size=wxSize(464, 252),
+              style=wxDEFAULT_DIALOG_STYLE, title='Developer Preferences')
+        self.SetClientSize(wxSize(464, 252))
+
+        self.userName = wxTextCtrl(id=wxID_DEVPREFSUSERNAME, name='userName',
+              parent=self, pos=wxPoint(272, 64), size=wxSize(168, 24), style=0,
+              value='')
+
+        self.staticText1 = wxStaticText(id=wxID_DEVPREFSSTATICTEXT1,
+              label='User name to run /usr/bin/cvs as', name='staticText1',
+              parent=self, pos=wxPoint(25, 66), size=wxSize(190, 16), style=0)
+
+        self.staticBox1 = wxStaticBox(id=wxID_DEVPREFSSTATICBOX1,
+              label='Gentoo Developer Preferences', name='staticBox1',
+              parent=self, pos=wxPoint(8, 0), size=wxSize(448, 192), style=0)
+
+        self.staticText5 = wxStaticText(id=wxID_DEVPREFSSTATICTEXT5,
+              label='(For official Gentoo Devlopers - not users)',
+              name='staticText5', parent=self, pos=wxPoint(20, 24),
+              size=wxSize(260, 17), style=0)
+        self.staticText5.SetForegroundColour(wxColour(255, 0, 0))
+
+        self.staticText2 = wxStaticText(id=wxID_DEVPREFSSTATICTEXT2,
+              label='Options for cvs (-z3 etc)', name='staticText2',
+              parent=self, pos=wxPoint(24, 104), size=wxSize(141, 16), style=0)
+
+        self.cvsOptions = wxTextCtrl(id=wxID_DEVPREFSCVSOPTIONS,
+              name='cvsOptions', parent=self, pos=wxPoint(272, 104),
+              size=wxSize(168, 24), style=0, value='')
+
+        self.button2 = wxButton(id=wxID_OK, label='OK', name='button2',
+              parent=self, pos=wxPoint(84, 208), size=wxSize(80, 26), style=0)
+
+        self.cvsRoot = wxTextCtrl(id=wxID_DEVPREFSCVSROOT, name='cvsRoot',
+              parent=self, pos=wxPoint(272, 144), size=wxSize(168, 24), style=0,
+              value='')
+
+        self.staticText3 = wxStaticText(id=wxID_DEVPREFSSTATICTEXT3,
+              label='CVS root', name='staticText3', parent=self, pos=wxPoint(24,
+              149), size=wxSize(61, 16), style=0)
+
+        self.genButton1 = wxGenButton(ID=wxID_CANCEL, label='Cancel',
+              name='genButton1', parent=self, pos=wxPoint(304, 208),
+              size=wxSize(81, 28), style=0)
+
+    def __init__(self, parent):
+        self._init_ctrls(parent)
+        myOptions = Options()
+        pref = myOptions.Prefs()
+        self.cvsRoot.SetValue(pref['cvsRoot'])
+        self.cvsOptions.SetValue(pref['cvsOptions'])
+        self.userName.SetValue(pref['userName'])
 

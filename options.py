@@ -16,7 +16,9 @@ class Options:
         self.pref['log'] = ''
         self.pref['email'] = ''
         self.pref['statuslist'] = 'FIXED,WONTFIX,LATER,OBSOLETE,TESTING,REMIND,SUBMITTED'
-
+        self.pref['userName'] = ''
+        self.pref['cvsOptions'] = ''
+        self.pref['cvsRoot'] = ''
         self.Read_apprc()
 
     def Read_apprc(self):
