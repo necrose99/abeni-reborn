@@ -147,11 +147,9 @@ def LoadEbuild(parent, filename, portdir):
     for n in range(len(parent.funcOrder)):
         parent.AddFunc(parent.funcOrder[n], funcs[parent.funcOrder[n]])
     parent.panelMain.stext.SetValue(string.join(parent.statementList, '\n'))
-    if parent.pref['log'] == 'bottom':
-        parent.nb.SetSelection(0)
-    else:
+    if parent.pref['log'] != 'bottom':
         parent.LogTab()
-        parent.nb.SetSelection(1)
+    parent.nb.SetSelection(0)
 
     # Set titlebar of app to ebuild name
     parent.DoTitle()
@@ -469,17 +467,17 @@ def AddMenu(parent):
     # Help
     menu_help = wxMenu()
     mnuHelpID = wxNewId()
-    mnuHelpRefID = wxNewId()
-    mnuAboutID = wxNewId()
     menu_help.Append(mnuHelpID,"&Contents\tF1")
     EVT_MENU(parent, mnuHelpID, parent.OnMnuHelp)
+    mnuHelpRefID = wxNewId()
     menu_help.Append(mnuHelpRefID,"&Ebuild Quick Reference")
     EVT_MENU(parent, mnuHelpRefID, parent.OnMnuHelpRef)
-    menu_help.Append(mnuAboutID,"&About")
-    EVT_MENU(parent, mnuAboutID, parent.OnMnuAbout)
     mnuEclassID = wxNewId()
     menu_help.Append(mnuEclassID, "&View eclass files")
     EVT_MENU(parent, mnuEclassID, parent.OnMnuEclassHelp)
+    mnuAboutID = wxNewId()
+    menu_help.Append(mnuAboutID,"&About")
+    EVT_MENU(parent, mnuAboutID, parent.OnMnuAbout)
     menubar.Append(menu_help,"&Help")
 
     parent.SetMenuBar(menubar)

@@ -85,7 +85,10 @@ class MyFrame(wxFrame):
         iconFile = ('/usr/share/pixmaps/abeni/abeni_logo16.png')
         icon = wxIcon(iconFile, wxBITMAP_TYPE_PNG)
         self.SetIcon(icon)
-        AddMenu(self)
+        #AddMenu(self)
+
+        self.MyMenu()
+
         AddToolbar(self)
         self.sb = self.CreateStatusBar(2, wxST_SIZEGRIP)
         self.splitter = wxSplitterWindow(self, -1, style=wxNO_3D|wxSP_3D)
@@ -130,15 +133,17 @@ class MyFrame(wxFrame):
         """Switch ouput log to bottom"""
         if not self.editing or self.pref['log'] == 'bottom':
             return
-        self.splitter.SplitHorizontally(self.nb, self.log, 400)
-        self.splitter.SetMinimumPaneSize(20)
-        self.log.Show(True)
-        self.log.ShowPosition(self.log.GetLastPosition())
-        self.pref['log'] = 'bottom'
-
-        #self.LogBottom()
+        if self.pref['log'] == 'tab':
+            self.logWin.Close()
+        else:
+            self.splitter.SplitHorizontally(self.nb, self.log, 400)
+            self.splitter.SetMinimumPaneSize(20)
+            self.log.Show(True)
+            self.log.ShowPosition(self.log.GetLastPosition())
+            self.pref['log'] = 'bottom'
 
     def LogBottom(self, log):
+        self.menu_options.Check(self.mnuLogBottomID, 1)
         self.log = log
         self.log.Reparent(self.splitter)
         wxLog_SetActiveTarget(MyLog(self.log))
@@ -147,7 +152,14 @@ class MyFrame(wxFrame):
         self.log.Show(True)
         self.log.ShowPosition(self.log.GetLastPosition())
         self.pref['log'] = 'bottom'
-        #self.nb.DeletePage(0)
+
+    def LogTab(self):
+        #Show log window in separate tab
+        self.splitter.Unsplit()
+        self.logWin=panels.LogWindow(self)
+        self.logWin.Show(True)
+        self.log.Show(True)
+        self.pref['log'] = 'tab'
 
     def OnMnuLogTab(self, event):
         """Switch ouput log to tab"""
@@ -177,14 +189,6 @@ class MyFrame(wxFrame):
     def OnMnuClearLog(self, event):
         """Blank out the log windows"""
         self.log.SetValue('')
-
-    def LogTab(self):
-        #Show log window in separate tab
-        self.splitter.Unsplit()
-        self.logWin=panels.LogWindow(self)
-        self.logWin.Show(True)
-        self.log.Show(True)
-        self.pref['log'] = 'tab'
 
     """
     def LogTab(self):
@@ -1242,6 +1246,147 @@ class MyFrame(wxFrame):
 
     def SetToNewPage(self):
         self.nb.SetSelection(self.nb.GetPageCount() -1)
+
+
+    def MyMenu(self):
+        #Create menus, setup keyboard accelerators
+        # File
+        self.menu = menu_file = wxMenu()
+        mnuNewID=wxNewId()
+        menu_file.Append(mnuNewID, "&New ebuild")
+        EVT_MENU(self, mnuNewID, self.OnMnuNew)
+        mnuLoadID=wxNewId()
+        menu_file.Append(mnuLoadID, "&Load ebuild")
+        EVT_MENU(self, mnuLoadID, self.OnMnuLoad)
+        mnuSaveID=wxNewId()
+        menu_file.Append(mnuSaveID, "&Save ebuild")
+        EVT_MENU(self, mnuSaveID, self.OnMnuSave)
+        mnuExitID=wxNewId()
+        menu_file.Append(mnuExitID, "E&xit\tAlt-X")
+        EVT_MENU(self, mnuExitID, self.OnMnuExit)
+        menubar = wxMenuBar()
+        menubar.Append(menu_file, "&File")
+        EVT_MENU_RANGE(self, wxID_FILE1, wxID_FILE9, self.OnFileHistory)
+        self.filehistory = wxFileHistory()
+        self.filehistory.UseMenu(self.menu)
+
+        # Variable
+        menu_variable = wxMenu()
+        mnuNewVariableID = wxNewId()
+        menu_variable.Append(mnuNewVariableID, "&New Variable\tF2", "New Variable")
+        EVT_MENU(self, mnuNewVariableID, self.OnMnuNewVariable)
+        mnuDelVariableID = wxNewId()
+        menu_variable.Append(mnuDelVariableID, "&Delete Variable")
+        EVT_MENU(self, mnuDelVariableID, self.OnMnuDelVariable)
+        menubar.Append(menu_variable, "&Variable")
+        # Function
+        menu_function = wxMenu()
+        mnuNewFunctionID = wxNewId()
+        menu_function.Append(mnuNewFunctionID, "&New Function\tF3", "New Function")
+        EVT_MENU(self, mnuNewFunctionID, self.OnMnuNewFunction)
+        mnuDelFunctionID = wxNewId()
+        menu_function.Append(mnuDelFunctionID, "&Delete Function")
+        EVT_MENU(self, mnuDelFunctionID, self.OnMnuDelFunction)
+        menubar.Append(menu_function, "Functio&n")
+        # Eclass
+        menu_eclass = wxMenu()
+
+        mnuGamesID = wxNewId()
+        menu_eclass.Append(mnuGamesID, "games")
+        EVT_MENU(self, mnuGamesID, self.OnMnuEclassGames)
+
+        mnuCVSID = wxNewId()
+        menu_eclass.Append(mnuCVSID, "cvs")
+        EVT_MENU(self, mnuCVSID, self.OnMnuEclassCVS)
+
+        mnuDistutilsID = wxNewId()
+        menu_eclass.Append(mnuDistutilsID, "distutils")
+        EVT_MENU(self, mnuDistutilsID, self.OnMnuEclassDistutils)
+
+        menubar.Append(menu_eclass, "E&class")
+        # Tools
+        menu_tools = wxMenu()
+        mnuEbuildID = wxNewId()
+        menu_tools.Append(mnuEbuildID, "Run &ebuild <this ebuild> <command>\tf4")
+        EVT_MENU(self, mnuEbuildID, self.OnMnuEbuild)
+        mnuEmergeID = wxNewId()
+        menu_tools.Append(mnuEmergeID, "Run e&merge <args> <this ebuild>\tf5")
+        EVT_MENU(self, mnuEmergeID, self.OnMnuEmerge)
+        mnuLintoolID = wxNewId()
+        menu_tools.Append(mnuLintoolID, "Run &Lintool on this ebuild")
+        EVT_MENU(self, mnuLintoolID, self.OnMnuLintool)
+        mnuRepomanID = wxNewId()
+        menu_tools.Append(mnuRepomanID, "Run &Repoman on this ebuild")
+        EVT_MENU(self, mnuRepomanID, self.OnMnuRepoman)
+        mnuDigestID = wxNewId()
+        menu_tools.Append(mnuDigestID, "&Create Digest")
+        EVT_MENU(self, mnuDigestID, self.OnMnuCreateDigest)
+        mnuDiffCreateID = wxNewId()
+        menu_tools.Append(mnuDiffCreateID, "Create diff &file")
+        EVT_MENU(self, mnuDiffCreateID, self.OnMnuDiffCreate)
+
+        mnuClearLogID = wxNewId()
+        menu_tools.Append(mnuClearLogID, "Clear log &window\tf11")
+        EVT_MENU(self, mnuClearLogID, self.OnMnuClearLog)
+
+        menubar.Append(menu_tools, "&Tools")
+        # View
+        menu_view = wxMenu()
+        mnuViewID = wxNewId()
+        menu_view.Append(mnuViewID, "en&vironment")
+        EVT_MENU(self, mnuViewID, self.OnMnuViewEnvironment)
+        mnuViewConfigureID = wxNewId()
+        menu_view.Append(mnuViewConfigureID, "configure")
+        EVT_MENU(self, mnuViewConfigureID, self.OnMnuViewConfigure)
+        mnuViewMakefileID = wxNewId()
+        menu_view.Append(mnuViewMakefileID, "Makefile")
+        EVT_MENU(self, mnuViewMakefileID, self.OnMnuViewMakefile)
+        mnuViewSetuppyID = wxNewId()
+        menu_view.Append(mnuViewSetuppyID, "setup.py")
+        EVT_MENU(self, mnuViewSetuppyID, self.OnMnuViewSetuppy)
+        mnuDiffID = wxNewId()
+        menu_view.Append(mnuDiffID, "&diff")
+        EVT_MENU(self, mnuDiffID, self.OnMnuDiff)
+        mnuEditID = wxNewId()
+        menu_view.Append(mnuEditID, "This ebuild in e&xternal editor\tf7")
+        EVT_MENU(self, mnuEditID, self.OnMnuEdit)
+        #mnuExploreWorkdirID = wxNewId()
+        #menu_view.Append(mnuExploreWorkdirID, "File browser in ${WORKDIR}")
+        #EVT_MENU(self, mnuExploreWorkdirID, self.ExploreWorkdir)
+        menubar.Append(menu_view, "Vie&w")
+        # Options
+        self.menu_options = wxMenu()
+        mnuPrefID = wxNewId()
+        self.menu_options.Append(mnuPrefID, "&Global Preferences")
+        EVT_MENU(self, mnuPrefID, self.OnMnuPref)
+        self.menu_options.AppendSeparator()
+        self.mnuLogBottomID = wxNewId()
+        self.menu_options.Append(self.mnuLogBottomID, "Log at &bottom\tf9", "", wxITEM_RADIO)
+        EVT_MENU(self, self.mnuLogBottomID, self.OnMnuLogBottom)
+        mnuLogTabID = wxNewId()
+        self.menu_options.Append(mnuLogTabID, "Log in separate &tab\tf10", "", wxITEM_RADIO)
+        EVT_MENU(self, mnuLogTabID, self.OnMnuLogTab)
+        self.menu_options.AppendSeparator()
+
+        menubar.Append(self.menu_options, "&Options")
+        # Help
+        menu_help = wxMenu()
+        mnuHelpID = wxNewId()
+        menu_help.Append(mnuHelpID,"&Contents\tF1")
+        EVT_MENU(self, mnuHelpID, self.OnMnuHelp)
+        mnuHelpRefID = wxNewId()
+        menu_help.Append(mnuHelpRefID,"&Ebuild Quick Reference")
+        EVT_MENU(self, mnuHelpRefID, self.OnMnuHelpRef)
+        mnuEclassID = wxNewId()
+        menu_help.Append(mnuEclassID, "&View eclass files")
+        EVT_MENU(self, mnuEclassID, self.OnMnuEclassHelp)
+        mnuAboutID = wxNewId()
+        menu_help.Append(mnuAboutID,"&About")
+        EVT_MENU(self, mnuAboutID, self.OnMnuAbout)
+        menubar.Append(menu_help,"&Help")
+
+        self.SetMenuBar(menubar)
+
 
 class MyLog(wxPyLog):
     def __init__(self, textCtrl, logTime=0):
