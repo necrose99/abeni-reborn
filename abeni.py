@@ -1063,18 +1063,6 @@ class MyFrame(wxFrame):
         dlg = wxScrolledMessageDialog(self, msg, "USE descriptions")
         dlg.Show(True)
 
-        if not self.VerifySaved():
-            wildcard = "ebuild files (*.ebuild)|*.ebuild"
-            dlg = wxFileDialog(self, "Choose a file", portdir, "", \
-                                wildcard, wxOPEN)
-            if dlg.ShowModal() == wxID_OK:
-                filename = dlg.GetPath()
-                if self.editing:
-                    self.ClearNotebook()
-                LoadEbuild(self, filename, portdir)
-                self.filehistory.AddFileToHistory(filename)
-            dlg.Destroy()
-
     def OnMnuLoadFromOverlay(self, event):
         """Load an ebuild from list of overlay ebuilds only"""
         if not self.VerifySaved():
