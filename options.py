@@ -1,76 +1,34 @@
 import sys, string, os, shutil
 
-"""This entire class should be redone. Look for inifile module somewhere."""
-
 class Options:
     def __init__(self):
-        """ init!"""
-        # Lets do this in case someone uses an outdated abenirc
-        self.browser = ''
-        self.xterm = ''
-        self.diff = ''
-        self.editor = ''
-        self.autoTabs = ''
-        self.fileBrowser = ''
-        self.use= ''
-        self.features = ''
-        self.log = ''
-        self.email = ''
-
+        """Set all var names"""
+        self.pref = {}
+        self.pref['browser'] = ''
+        self.pref['xterm'] = ''
+        self.pref['diff'] = ''
+        self.pref['editor'] = ''
+        self.pref['autoTabs'] = ''
+        self.pref['fileBrowser'] = ''
+        self.pref['use'] = ''
+        self.pref['features'] = ''
+        self.pref['log'] = ''
+        self.pref['email'] = ''
         self.Read_apprc()
 
     def Read_apprc(self):
-        """ read and parse abenirc"""
+        """Read and parse abenirc"""
         file = os.path.expanduser('~/.abeni/abenirc')
         f = open(file)
-        line = f.readline()
-        while line:
-
-            if string.find(line, 'browser') != -1:
-                self.browser = string.strip(string.split(line, '=')[1])
-
-            if string.find(line, 'xterm') != -1:
-                self.xterm = string.strip(string.split(line, '=')[1])
-
-            if string.find(line, 'diff') != -1:
-                self.diff = string.strip(string.split(line, '=')[1])
-
-            if string.find(line, 'editor') != -1:
-                self.editor = string.strip(string.split(line, '=')[1])
-
-            if string.find(line, 'autoTabs') != -1:
-                self.autoTabs = string.strip(string.split(line, '=')[1])
-
-            if string.find(line, 'fileBrowser') != -1:
-                self.fileBrowser = string.strip(string.split(line, '=')[1])
-
-            if string.find(line, 'use') != -1:
-                self.use = string.strip(string.split(line, '=')[1])
-
-            if string.find(line, 'features') != -1:
-                self.features = string.strip(string.split(line, '=')[1])
-
-            if string.find(line, 'log') != -1:
-                self.log = string.strip(string.split(line, '=')[1])
-
-            if string.find(line, 'email') != -1:
-                self.email = string.strip(string.split(line, '=')[1])
-
-            line = f.readline()
+        l = f.readline()
+        while l:
+            if string.find(l, '=') != -1:
+                var = string.split(l, '=')[0].strip()
+                val = string.split(l, '=')[1].strip()
+                self.pref[var] = val
+            l = f.readline()
         f.close()
 
-
     def Prefs(self):
-        """ Return dictionary of variables and values"""
-        pref = {}
-        pref['browser'] = self.browser
-        pref['xterm'] = self.xterm
-        pref['diff'] = self.diff
-        pref['editor'] = self.editor
-        pref['autoTabs'] = self.autoTabs
-        pref['fileBrowser'] = self.fileBrowser
-        pref['use'] = self.use
-        pref['features'] = self.features
-        pref['log'] = self.log
-        pref['email'] = self.email
-        return pref
+        """Return dictionary of variables and values"""
+        return self.pref
