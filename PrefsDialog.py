@@ -167,6 +167,9 @@ class MyDialog(wxDialog):
         self.Layout()
         # end wxGlade
 
+        self.checkbox_highlight.Disable()
+        self.checkbox_gentoo_highlighting.Disable()
+
         myOptions = Options()
         p = myOptions.Prefs()
 
