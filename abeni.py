@@ -8,7 +8,6 @@ __version__ = '0.0.1'
 
 from wxPython.wx import *
 from wxPython.help import *
-#from wxPython.tools import helpviewer
 import os, os.path, string, shutil, time, sys, pickle, re, urlparse
 import panels, options
 
@@ -30,10 +29,13 @@ class MyFrame(wxFrame):
         # Are we in the process of editing an ebuild?
         self.editing = 0
 
-        # Get options from abenirc file
+        # Get options from ~/.abeni/abenirc file
         self.GetOptions()
 
-        # Keeps track of custom functions added
+        # Custom variables added
+        self.varList = []
+
+        # Custom functions added
         self.funcList = []
 
         iconFile = ('%s/Images/mocha.png' % appdir)
@@ -304,12 +306,13 @@ class MyFrame(wxFrame):
         """Dialog to add new function"""
         if not self.editing:
             return
-        dlg = wxTextEntryDialog(self, 'New Function:',
-                        'Enter Function Name', 'test')
-        dlg.SetValue("()")
-        if dlg.ShowModal() == wxID_OK:
-            newFunction = dlg.GetValue()
-            self.AddFunc(newFunction, newFunction + " {\n\n}\n")
+        from NewFuncDialog import wxDialog1
+        dlg = wxDialog1(self)
+        dlg.CenterOnScreen()
+        val = dlg.ShowModal()
+        if val == wxID_OK:
+            func, val = dlg.GetFunc()
+            self.AddFunc(func, val)
         dlg.Destroy()
 
     def AddFunc(self, newFunction, val):
@@ -500,11 +503,14 @@ class MyFrame(wxFrame):
         f.write(d + '\n\n')
         f.write(rd + '\n\n')
 
+        #Write custom variables:
+        #for var in self.varList:
+
+
         #Write functions:
         for fun in self.funcList:
             ftext = fun.edNewFun.GetText()
-            for line in ftext:
-                f.write(line + '\n')
+            f.write(ftext)
 
         #CHANGELOG.write(self.panelChangelog.ed.GetText())
 

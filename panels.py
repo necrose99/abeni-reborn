@@ -25,7 +25,7 @@ class main(wxPanel):
 
         #Custom variable globals
         self.text = []
-        self.newVar = []
+        self.varList = []
         self.vrow = 30
 
         row = 20
@@ -131,7 +131,7 @@ class main(wxPanel):
         self.text.append(t)
         v = wxTextCtrl(self, wxNewId(), val, wxPoint(525, self.vrow), wxSize(250, 20))
         v.SetFocus()
-        self.newVar.append(v)
+        self.varList.append(v)
         self.vrow += 30
         self.boxt.Destroy()
         h = self.vrow + 20
@@ -142,7 +142,7 @@ class main(wxPanel):
         self.text.append(t)
         v = wxTextCtrl(self, wxNewId(), val, wxPoint(525, self.vrow), wxSize(250, 20))
         v.SetFocus()
-        self.newVar.append(v)
+        self.varList.append(v)
         self.vrow += 50
         self.boxt.Destroy()
         h = self.vrow + 40
