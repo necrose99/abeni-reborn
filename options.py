@@ -1,8 +1,21 @@
 import sys, string, os, shutil
 
+"""This entire class should be redone. Look for inifile module somewhere."""
+
 class Options:
     def __init__(self):
         """ init!"""
+        # Lets do this in case someone uses an outdated abenirc
+        self.browser = ''
+        self.xterm = ''
+        self.diff = ''
+        self.editor = ''
+        self.autoTabs = ''
+        self.fileBrowser = ''
+        self.use= ''
+        self.features = ''
+        self.log = ''
+
         self.Read_apprc()
 
     def Read_apprc(self):
