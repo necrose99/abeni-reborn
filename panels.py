@@ -42,7 +42,7 @@ class main(wxPanel):
         text6 = wxStaticText(self, -1, "DESCRIPTION")
         self.Desc = wxTextCtrl(self, wxNewId(), "", wxPoint(0,0), wxSize(250, 20))
         row+=30
-        text7 = wxStaticText(self, -1, "USE")
+        text7 = wxStaticText(self, -1, "IUSE")
         self.USE = wxTextCtrl(self, wxNewId(), "", wxPoint(0,0), wxSize(250, 20))
         row+=30
         text8 = wxStaticText(self, -1, "SLOT")
@@ -115,10 +115,10 @@ class main(wxPanel):
         #vs2.Fit(self)
         self.boxt = wxStaticBox( self, -1, "Other Variables", wxPoint(400, 5), wxSize(390, 40))
 
-    def AddVar(self, var):
+    def AddVar(self, var, val):
         t = wxStaticText(self, -1, var, wxPoint(410, self.vrow))
         self.text.append(t)
-        v = wxTextCtrl(self, wxNewId(), "", wxPoint(525, self.vrow), wxSize(250, 20))
+        v = wxTextCtrl(self, wxNewId(), val, wxPoint(525, self.vrow), wxSize(250, 20))
         v.SetFocus()
         self.newVar.append(v)
         self.vrow += 30
@@ -190,6 +190,7 @@ class changelog(wxPanel):
         self.SetSizer(box)
         self.SetAutoLayout(True)
 
+    def PopulateDefault(self):
         self.ed.SetText(open('/usr/portage/skel.ChangeLog').readlines())
 
 
@@ -202,22 +203,17 @@ class compile(wxPanel):
         self.statusbar = statusbar
         self.pref = pref
         self.parent=parent
-        self.ed = wxEditor(self, -1, style=wxSUNKEN_BORDER)
+        self.edCompile = wxEditor(self, -1, style=wxSUNKEN_BORDER)
         box = wxBoxSizer(wxVERTICAL)
-        box.Add(self.ed, 1, wxALL|wxGROW, 1)
+        box.Add(self.edCompile, 1, wxALL|wxGROW, 1)
         self.SetSizer(box)
         self.SetAutoLayout(True)
 
-        self.ed.SetText(["src_compile(){",
-                    "    ./configure \\",
-                    "       --host=${CHOST} \\",
-                    "       --prefix=/usr \\",
-                    "       --infodir=/usr/share/info \\",
-                    "       --mandir=/usr/share/man || die './configure failed'",
-                    "    emake || die",
+    def PopulateDefault(self):
+        self.edCompile.SetText(["src_install(){",
+                        "make DESTDIR=${D} install || die",
                     "}"
-
-                    ])
+                  ])
 
 class install(wxPanel):
 
@@ -228,16 +224,23 @@ class install(wxPanel):
         self.statusbar = statusbar
         self.pref = pref
         self.parent=parent
-        self.ed = wxEditor(self, -1, style=wxSUNKEN_BORDER)
+        self.edInstall = wxEditor(self, -1, style=wxSUNKEN_BORDER)
         box = wxBoxSizer(wxVERTICAL)
-        box.Add(self.ed, 1, wxALL|wxGROW, 1)
+        box.Add(self.edInstall, 1, wxALL|wxGROW, 1)
         self.SetSizer(box)
         self.SetAutoLayout(True)
 
-        self.ed.SetText(["src_install(){",
-                        "make DESTDIR=${D} install || die",
+    def PopulateDefault(self):
+        self.edInstall.SetText(["src_compile(){",
+                    "    ./configure \\",
+                    "       --host=${CHOST} \\",
+                    "       --prefix=/usr \\",
+                    "       --infodir=/usr/share/info \\",
+                    "       --mandir=/usr/share/man || die './configure failed'",
+                    "    emake || die",
                     "}"
-                  ])
+
+                    ])
 
 
 class NewFunction(wxPanel):

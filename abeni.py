@@ -8,7 +8,7 @@ __version__ = '0.0.1'
 
 from wxPython.wx import *
 from wxPython.help import *
-import os, os.path, string, shutil, time, sys, pickle, re
+import os, os.path, string, shutil, time, sys, pickle, re, urlparse
 import panels, options
 
 #Find directory Abeni was started from
@@ -139,6 +139,7 @@ class MyFrame(wxFrame):
                                 "Help", "Abeni Help")
         self.tb.Realize()
         EVT_TOOL(self, newID, self.OnMnuNew)
+        EVT_TOOL(self, openID, self.OnMnuLoad)
         EVT_TOOL(self, newVarID, self.OnMnuNewVariable)
         EVT_TOOL(self, newFunID, self.OnMnuNewFunction)
         EVT_TOOL(self, saveID, self.OnMnuSave)
@@ -154,17 +155,19 @@ class MyFrame(wxFrame):
                             wildcard, wxOPEN|wxMULTIPLE)
         if dlg.ShowModal() == wxID_OK:
             paths = dlg.GetPaths()
-            for path in paths:
-                print path
+            for filename in paths:
+                print filename
             vars = {}
             funcs = {}
             commands = []
             tempf = []
-            f = open(path, 'r')
+            f = open(filename, 'r')
             while 1:
                 l = f.readline()
                 if not l:
                     break
+                if len(l) > 1:
+                    l = string.strip(l)
                 # Variables always start a line with all caps
                 varTest = re.search('^[A-Z]', l)
                 # Function like: mine() {
@@ -172,14 +175,17 @@ class MyFrame(wxFrame):
                 # Function like: my_func() {
                 funcTest2 = re.search('^[a-z]*_[a-z]*\(\) {', l)
                 if varTest:
+                    #TODO: Multi-line variables
                     s = string.split(l, "=")
-                    vars[s[0]] = s[1]
+                    vars[s[0]] = string.replace(s[1], '"', '')
                     continue
                 if funcTest1 or funcTest2:
                     fname = string.replace(l, "{", "")
                     tempf.append(l)
                     while 1:
                         l = f.readline()
+                        if len(l) > 1:
+                            l = string.strip(l)
                         tempf.append(l)
                         if l[0] == "}":
                             funcs[fname] = tempf
@@ -189,26 +195,64 @@ class MyFrame(wxFrame):
                 if re.search('^[a-z]', l):
                     commands.append(l)
 
-            print "VARIABLES:\n"
-            for key in vars.keys():
-                print key
-                print vars[key]
-            print "FUNCTIONS:\n"
-            for key in funcs.keys():
-                print key
-                print funcs[key]
+            #Debug:
+            #print "VARIABLES:\n"
+            #for key in vars.keys():
+            #    print key
+            #    print vars[key]
+            #print "FUNCTIONS:\n"
+            #for key in funcs.keys():
+            #    print key
+            #    print funcs[key]
             f.close()
             print "COMMANDS:\n"
             print commands
 
+            s = string.split(filename, "/")
+            ebuild_file = s[len(s)-1]
+
+            s = string.split(filename, "/")
+            ebuild = s[len(s)-2]
+            myData = {}
+            otherVars = {}
+            myData, otherVars = self.SeparateVars(vars)
+            #print myData.keys()
+            #print otherVars.keys()
+            myData['ebuild'] = ebuild
+            myData['ebuild_file'] = ebuild_file
+            self.editing = 1
+            self.AddPages()
+            self.PopulateForms(myData)
+            #Add custom variables to Main panel
+            for v in otherVars:
+                self.AddNewVar(v, otherVars[v])
+
+            # Add function pages to notebook
+            for fname in funcs:
+                self.AddFunc(fname, funcs[f])
+            # Set titlebar of app to ebuild name
+            self.SetTitle(ebuild_file)
+
+            #TODO:
+            # set myData['LICENSE'] DONE
+            # Comments
+            # Commands panel
+            # Add functions panels DONE
+            # Changelog
 
         dlg.Destroy()
 
-        #self.URI = myData['src_uri']
-        #self.AddPages()
-        #self.PopulateForms(myData)
-        #self.editing = 1
-
+    def SeparateVars(self, vars):
+        """Separates variables into defaults (myData) and all others (otherVars)"""
+        l = ["SRC_URI", "HOMEPAGE", "DEPEND", "RDEPEND", "DESCRIPTION", "IUSE", "SLOT", "KEYWORDS", "LICENSE"]
+        myData = {}
+        for key in l:
+            if vars.has_key(key):
+                myData[key] = vars[key]
+                del vars[key]
+            else:
+                myData[key] = ""
+        return myData, vars
 
     def GetOptions(self):
         """Global options from apprc file"""
@@ -244,8 +288,11 @@ class MyFrame(wxFrame):
         dlg.SetValue("")
         if dlg.ShowModal() == wxID_OK:
             newVariable = dlg.GetValue()
-            self.panelMain.AddVar(newVariable)
+            self.AddNewVar(newVariable, "")
         dlg.Destroy()
+
+    def AddNewVar(self, var, val):
+        self.panelMain.AddVar(var, val)
 
     def OnMnuNewFunction(self, event):
         """Add page in notebook for a new function"""
@@ -256,14 +303,17 @@ class MyFrame(wxFrame):
         dlg.SetValue("()")
         if dlg.ShowModal() == wxID_OK:
             newFunction = dlg.GetValue()
-            n = panels.NewFunction(self.nb, self.sb, self.pref)
-            self.funcList.append(n)
-            self.nb.AddPage(n, newFunction)
-            n.edNewFun.SetText([newFunction + "{\n", "\n", "}\n"])
+            self.AddFunc[newFunction, newFunction + "{\n", "\n", "}\n"]
             #self.panelNewFunction=panels.NewFunction(self.nb, self.sb, self.pref)
             #self.nb.AddPage(self.panelNewFunction, newFunction)
             #self.panelNewFunction.edNewFun.SetText([newFunction + "{\n", "\n", "}\n"])
         dlg.Destroy()
+
+    def AddFunc(self, newFunction, val):
+        n = panels.NewFunction(self.nb, self.sb, self.pref)
+        self.funcList.append(n)
+        self.nb.AddPage(n, newFunction)
+        n.edNewFun.SetText(val)
 
     def OnMnuHelp(self, event):
         """Display html help file"""
@@ -282,7 +332,7 @@ class MyFrame(wxFrame):
         myData = pickle.load(file)
         for myKeys in myData.keys():
             print myData[myKeys]
-        self.URI = myData['src_uri']
+        self.URI = myData['SRC_URI']
         self.AddPages()
         self.PopulateForms(myData)
         self.editing = 1
@@ -292,13 +342,15 @@ class MyFrame(wxFrame):
         """Fill forms with saved data"""
         self.panelMain.Ebuild.SetValue(myData['ebuild'])
         self.panelMain.EbuildFile.SetValue(myData['ebuild_file'])
-        self.panelMain.URI.SetValue(myData['src_uri'])
-        #self.panelMain.Rev.SetValue(myData['rev'])
-        self.panelMain.Homepage.SetValue(myData['homepage'])
-        self.panelMain.Desc.SetValue(myData['desc'])
-        self.panelMain.USE.SetValue(myData['iuse'])
-        self.panelMain.Slot.SetValue(myData['slot'])
-        self.panelMain.Keywords.SetValue(myData['keywords'])
+        self.panelMain.URI.SetValue(myData['SRC_URI'])
+        self.panelMain.Homepage.SetValue(myData['HOMEPAGE'])
+        self.panelMain.Desc.SetValue(myData['DESCRIPTION'])
+        self.panelMain.USE.SetValue(myData['IUSE'])
+        self.panelMain.Slot.SetValue(myData['SLOT'])
+        self.panelMain.Keywords.SetValue(myData['KEYWORDS'])
+        #print myData['LICENSE']
+        self.panelMain.ch.SetStringSelection(myData['LICENSE'])
+        #self.panelMain.ch.SetSelection(2)
 
     def OnMnuSave(self, event):
         """Save ebuild file to disk"""
@@ -332,6 +384,11 @@ class MyFrame(wxFrame):
                 self.panelMain.SetURI(self.URI)
                 self.panelMain.SetName(self.URI)
                 self.panelMain.SetEbuild()
+                self.nb.AddPage(self.panelCompile, "src_compile()")
+                self.nb.AddPage(self.panelInstall, "src_install()")
+                self.panelInstall.PopulateDefault()
+                self.panelCompile.PopulateDefault()
+                self.panelChangelog.PopulateDefault()
                 #We are in the middle of createing an ebuild. Should probably check for
                 #presence of wxNotebook instead
                 self.editing = 1
@@ -347,8 +404,6 @@ class MyFrame(wxFrame):
         self.panelChangelog=panels.changelog(self.nb, self.sb, self.pref)
         self.nb.AddPage(self.panelMain, "Main")
         self.nb.AddPage(self.panelDepend, "Dependencies")
-        self.nb.AddPage(self.panelCompile, "src_compile()")
-        self.nb.AddPage(self.panelInstall, "src_install()")
         self.nb.AddPage(self.panelChangelog, "Changelog")
 
     def OnMnuNewFrom(self,event):
@@ -378,17 +433,17 @@ class MyFrame(wxFrame):
         myData = {}
         myData['ebuild'] = self.panelMain.Ebuild.GetValue()
         myData['ebuild_file'] = self.panelMain.EbuildFile.GetValue()
-        myData['desc'] = self.panelMain.Desc.GetValue()
-        myData['homepage'] = self.panelMain.Homepage.GetValue()
-        myData['src_uri'] = self.panelMain.URI.GetValue()
+        myData['DESCRIPTION'] = self.panelMain.Desc.GetValue()
+        myData['HOMEPAGE'] = self.panelMain.Homepage.GetValue()
+        myData['SRC_URI'] = self.panelMain.URI.GetValue()
         #myData['rev'] = self.panelMain.Rev.GetValue()
-        myData['license'] = self.panelMain.License
-        myData['slot'] = self.panelMain.Slot.GetValue()
-        myData['keywords'] = self.panelMain.Keywords.GetValue()
-        myData['iuse'] = self.panelMain.USE.GetValue()
-        myData['depend'] = self.panelDepend.elb1.GetStrings()
-        myData['rdepend'] = self.panelDepend.elb2.GetStrings()
-        myData['s'] = "S=${WORKDIR}/${P}"
+        myData['LICENSE'] = self.panelMain.License
+        myData['SLOT'] = self.panelMain.Slot.GetValue()
+        myData['KEYWORDS'] = self.panelMain.Keywords.GetValue()
+        myData['IUSE'] = self.panelMain.USE.GetValue()
+        myData['DEPEND'] = self.panelDepend.elb1.GetStrings()
+        myData['RDEPEND'] = self.panelDepend.elb2.GetStrings()
+        myData['S'] = "S=${WORKDIR}/${P}"
         myData['src_compile'] = self.panelCompile.ed.GetText()
         myData['src_install'] = self.panelInstall.ed.GetText()
         myData['changelog'] = self.panelChangelog.ed.GetText()
@@ -434,8 +489,7 @@ class MyFrame(wxFrame):
         f.write(d + '\n\n')
         f.write(rd + '\n\n')
 
-
-        #Write and custom functions added:
+        #Write custom functions:
         for fun in self.funcList:
             ftext = fun.edNewFun.GetText()
             for line in ftext:
