@@ -28,7 +28,7 @@ def LoadEbuild(parent, filename, portdir):
     #Try to load again after exiting external editor.
     os.system("chmod +x %s" % filename)
     cmd = "/bin/bash -n %s" % filename
-    r, out = RunExtProgram(filename)
+    r, out = RunExtProgram(cmd)
     os.system("chmod -x %s" % filename)
     if r:
         parent.write("Ebuild syntax is incorrect - /bin/bash found an error. Fix this before trying to load:")
@@ -41,6 +41,7 @@ def LoadEbuild(parent, filename, portdir):
         if val == wxID_OK:
             parent.OnMnuEdit(save=0, filename=filename)
         return
+
     parent.SetFilename(filename)
     parent.recentList.append(filename)
     vars = {}
@@ -212,22 +213,25 @@ def WriteEbuild(parent, temp=0):
     f.write('# Copyright 1999-2003 Gentoo Technologies, Inc.\n')
     f.write('# Distributed under the terms of the GNU General Public License v2\n')
     # Heh. CVS fills this line in, have to trick it with:
-    f.write('# ' + '$' + 'Header:' + ' $\n')
+    f.write('# ' + '$' + 'Header:' + ' $\n\n')
 
-    #Misc statements
-    f.write('\n')
-    t = parent.panelMain.stext.GetValue()
-    if t:
-        f.write(t + '\n')
-        f.write('\n')
 
+    #We write the misc variables, then misc statements such as 'inherit cvs'
+    #because some eclasses need variables set ahead of time
     #Misc variables
     varDict = parent.panelMain.GetVars()
     for n in range(len(parent.varOrder)):
         if not parent.isDefault(parent.varOrder[n]):
             f.write(parent.varOrder[n] + '=' + varDict[parent.varOrder[n]][1].GetValue() + '\n')
 
-    #TODO: Write these in the order they were imported? Or keep like in skel.ebuild?
+    f.write('\n')
+
+    #Misc statements
+    sta = parent.panelMain.stext.GetValue()
+    if sta:
+        f.write(sta + '\n')
+        f.write('\n')
+
     # This would print them in original order imported:
     #for n in range(len(parent.varOrder)):
     #    if parent.isDefault(parent.varOrder[n]):
@@ -245,8 +249,6 @@ def WriteEbuild(parent, temp=0):
     f.write('SLOT=' + parent.panelMain.Slot.GetValue() + '\n')
     f.write('KEYWORDS=' + parent.panelMain.Keywords.GetValue() + '\n')
     f.write('IUSE=' + parent.panelMain.USE.GetValue() + '\n')
-
-    #f.write(parent.panelDepend.txt.GetText())
 
     dlist = parent.panelDepend.elb1.GetStrings()
     depFirst = 1 # Do we write DEPEND or RDEPEND first?
@@ -286,6 +288,7 @@ def WriteEbuild(parent, temp=0):
     f.write('\n')
 
     #Write functions:
+    #TODO: write in logical order: src_unpack, src_compile etc.
     for fun in parent.funcList:
         ftext = fun.edNewFun.GetText()
         f.write(ftext + '\n')

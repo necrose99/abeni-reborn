@@ -5,7 +5,7 @@ Released under the terms of the GNU Public License v2"""
 
 __author__ = 'Rob Cakebread'
 __email__ = 'robc@myrealbox.com'
-__version__ = '0.0.8'
+__version__ = '0.0.9pre'
 __changelog_ = 'http://abeni.sf.net/ChangeLog'
 
 print "Importing portage config, wxPython, Python and Abeni modules..."
@@ -31,6 +31,7 @@ portdir = env['PORTDIR']
 
 #Exit if they don't have PORTDIR_OVERLAY defined in /etc/make.conf
 # or if defined but directory doesn't exist.
+#TODO: Pop up a dialog instead (MyMessage)
 try:
     #Users may specify multiple overlay directories, we use the first one:
     portdir_overlay = env['PORTDIR_OVERLAY'].split(":")[0]
@@ -45,10 +46,27 @@ if not portdir_overlay:
     sys.exit(1)
 
 portage_tmpdir = env['PORTAGE_TMPDIR']
+#Lets choose the first arch they have, in case of multiples.
+#TODO: Mention in documentation
 arch = '~%s' % env['ACCEPT_KEYWORDS'].split(' ')[0].replace('~', '')
 
 defaults = ["SRC_URI", "HOMEPAGE", "DEPEND", "RDEPEND", "DESCRIPTION", \
             "S", "IUSE", "SLOT", "KEYWORDS", "LICENSE"]
+
+codes={}
+codes["bold"]="\x1b[01m"
+codes["teal"]="\x1b[36;06m"
+codes["turquoise"]="\x1b[36;01m"
+codes["fuscia"]="\x1b[35;01m"
+codes["purple"]="\x1b[35;06m"
+codes["blue"]="\x1b[34;01m"
+codes["darkblue"]="\x1b[34;06m"
+codes["green"]="\x1b[32;01m"
+codes["darkgreen"]="\x1b[32;06m"
+codes["yellow"]="\x1b[33;01m"
+codes["brown"]="\x1b[33;06m"
+codes["red"]="\x1b[31;01m"
+codes["darkred"]="\x1b[31;06m"
 
 class MyFrame(wxFrame):
 
@@ -64,15 +82,22 @@ class MyFrame(wxFrame):
         EVT_CLOSE(self,self.OnClose)
         # Are we in the process of editing an ebuild?
         self.editing = 0
-        if not os.path.exists(os.path.expanduser('~/.abeni')):
-            print "Creating directory " + os.path.expanduser('~/.abeni')
-            os.mkdir(os.path.expanduser('~/.abeni'))
-            os.mkdir(os.path.expanduser('~/.abeni/bugz'))
-        rcfile = os.path.expanduser('~/.abeni/abenirc')
+        abeniDir = os.path.expanduser('~/.abeni')
+        if not os.path.exists(abeniDir):
+            os.mkdir(abeniDir)
+        bugzDir = '%s/bugz' % abeniDir
+        if not os.path.exists(bugzDir):
+            os.mkdir(bugzDir)
+        templatesDir = '%s/templates' % abeniDir
+        if not os.path.exists(templatesDir):
+            os.mkdir(templatesDir)
+            shutil.copy("/usr/share/abeni/templates", ("%s/templates/Templates.py" % abeniDir))
+        sys.path.append(templatesDir)
+        rcfile = '%s/abenirc' % abeniDir
         if not os.path.exists(rcfile):
             shutil.copy("/usr/share/abeni/abenirc", rcfile)
         #Load recently accessed ebuilds
-        bookmarks = os.path.expanduser('~/.abeni/recent.txt')
+        bookmarks = '%s/recent.txt' % abeniDir
         if os.path.exists(bookmarks):
             self.recentList = open(bookmarks, 'r').readlines()
         else:
@@ -113,9 +138,7 @@ class MyFrame(wxFrame):
         iconFile = ('/usr/share/pixmaps/abeni/abeni_logo16.png')
         icon = wxIcon(iconFile, wxBITMAP_TYPE_PNG)
         self.SetIcon(icon)
-        #AddMenu(self)
         self.MyMenu()
-
         AddToolbar(self)
         self.sb = self.CreateStatusBar(2, wxST_SIZEGRIP)
         self.splitter = wxSplitterWindow(self, -1, style=wxNO_3D|wxSP_3D)
@@ -247,7 +270,6 @@ class MyFrame(wxFrame):
             icon = wxICON_INFORMATION
         elif type == "error":
             icon = wxICON_ERROR
-
         dlg = wxMessageDialog(self, msg, title, wxOK | icon)
         dlg.ShowModal()
         dlg.Destroy()
@@ -292,7 +314,6 @@ class MyFrame(wxFrame):
         if not self.editing or self.pref['log'] == 'window':
             return
         self.LogWindow()
-        #self.log.ShowPosition(self.log.GetLastPosition())
 
     def OnNoAuto(self, event):
         """Toggle switch for FEATURES='noauto'"""
@@ -306,7 +327,8 @@ class MyFrame(wxFrame):
 
     def StripNoAuto(self):
         """Strip noauto feature"""
-        #We completely ignore what's in make.conf and Abeni's preference file because the toggle switch is so damned handy
+        #We completely ignore what's in make.conf and Abeni's preference file
+        #because the NOAUTO toggle switch on the toolbar is so damned handy
         if string.find(self.pref['features'], "-noauto") != -1:
             self.pref['features'] = string.replace(self.pref['features'], "-noauto", "")
         if string.find(self.pref['features'], "noauto") != -1:
@@ -323,20 +345,6 @@ class MyFrame(wxFrame):
         color = ''
         reset = "\x1b[0m"
         if string.find(text, reset) != -1:
-            codes={}
-            codes["bold"]="\x1b[01m"
-            codes["teal"]="\x1b[36;06m"
-            codes["turquoise"]="\x1b[36;01m"
-            codes["fuscia"]="\x1b[35;01m"
-            codes["purple"]="\x1b[35;06m"
-            codes["blue"]="\x1b[34;01m"
-            codes["darkblue"]="\x1b[34;06m"
-            codes["green"]="\x1b[32;01m"
-            codes["darkgreen"]="\x1b[32;06m"
-            codes["yellow"]="\x1b[33;01m"
-            codes["brown"]="\x1b[33;06m"
-            codes["red"]="\x1b[31;01m"
-            codes["darkred"]="\x1b[31;06m"
             text = string.replace(text, reset, '')
             for c in codes:
                 if string.find(text, codes[c]) != -1:
@@ -425,6 +433,7 @@ class MyFrame(wxFrame):
         dlg.SetValue("")
         if dlg.ShowModal() == wxID_OK:
             newVariable = dlg.GetValue()
+            self.varOrder.append(newVariable)
             self.AddNewVar(newVariable, "")
         self.saved = 0
         dlg.Destroy()
@@ -433,7 +442,6 @@ class MyFrame(wxFrame):
         """Add new variable on Main panel"""
         if val == '':
             val = '""'
-        self.varOrder.append(var)
         self.panelMain.AddVar(var, val)
 
     def OnMnuDelVariable(self, event):
@@ -444,6 +452,7 @@ class MyFrame(wxFrame):
         DelVariable(self)
 
     def AddCommand(self, command):
+        """Add a statement to the Misc Commands field on the main panel (i.e. inherit gnome2)"""
         t = self.panelMain.stext.GetValue()
         t += "%s\n" % command
         self.panelMain.stext.SetValue(t)
@@ -751,24 +760,6 @@ class MyFrame(wxFrame):
             #pass
         event.Skip()
 
-    def OnMnuEclassCVS(self, event):
-        """Add Python distutils-related variables, inherit etc."""
-        if not self.editing:
-            return
-        EclassCVS(self)
-
-    def OnMnuEclassDistutils(self, event):
-        """Add CVS-related variables, inherit etc."""
-        if not self.editing:
-            return
-        EclassDistutils(self)
-
-    def OnMnuEclassGames(self, event):
-        """Add games.eclass inherit, default funcs"""
-        if not self.editing:
-            return
-        EclassGames(self)
-
     def GetCat(self):
         """Return value of category on main form"""
         return self.panelMain.Category.GetValue()
@@ -942,7 +933,6 @@ class MyFrame(wxFrame):
                 self.panelMain.SetName(self.URI)
                 self.panelMain.SetPackageName()
                 n = self.panelMain.GetPackage()
-                self.write(n)
                 if not pkgsplit(n):
                     self.logColor("RED")
                     self.write("Warning: You need to set the Package Name and ebuild name properly.")
@@ -955,8 +945,6 @@ class MyFrame(wxFrame):
                 self.panelChangelog.Populate("%s/skel.ChangeLog" % portdir, portdir)
                 self.editing = 1
                 self.saved = 0
-                if self.URI == "CVS" or self.URI == "cvs":
-                    self.OnMnuEclassCVS(-1)
                 self.DoTitle()
 
     def DoTitle(self):
@@ -1147,6 +1135,7 @@ class MyFrame(wxFrame):
             print "Package " + f + " not found. Be sure to use full package name."
 
     def GetS(self):
+        """grep S from environment file"""
         p = self.GetP()
         e = '%s/portage/%s/temp/environment' % (portage_tmpdir, p)
         if not os.path.exists(e):
@@ -1179,7 +1168,6 @@ class MyFrame(wxFrame):
 
     def ViewMakefile(self):
         """Show Makefile in editor window"""
-        #We can't read ${WORKDIR} as non-root, so we have to copy the file and change permissions.
         s = self.GetS()
         if s:
             f = '%s/Makefile' % s
@@ -1192,8 +1180,7 @@ class MyFrame(wxFrame):
                 self.AddEditor('Makefile', open(f, 'r').read())
 
     def GetEnvs(self):
-        #if not self.CheckUnpacked():
-            #return
+        """Get the 'major' environmental vars"""
         self.env = {}
         p = self.panelMain.EbuildFile.GetValue()[:-7]
         f = '%s/portage/%s/temp/environment' % (portage_tmpdir, p)
@@ -1202,6 +1189,7 @@ class MyFrame(wxFrame):
             self.write(cmd)
             os.system(cmd)
         lines = open(f, 'r').readlines()
+        #TODO: This is a partial list. Should add option to show all vars available.
         envVars = ['A', 'AA', 'AUTOCLEAN', 'BUILDDIR', 'BUILD_PREFIX', \
                 'D', 'DESTTREE', 'EBUILD', 'FEATURES', 'FILESDIR', \
                 'INHERITED', 'KV', 'KVERS', 'O', 'P', 'PF', 'PN', 'PV', \
@@ -1212,7 +1200,6 @@ class MyFrame(wxFrame):
                 var = s[0]
                 val = s[1]
                 if var in envVars:
-                    #TODO: Is this why A doesn't show up with multipe URI's:
                     self.env[var] = val.strip()
 
     def OnMnuViewConfigure(self, event):
@@ -1226,7 +1213,6 @@ class MyFrame(wxFrame):
             return
         s = self.GetS()
         if s:
-            # Example: /var/tmp/portage/zinf-2.2.3/work/zinf-2.2.3/configure
             if os.path.exists('%s/configure' % s):
                 self.ViewConfigure()
             else:
@@ -1247,12 +1233,14 @@ class MyFrame(wxFrame):
             self.AddEditor('configure', open(f, 'r').read())
 
     def CheckUnpacked(self):
+        """Return 1 if they have unpacked"""
         p = self.GetP()
         if os.path.exists('%s/portage/%s/.unpacked' % (portage_tmpdir, p)):
             return 1
         else:
             return 0
 
+    #TODO: Hmmm. I see a pattern here...
     def OnMnuCreateDigest(self, event):
         """Run 'ebuild filename digest' on this ebuild"""
         if not self.editing:
@@ -1285,9 +1273,9 @@ class MyFrame(wxFrame):
                 self.ExecuteInLog(cmd)
 
     def OnToolbarQmerge(self, event):
+        """ run /usr/sbin/ebuild (this ebuild) qmerge"""
         if self.editing:
             if self.SaveEbuild():
-
                 cmd = 'FEATURES="%s" USE="%s" /usr/sbin/ebuild %s qmerge' % \
                     (self.pref['features'], self.pref['use'], self.filename)
                 self.write(cmd)
@@ -1346,12 +1334,12 @@ class MyFrame(wxFrame):
 
     def GetTemplates(self):
         """Return list of Eclass templates to load"""
-        import EclassTemplates
-        funcs = dir(EclassTemplates)
+        import Templates
+        funcs = dir(Templates)
         c = []
         for l in funcs:
-            if l[0:6] == 'Eclass':
-                c.append(l[6:])
+            if l[0:2] == 'my':
+                c.append(l[2:])
         return c
 
     def MyMenu(self):
@@ -1401,19 +1389,8 @@ class MyFrame(wxFrame):
         mnuGetTemplateID = wxNewId()
         menu_eclass.Append(mnuGetTemplateID, "&Load template")
         EVT_MENU(self, mnuGetTemplateID, self.OnMnuGetTemplate)
-        menubar.Append(menu_eclass, "Templates")
-        '''
-        mnuGamesID = wxNewId()
-        menu_eclass.Append(mnuGamesID, "games")
-        EVT_MENU(self, mnuGamesID, self.OnMnuEclassGames)
-        mnuCVSID = wxNewId()
-        menu_eclass.Append(mnuCVSID, "cvs")
-        EVT_MENU(self, mnuCVSID, self.OnMnuEclassCVS)
-        mnuDistutilsID = wxNewId()
-        menu_eclass.Append(mnuDistutilsID, "distutils")
-        EVT_MENU(self, mnuDistutilsID, self.OnMnuEclassDistutils)
+        menubar.Append(menu_eclass, "Temp&lates")
 
-        '''
         # Tools
         menu_tools = wxMenu()
         mnuEbuildID = wxNewId()
