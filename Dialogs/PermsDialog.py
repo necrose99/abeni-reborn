@@ -33,7 +33,11 @@ class DialogWindow(wx.Dialog):
 
 	def getDialogPanel (self):
 		return self.dialog_panel
+
+
 class ChmodWindow (DialogWindow):
+
+    """Dialog for changing file permissions"""
 
     # User permission IDs
     idCHECK_UREAD  = wx.NewId ()
@@ -57,13 +61,11 @@ class ChmodWindow (DialogWindow):
         self.mode = perm
 
         if title is None:
-            title = "Ftpcube - Change File Permissions"
+            title = "Change File Permissions"
         DialogWindow.__init__ (self, parent, title)
-        #self.SetIcon (main.getApp ().getAppIcon ())
 
         panel = self.getDialogPanel ()
 
-        # Construct the user permissions section
         self.uread = wx.CheckBox (panel, self.idCHECK_UREAD, "Read")
         self.uwrite = wx.CheckBox (panel, self.idCHECK_UWRITE, "Write")
         self.uexec = wx.CheckBox (panel, self.idCHECK_UEXEC, "Exec")
@@ -75,7 +77,6 @@ class ChmodWindow (DialogWindow):
         usizer = wx.StaticBoxSizer (ubox, wx.HORIZONTAL)
         usizer.Add (ufsizer, 1, wx.EXPAND)
 
-        # Construct the group permissions section
         self.gread = wx.CheckBox (panel, self.idCHECK_GREAD, "Read")
         self.gwrite = wx.CheckBox (panel, self.idCHECK_GWRITE, "Write")
         self.gexec = wx.CheckBox (panel, self.idCHECK_GEXEC, "Exec")
@@ -87,7 +88,6 @@ class ChmodWindow (DialogWindow):
         gsizer = wx.StaticBoxSizer (gbox, wx.HORIZONTAL)
         gsizer.Add (gfsizer, 1, wx.EXPAND)
 
-        # Construct the others permissions section
         self.oread = wx.CheckBox (panel, self.idCHECK_OREAD, "Read")
         self.owrite = wx.CheckBox (panel, self.idCHECK_OWRITE, "Write")
         self.oexec = wx.CheckBox (panel, self.idCHECK_OEXEC, "Exec")
@@ -132,7 +132,7 @@ class ChmodWindow (DialogWindow):
         try:
             self.displayPermissions ()
         except TypeError:
-            print "Ack! Attempted to display invalid permissions in chmod dialog"
+            print "!!! Attempted to display invalid permissions in chmod dialog"
             self.Destroy ()
             return
 

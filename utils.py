@@ -559,7 +559,7 @@ def set_homepage(parent):
     v = parent.FindVar("HOMEPAGE")
     parent.window_3.set_uri(v, v)
 
-def ebuild_exists(filename):
+def ebuild_exists(parent, filename):
     """Display dialog if filename doesn't exist, return 1 if exists"""
     if os.path.exists(filename):
         return 1
@@ -570,7 +570,7 @@ def ebuild_exists(filename):
         dlg.ShowModal()
         return
 
-def good_ebuild_name(filename):
+def verify_ebuild_name(parent, filename):
     """Display dialog if bad ebuild name"""
     if filename[-7:] != ".ebuild":
         msg = "This file does not end in .ebuild"
@@ -581,8 +581,8 @@ def good_ebuild_name(filename):
     else:
         return 1
 
-def validate_syntax(filename):
-    """Check if ebuild has syntax errors before loading."""
+def validate_syntax(parent, filename):
+    """Check if ebuild has bash syntax errors before loading."""
     cmd = "/bin/bash -n %s" % filename
     r, out = run_ext_cmd(cmd)
     if r:
@@ -599,12 +599,12 @@ def validate_syntax(filename):
 def load_ebuild(parent, filename):
     """Load ebuild from filename"""
     filename = filename.strip()
-    if not ebuild_exists(filename):
+    if not ebuild_exists(parent, filename):
         return
-    if not good_ebuild_name(filename):
+    if not verify_ebuild_name(parent, filename):
         return
 
-    if not validate_syntax(filename):
+    if not validate_syntax(parent, filename):
         return
     s = filename.split("/")
     # ebuild file, no path:

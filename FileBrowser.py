@@ -8,7 +8,7 @@ import file_utils
 import icons.folder
 import icons.link
 import icons.file
-import PermsDialog
+from Dialogs import PermsDialog
 
 class AbstractFileWindow(wx.Panel):
 

@@ -22,6 +22,8 @@ email pythonhead AT gentoo DOT org
  - Option to archive ebuild in archive directory or sql db instead of just deleting it
 
 * General:
+ - Flash Stop button when executing background command, like launching
+   web browser so we know something is happening.
  - Improve open from overlay dialog to use notebook and let you choose from
    multiple overlays
  - Option to use different overlay directories for saving ebuilds to by default
