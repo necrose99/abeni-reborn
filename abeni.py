@@ -8,6 +8,7 @@ __version__ = '0.0.1'
 
 from wxPython.wx import *
 from wxPython.help import *
+#from wxPython.tools import helpviewer
 import os, os.path, string, shutil, time, sys, pickle, re, urlparse
 import panels, options
 
@@ -160,7 +161,7 @@ class MyFrame(wxFrame):
             vars = {}
             funcs = {}
             commands = []
-            tempf = []
+
             f = open(filename, 'r')
             while 1:
                 l = f.readline()
@@ -180,15 +181,19 @@ class MyFrame(wxFrame):
                     vars[s[0]] = string.replace(s[1], '"', '')
                     continue
                 if funcTest1 or funcTest2:
+                    tempf = []
                     fname = string.replace(l, "{", "")
-                    tempf.append(l)
+                    tempf.append(l + "\n")
                     while 1:
                         l = f.readline()
-                        if len(l) > 1:
-                            l = string.strip(l)
+                        #if len(l) > 1:
+                        #    l = string.strip(l)
                         tempf.append(l)
                         if l[0] == "}":
-                            funcs[fname] = tempf
+                            s = ""
+                            for ls in tempf:
+                                s += ls
+                            funcs[fname] = s
                             break
                     continue
                 # Command like rm -rf /tmp/foo
@@ -229,7 +234,7 @@ class MyFrame(wxFrame):
 
             # Add function pages to notebook
             for fname in funcs:
-                self.AddFunc(fname, funcs[f])
+                self.AddFunc(fname, funcs[fname])
             # Set titlebar of app to ebuild name
             self.SetTitle(ebuild_file)
 
@@ -280,7 +285,7 @@ class MyFrame(wxFrame):
         self.nbPage = event.GetSelection()
 
     def OnMnuNewVariable(self, event):
-        """Add new variable to Main panel"""
+        """Dialog for adding new variable"""
         if not self.editing:
             return
         dlg = wxTextEntryDialog(self, 'New Variable Name:',
@@ -292,10 +297,11 @@ class MyFrame(wxFrame):
         dlg.Destroy()
 
     def AddNewVar(self, var, val):
+        """Add new variable on Main panel"""
         self.panelMain.AddVar(var, val)
 
     def OnMnuNewFunction(self, event):
-        """Add page in notebook for a new function"""
+        """Dialog to add new function"""
         if not self.editing:
             return
         dlg = wxTextEntryDialog(self, 'New Function:',
@@ -303,13 +309,11 @@ class MyFrame(wxFrame):
         dlg.SetValue("()")
         if dlg.ShowModal() == wxID_OK:
             newFunction = dlg.GetValue()
-            self.AddFunc[newFunction, newFunction + "{\n", "\n", "}\n"]
-            #self.panelNewFunction=panels.NewFunction(self.nb, self.sb, self.pref)
-            #self.nb.AddPage(self.panelNewFunction, newFunction)
-            #self.panelNewFunction.edNewFun.SetText([newFunction + "{\n", "\n", "}\n"])
+            self.AddFunc(newFunction, newFunction + " {\n\n}\n")
         dlg.Destroy()
 
     def AddFunc(self, newFunction, val):
+        """Add page in notebook for a new function"""
         n = panels.NewFunction(self.nb, self.sb, self.pref)
         self.funcList.append(n)
         self.nb.AddPage(n, newFunction)
@@ -317,7 +321,23 @@ class MyFrame(wxFrame):
 
     def OnMnuHelp(self, event):
         """Display html help file"""
-        pass
+        #TODO: Fix index. Doesn't die when you exit.
+        #Add: /usr/portage/profiles/use.desc
+        import glob
+        from wxPython.tools import helpviewer
+        if __name__ == '__main__':
+            basePath = os.path.dirname(sys.argv[0])
+        else:
+            basePath = os.path.dirname(__file__)
+        # setup the args
+        args = ['',
+                '--cache='+basePath,
+                os.path.join(basePath, 'docs.zip'),
+                ]
+
+        # launch helpviewer
+        helpviewer.main(args)
+
 
     def OnOLDMnuLoad(self, event):
         """Load raw data from pickled file"""
@@ -348,9 +368,7 @@ class MyFrame(wxFrame):
         self.panelMain.USE.SetValue(myData['IUSE'])
         self.panelMain.Slot.SetValue(myData['SLOT'])
         self.panelMain.Keywords.SetValue(myData['KEYWORDS'])
-        #print myData['LICENSE']
         self.panelMain.ch.SetStringSelection(myData['LICENSE'])
-        #self.panelMain.ch.SetSelection(2)
 
     def OnMnuSave(self, event):
         """Save ebuild file to disk"""
@@ -358,13 +376,15 @@ class MyFrame(wxFrame):
             return
         if self.checkEntries():
             myData = self.GatherData()
-            file = open(self.panelMain.Ebuild.GetValue() + ".abeni", 'w')
-            pickle.dump(myData, file)
-        self.FormatEbuild()
+            #This is for pickling data:
+            #file = open(self.panelMain.Ebuild.GetValue() + ".abeni", 'w')
+            #pickle.dump(myData, file)
+            self.FormatEbuild()
+        #TODO: dialog showing save failed
 
     def checkEntries(self):
         """Validate entries on forms"""
-        # Do some sanity checking here
+        # TODO: some sanity checking here
         return 1
 
     def OnMnuNew(self,event):
@@ -384,23 +404,17 @@ class MyFrame(wxFrame):
                 self.panelMain.SetURI(self.URI)
                 self.panelMain.SetName(self.URI)
                 self.panelMain.SetEbuild()
-                self.nb.AddPage(self.panelCompile, "src_compile()")
-                self.nb.AddPage(self.panelInstall, "src_install()")
-                self.panelInstall.PopulateDefault()
-                self.panelCompile.PopulateDefault()
                 self.panelChangelog.PopulateDefault()
                 #We are in the middle of createing an ebuild. Should probably check for
                 #presence of wxNotebook instead
                 self.editing = 1
                 # Set titlebar of app to ebuild name
-                self.SetTitle(self.panelMain.GetEbuildName())
+                self.SetTitle("Abeni: " + self.panelMain.GetEbuildName())
 
     def AddPages(self):
         """Add pages to blank notebook"""
         self.panelMain=panels.main(self.nb, self.sb, self.pref)
         self.panelDepend=panels.depend(self.nb, self.sb, self.pref)
-        self.panelCompile=panels.compile(self.nb, self.sb, self.pref)
-        self.panelInstall=panels.install(self.nb, self.sb, self.pref)
         self.panelChangelog=panels.changelog(self.nb, self.sb, self.pref)
         self.nb.AddPage(self.panelMain, "Main")
         self.nb.AddPage(self.panelDepend, "Dependencies")
@@ -436,7 +450,6 @@ class MyFrame(wxFrame):
         myData['DESCRIPTION'] = self.panelMain.Desc.GetValue()
         myData['HOMEPAGE'] = self.panelMain.Homepage.GetValue()
         myData['SRC_URI'] = self.panelMain.URI.GetValue()
-        #myData['rev'] = self.panelMain.Rev.GetValue()
         myData['LICENSE'] = self.panelMain.License
         myData['SLOT'] = self.panelMain.Slot.GetValue()
         myData['KEYWORDS'] = self.panelMain.Keywords.GetValue()
@@ -444,9 +457,7 @@ class MyFrame(wxFrame):
         myData['DEPEND'] = self.panelDepend.elb1.GetStrings()
         myData['RDEPEND'] = self.panelDepend.elb2.GetStrings()
         myData['S'] = "S=${WORKDIR}/${P}"
-        myData['src_compile'] = self.panelCompile.ed.GetText()
-        myData['src_install'] = self.panelInstall.ed.GetText()
-        myData['changelog'] = self.panelChangelog.ed.GetText()
+        myData['changelog'] = self.panelChangelog.edChangelog.GetText()
         return myData
 
     def FormatEbuild(self):
@@ -489,21 +500,11 @@ class MyFrame(wxFrame):
         f.write(d + '\n\n')
         f.write(rd + '\n\n')
 
-        #Write custom functions:
+        #Write functions:
         for fun in self.funcList:
             ftext = fun.edNewFun.GetText()
             for line in ftext:
                 f.write(line + '\n')
-
-        # Now write src_compile, src_install
-        c = self.panelCompile.ed.GetText()
-        for line in c:
-            f.write(line + '\n')
-        f.write('\n\n')
-        i = self.panelInstall.ed.GetText()
-        for line in i:
-            f.write(line + '\n')
-        f.write('\n\n')
 
         #CHANGELOG.write(self.panelChangelog.ed.GetText())
 

@@ -33,13 +33,15 @@ class main(wxPanel):
         width = 260
         self.group1_ctrls = []
 
-        text1 = wxStaticText(self, -1, "Ebuild")
+        text0 = wxStaticText(self, -1, "Package")
         self.Ebuild = wxTextCtrl(self, wxNewId(), "", wxPoint(0,0), wxSize(250, 20))
         row+=30
-        text2 = wxStaticText(self, -1, "Ebuild File")
+        text1 = wxStaticText(self, -1, "Ebuild File")
         self.EbuildFile = wxTextCtrl(self, wxNewId(), "", wxPoint(0,0), wxSize(250, 20))
         row+=30
-
+        text2 = wxStaticText(self, -1, "Category")
+        self.Category = wxTextCtrl(self, wxNewId(), "", wxPoint(0,0), wxSize(250, 20))
+        row+=30
         self.group2_ctrls = []
         text3 = wxStaticText(self, -1, "SRC_URI")
         self.URI = wxTextCtrl(self, wxNewId(), "", wxPoint(0,0), wxSize(250, 20))
@@ -71,9 +73,9 @@ class main(wxPanel):
         #text11 = wxStaticText(self, -1, "Choose 'New Variable' in the 'Edit' menu to add new variables.")
         #text12 = wxStaticText(self, -1, "     ")
 
-        self.group1_ctrls.append((text1, self.Ebuild))
-        self.group1_ctrls.append((text2, self.EbuildFile))
-
+        self.group1_ctrls.append((text0, self.Ebuild))
+        self.group1_ctrls.append((text1, self.EbuildFile))
+        self.group1_ctrls.append((text2, self.Category))
         self.group2_ctrls.append((text3, self.URI))
         #self.group2_ctrls.append((text4, self.Rev))
         self.group2_ctrls.append((text5, self.Homepage))
@@ -135,6 +137,17 @@ class main(wxPanel):
         h = self.vrow + 20
         self.boxt = wxStaticBox( self, -1, "Other Variables", wxPoint(400, 5), wxSize(390, h))
 
+    def AddStatement(self, var, val):
+        t = wxStaticText(self, -1, var, wxPoint(410, self.vrow))
+        self.text.append(t)
+        v = wxTextCtrl(self, wxNewId(), val, wxPoint(525, self.vrow), wxSize(250, 20))
+        v.SetFocus()
+        self.newVar.append(v)
+        self.vrow += 50
+        self.boxt.Destroy()
+        h = self.vrow + 40
+        self.boxt = wxStaticBox(self, -1, "Statements", wxPoint(400, ), wxSize(390, h))
+
     def PopulateDefault(self):
         self.Keywords.SetValue("~x86")
         self.Slot.SetValue("0")
@@ -193,80 +206,20 @@ class changelog(wxPanel):
         self.statusbar = statusbar
         self.pref = pref
         self.parent=parent
-
         self.edChangelog = PythonSTC(self, -1)
         s = wxBoxSizer(wxHORIZONTAL)
         s.Add(self.edChangelog, 1, wxEXPAND)
         self.SetSizer(s)
         self.SetAutoLayout(True)
-
-
-        #ed.SetText(demoText + open('Main.py').read())
-        #ed.SetText()
         self.edChangelog.EmptyUndoBuffer()
         self.edChangelog.Colourise(0, -1)
-
         # line numbers in the margin
         self.edChangelog.SetMarginType(1, wxSTC_MARGIN_NUMBER)
         self.edChangelog.SetMarginWidth(1, 25)
 
     def PopulateDefault(self):
+        """Add Changelog template for new ebuilds"""
         self.edChangelog.SetText(open('/usr/portage/skel.ChangeLog').read())
-
-
-class compile(wxPanel):
-
-    """Set compile specifications using a simple text editor"""
-
-    def __init__(self, parent, statusbar, pref):
-        wxPanel.__init__(self, parent, -1)
-        self.statusbar = statusbar
-        self.pref = pref
-        self.parent=parent
-        self.edCompile = PythonSTC(self, -1)
-        s = wxBoxSizer(wxHORIZONTAL)
-        s.Add(self.edCompile, 1, wxEXPAND)
-        self.SetSizer(s)
-        self.SetAutoLayout(True)
-        self.edCompile.EmptyUndoBuffer()
-        self.edCompile.Colourise(0, -1)
-        # line numbers in the margin
-        self.edCompile.SetMarginType(1, wxSTC_MARGIN_NUMBER)
-        self.edCompile.SetMarginWidth(1, 25)
-
-    def PopulateDefault(self):
-        self.edCompile.SetText("src_install(){\nmake DESTDIR=${D} install || die\n}")
-
-class install(wxPanel):
-
-    """Set the install specifications using a simple text editor"""
-
-    def __init__(self, parent, statusbar, pref):
-        wxPanel.__init__(self, parent, -1)
-        self.statusbar = statusbar
-        self.pref = pref
-        self.parent=parent
-
-        self.edInstall = PythonSTC(self, -1)
-        s = wxBoxSizer(wxHORIZONTAL)
-        s.Add(self.edInstall, 1, wxEXPAND)
-        self.SetSizer(s)
-        self.SetAutoLayout(True)
-
-
-        #ed.SetText(demoText + open('Main.py').read())
-        #ed.SetText()
-        self.edInstall.EmptyUndoBuffer()
-        self.edInstall.Colourise(0, -1)
-
-        # line numbers in the margin
-        self.edInstall.SetMarginType(1, wxSTC_MARGIN_NUMBER)
-        self.edInstall.SetMarginWidth(1, 25)
-
-
-
-    def PopulateDefault(self):
-        self.edInstall.SetText("src_compile(){ ")
 
 
 class NewFunction(wxPanel):
@@ -283,13 +236,8 @@ class NewFunction(wxPanel):
         s.Add(self.edNewFun, 1, wxEXPAND)
         self.SetSizer(s)
         self.SetAutoLayout(True)
-
-
-        #ed.SetText(demoText + open('Main.py').read())
-        #ed.SetText()
         self.edNewFun.EmptyUndoBuffer()
         self.edNewFun.Colourise(0, -1)
-
         # line numbers in the margin
         self.edNewFun.SetMarginType(1, wxSTC_MARGIN_NUMBER)
         self.edNewFun.SetMarginWidth(1, 25)
