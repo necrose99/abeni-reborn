@@ -97,8 +97,3 @@ email pythonhead AT gentoo DOT org
  - The first entry in the Most-Recently-Used list is shown without the path,
    the other entries contain the full path (seems to be wxPython/wxGTK bug)
 
- - I've had problems with the cursor vanishing in the editor when it
-   loses focus and you focus it again. Author of wxPython says its a known
-   issue and won't be fixed in 2.4*.  Verified fixed in wxPython 2.5*
-   (2.4* used an old version of Scintilla)
-
