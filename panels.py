@@ -113,14 +113,18 @@ class main(wxPanel):
         vs.Fit(self)
         #self.SetSizer(vs2)
         #vs2.Fit(self)
-        boxt = wxStaticBox( self, -1, "Other Variables", wxPoint(400, 5), wxSize(390,350))
+        self.boxt = wxStaticBox( self, -1, "Other Variables", wxPoint(400, 5), wxSize(390, 40))
 
     def AddVar(self, var):
         t = wxStaticText(self, -1, var, wxPoint(410, self.vrow))
         self.text.append(t)
-        v =wxTextCtrl(self, wxNewId(), "", wxPoint(525, self.vrow), wxSize(250, 20))
+        v = wxTextCtrl(self, wxNewId(), "", wxPoint(525, self.vrow), wxSize(250, 20))
+        v.SetFocus()
         self.newVar.append(v)
         self.vrow += 30
+        self.boxt.Destroy()
+        h = self.vrow + 20
+        self.boxt = wxStaticBox( self, -1, "Other Variables", wxPoint(400, 5), wxSize(390, h))
 
     def PopulateDefault(self):
         self.Keywords.SetValue("~x86")
