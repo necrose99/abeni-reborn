@@ -5,7 +5,7 @@ Released under the terms of the GNU Public License v2"""
 
 __author__ = 'Rob Cakebread'
 __email__ = 'robc@myrealbox.com'
-__version__ = '0.0.5'
+__version__ = '0.0.6'
 __changelog_ = 'http://abeni.sf.net/ChangeLog'
 
 print "Importing portage config, wxPython, Python and Abeni modules..."
@@ -79,7 +79,7 @@ class MyFrame(wxFrame):
 
         # Setting for noauto toggle button
         self.StripNoAuto()
-        self.noauto = 0
+        self.noauto = 1
 
         #application icon 16x16
         iconFile = ('/usr/share/pixmaps/abeni/abeni_logo16.png')
@@ -97,7 +97,7 @@ class MyFrame(wxFrame):
         self.nb.portdir_overlay = portdir_overlay
         self.nb.portdir = portdir
         self.log = wxTextCtrl(self.splitter, -1,
-                             style = wxTE_MULTILINE|wxTE_READONLY|wxHSCROLL)
+                             style = wxTE_MULTILINE|wxTE_READONLY|wxHSCROLL|wxTE_RICH2)
         self.log.SetFont(wxFont(12, wxMODERN, wxNORMAL, wxNORMAL, faceName="Lucida Console"))
         #This would be nice, but some .gtkrc files screw it up:
         #self.log.SetBackgroundColour(wxBLACK)
@@ -112,7 +112,7 @@ class MyFrame(wxFrame):
         if len(sys.argv) == 2:
             f = sys.argv[1]
             if os.path.exists(f):
-                LoadEbuild(self, f, __version__, portdir)
+                LoadEbuild(self, f, portdir)
             else:
                 print "No such file: %s" % f
                 print "Checking for package: %s" % f
@@ -161,6 +161,7 @@ class MyFrame(wxFrame):
             self.pref['features'] = "-noauto %s" % self.pref['features'].strip()
 
     def StripNoAuto(self):
+        """Strip noauto feature"""
         #We completely ignore what's in make.conf and Abeni's preference file because this switch is so damned handy
         if string.find(self.pref['features'], "-noauto") != -1:
             self.pref['features'] = string.replace(self.pref['features'], "-noauto", "")
@@ -176,21 +177,83 @@ class MyFrame(wxFrame):
             pass
 
     def LogTab(self):
-        txt = self.log.GetValue()
+        """Show log window in separate tab"""
         self.logWindow=panels.LogWindow(self.nb, self.sb, self.pref)
         wxLog_SetActiveTarget(MyLog(self.logWindow.log))
         self.nb.InsertPage(0, self.logWindow, "Log")
+        txt = self.log.GetValue()
         self.logWindow.log.SetValue(txt)
         self.splitter.Unsplit()
         self.nb.SetSelection(0)
         self.pref['log'] = 'tab'
 
     def WriteText(self, text):
+        """Send text to log window after colorizing"""
         if text[-1:] == '\n':
             text = text[:-1]
-        wxLogMessage(text)
+        color = ''
+        reset = "\x1b[0m"
+        if string.find(text, reset) != -1:
+            codes={}
+            codes["bold"]="\x1b[01m"
+            codes["teal"]="\x1b[36;06m"
+            codes["turquoise"]="\x1b[36;01m"
+            codes["fuscia"]="\x1b[35;01m"
+            codes["purple"]="\x1b[35;06m"
+            codes["blue"]="\x1b[34;01m"
+            codes["darkblue"]="\x1b[34;06m"
+            codes["green"]="\x1b[32;01m"
+            codes["darkgreen"]="\x1b[32;06m"
+            codes["yellow"]="\x1b[33;01m"
+            codes["brown"]="\x1b[33;06m"
+            codes["red"]="\x1b[31;01m"
+            codes["darkred"]="\x1b[31;06m"
+            text = string.replace(text, reset, '')
+            for c in codes:
+                if string.find(text, codes[c]) != -1:
+                    if c == "darkgreen":
+                        color = "FOREST GREEN"
+                    elif c == "yellow":
+                        color = "BROWN"
+                    elif c == "brown":
+                        color = "BROWN"
+                    elif c == "darkred":
+                        color = "RED"
+                    elif c == "teal":
+                        color = "FOREST GREEN"
+                    elif c == "turquoise":
+                        color = "TURQUOISE"
+                    elif c == "fuscia":
+                        color = "PURPLE"
+                    elif c == "green":
+                        color = "SPRING GREEN"
+                    elif c == "red":
+                        color = "RED"
+                    else:
+                        color = "BLUE"
+                    text = string.replace(text, codes[c], '')
+                    break
+        if color:
+            self.logColor(color)
+            wxLogMessage(text)
+            self.logColor("BLACK")
+        else:
+            if text[0:3] == ">>>" or text[0:3] == "<<<":
+                self.logColor("BLUE")
+                wxLogMessage(text)
+                self.logColor("BLACK")
+            elif text[0:3] == "!!!":
+                self.logColor("RED")
+                wxLogMessage(text)
+                self.logColor("BLACK")
+            else:
+                wxLogMessage(text)
+
+    def logColor(self, color):
+        self.log.SetDefaultStyle(wxTextAttr(wxNamedColour(color)))
 
     def write(self, txt):
+        """Send text to log window"""
         self.WriteText(txt)
 
     def OnToolbarXterm(self, event):
@@ -245,7 +308,7 @@ class MyFrame(wxFrame):
                 #Don't run sudo, we want user owner/perms on ebuild files in PORTDIR_OVERLAY
                 wxSafeYield()
                 os.system('%s %s' % (self.pref['editor'], self.filename))
-                LoadEbuild(self, self.filename, __version__, portdir)
+                LoadEbuild(self, self.filename, portdir)
 
     def OnMnuDiff(self, event):
         """Run diff program on original vs. saved ebuild"""
@@ -335,8 +398,6 @@ class MyFrame(wxFrame):
             #cmd2 = self.pref['xterm'] + ' -T "emerge" -hold -e ' + cmd + ' &'
             #os.system(cmd2)
 
-
-
     def OnMnuEbuild(self, event):
         """Run 'ebuild <file> <cmd>' """
         if not self.editing:
@@ -369,8 +430,21 @@ class MyFrame(wxFrame):
         if self.process is not None:
             stream = self.process.GetInputStream()
             if stream.CanRead():
-                text = stream.read()
-                self.write(text)
+                t = stream.readline()
+                self.write(t)
+                """
+                if t.find(">>>") != -1:
+                    self.logColor("BLUE")
+                    self.write(t)
+                    self.logColor("BLACK")
+                else:
+                    if t.find("<<<") != -1:
+                        self.logColor("LIGHT STEEL BLUE")
+                        self.write(t)
+                        self.logColor("BLACK")
+                    else:
+                        self.write(t)
+                """
 
     def OnProcessEnded(self, evt):
         #self.log.write('OnProcessEnded, pid:%s,  exitCode: %s\n' %
@@ -379,7 +453,28 @@ class MyFrame(wxFrame):
         stream = self.process.GetInputStream()
         if stream.CanRead():
             text = stream.read()
-            self.write(text)
+            text = string.split(text, '\n')
+            for t in text:
+                self.write(t)
+                """
+                if t.find(">>>") != -1:
+                    self.logColor("BLUE")
+                    self.write(t)
+                    self.logColor("BLACK")
+                else:
+                    if t.find("<<<") != -1:
+                        self.logColor("LIGHT STEEL BLUE")
+                        self.write(t)
+                        self.logColor("BLACK")
+                    else:
+                        if t.find(" * ") != -1:
+                            self.logColor("DARK GREEN")
+                            self.write(t)
+                            self.logColor("BLACK")
+
+                        else:
+                            self.write(t)
+                """
 
         self.process.Destroy()
         self.process = None
@@ -400,7 +495,9 @@ class MyFrame(wxFrame):
             ebuild = self.panelMain.EbuildFile.GetValue()
             p = string.replace(ebuild, '.ebuild', '')
             d = '%s/portage/%s/work' % (portage_tmpdir, p)
+            self.logColor("RED")
             self.write("Unpacked these directory(s) into ${WORKDIR}:")
+            self.logColor("BLACK")
             self.ExecuteInLog('sudo ls %s' % d)
 
     def ExecuteInLog(self, cmd):
@@ -502,7 +599,7 @@ class MyFrame(wxFrame):
         path = self.filehistory.GetHistoryFile(fileNum)
         if os.path.exists(path) and not self.VerifySaved():
             self.ClearNotebook()
-            LoadEbuild(self, path, __version__, portdir)
+            LoadEbuild(self, path, portdir)
             # add it back to the history so it will be moved up the list
             self.filehistory.AddFileToHistory(path)
 
@@ -517,7 +614,7 @@ class MyFrame(wxFrame):
                 if os.path.exists(filename):
                     if self.editing:
                         self.ClearNotebook()
-                    LoadEbuild(self, filename, __version__, portdir)
+                    LoadEbuild(self, filename, portdir)
                     self.filehistory.AddFileToHistory(filename)
             dlg.Destroy()
 
@@ -675,6 +772,7 @@ class MyFrame(wxFrame):
             defaultVars = getDefaultVars(self)
             WriteEbuild(self)
             self.saved = 1
+            self.DoTitle()
             return 1
         else:
             dlg = wxMessageDialog(self, msg, 'Abeni: Error Saving', wxOK | wxICON_INFORMATION)
@@ -737,15 +835,21 @@ class MyFrame(wxFrame):
                     self.panelMain.SetName(self.URI)
                 self.panelMain.SetPackage()
                 if self.URI.find('sourceforge') != -1:
-                    self.panelMain.Homepage.SetValue('"http://%s.sourceforge.net/"' % self.panelMain.GetPackage().lower())
+                    self.panelMain.Homepage.SetValue('"http://sourceforge.net/projects/%s"' % self.panelMain.GetPackage().lower())
                 self.panelChangelog.Populate("%s/skel.ChangeLog" % portdir, portdir)
                 self.editing = 1
                 self.saved = 0
                 if self.URI == "CVS" or self.URI == "cvs":
                     self.OnMnuEclassCVS(-1)
-                self.SetTitle(self.panelMain.GetEbuildName() + " | Abeni " + __version__)
+                self.DoTitle()
                 if self.pref['log'] == 'tab':
                     self.nb.SetSelection(1)
+
+    def DoTitle(self):
+        if not self.saved:
+            self.SetTitle(self.panelMain.GetEbuildName() + " * Abeni " + __version__)
+        else:
+            self.SetTitle(self.panelMain.GetEbuildName() + " - Abeni " + __version__)
 
     def AddPages(self):
         """Add pages to blank notebook"""
@@ -777,6 +881,25 @@ class MyFrame(wxFrame):
     def OnMnuExit(self,event):
         """Exits and closes application"""
         self.OnClose(-1)
+
+    def OnMnuEclassHelp(self, event):
+        """View an eclass file"""
+        #TODO: This is a modal dialog, use a wxFrame maybe?
+        d = "%s/eclass/" % portdir
+        c = os.listdir(d)
+        c.sort()
+        dlg = wxSingleChoiceDialog(self, 'View an Eclass', 'Eclass',
+                                   c, wxOK|wxCANCEL)
+        if dlg.ShowModal() == wxID_OK:
+            opt = dlg.GetStringSelection()
+            file = "%s/%s" % (d, opt)
+            msg = open(file, "r").read()
+            dlg.Destroy()
+            dlg = wxScrolledMessageDialog(self, msg, opt)
+            dlg.Show(True)
+        else:
+            dlg.Destroy()
+            return
 
     def OnMnuPref(self, event):
         """Modify preferences"""
@@ -862,7 +985,7 @@ class MyFrame(wxFrame):
                     else:
                         fname = '%s/%s/%s.ebuild' % (portdir, f, package)
                 if os.path.exists(fname):
-                    LoadEbuild(self, fname, __version__, portdir)
+                    LoadEbuild(self, fname, portdir)
                 else:
                     print "Error: Can't load %s" % fname
             dlg.Destroy()
@@ -907,30 +1030,6 @@ class MyFrame(wxFrame):
             self.AddEditor('Makefile', open('/tmp/Makefile', 'r').read())
             self.SetToNewPage()
             os.system('sudo rm /tmp/Makefile')
-
-    """
-    def ExploreWorkdir(self, event):
-        #Show configure file in editor window
-        # Gah. This won't work with sudo. ${WORKDIR} is locked.
-        # Could spawn an xterm, do su -c filemanager
-        # Feh. xterm su -c doesn't work with kfmclient
-        if not self.editing:
-            return
-        p = self.panelMain.EbuildFile.GetValue()[:-7]
-        s = '%s/portage/%s/work' % (portage_tmpdir, p)
-        if os.path.exists(s):
-            self.write('Warning: Running %s as root.' % self.pref['fileBrowser'])
-            cmd = '%s -e "su -c %s %s &"' % (self.pref['xterm'], self.pref['fileBrowser'], s)
-            self.write(s)
-            self.write(cmd)
-            os.system(cmd)
-            #os.system('sudo %s %s &' % (self.pref['fileBrowser'], s))
-        else:
-            dlg = wxMessageDialog(self, 'You need to create a digest and unpack the package first\n\nThis can be done from the Tools menu.',
-                          'Error', wxOK | wxICON_INFORMATION)
-            dlg.ShowModal()
-            dlg.Destroy()
-    """
 
     def GetEnvs(self):
         #if not self.CheckUnpacked():

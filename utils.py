@@ -7,7 +7,7 @@ def GetOptions(parent):
     myOptions = options.Options()
     parent.pref = myOptions.Prefs()
 
-def LoadEbuild(parent, filename, __version__, portdir):
+def LoadEbuild(parent, filename, portdir):
     filename = string.strip(filename)
     parent.SetFilename(filename)
     parent.recentList.append(filename)
@@ -154,7 +154,7 @@ def LoadEbuild(parent, filename, __version__, portdir):
         parent.nb.SetSelection(1)
 
     # Set titlebar of app to ebuild name
-    parent.SetTitle(parent.ebuild_file + " | Abeni " + __version__)
+    parent.DoTitle()
 
 def WriteEbuild(parent, temp=0):
     """Format data into fields and output to ebuild file"""
@@ -258,14 +258,20 @@ def WriteEbuild(parent, temp=0):
     parent.recentList.append(filename)
     parent.sb.SetStatusText("Saved", 0)
     #parent.write("Saved %s" % filename)
-    #parent.SetTitle("%s | %s" % (parent.panelMain.EbuildFile.GetValue(), parent.__version__))
     #TODO: CRITICAL Fix this. It doesn't work on first save of new ebuild.
     try:
         parent.ebuildfile.editorCtrl.SetReadOnly(0)
+    except:
+        pass
+    try:
         parent.ebuildfile.editorCtrl.SetText(open(filename, 'r').read())
+    except:
+        pass
+    try:
         parent.ebuildfile.editorCtrl.SetReadOnly(1)
     except:
         pass
+
 
 def getDefaultVars(parent):
     """Gather default variables from Main form"""
@@ -471,7 +477,11 @@ def AddMenu(parent):
     EVT_MENU(parent, mnuHelpRefID, parent.OnMnuHelpRef)
     menu_help.Append(mnuAboutID,"&About")
     EVT_MENU(parent, mnuAboutID, parent.OnMnuAbout)
+    mnuEclassID = wxNewId()
+    menu_help.Append(mnuEclassID, "&View eclass files")
+    EVT_MENU(parent, mnuEclassID, parent.OnMnuEclassHelp)
     menubar.Append(menu_help,"&Help")
+
     parent.SetMenuBar(menubar)
 
 def AddToolbar(parent):
@@ -584,6 +594,7 @@ def AddToolbar(parent):
     parent.tb.Realize()
     #parent.timer = None
     parent.OnNoAuto(-1)
+    b.SetValue(True)
 
 def DelVariable(parent):
     varDict = parent.panelMain.GetVars()

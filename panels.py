@@ -30,8 +30,14 @@ class main(wxPanel):
         text0 = wxStaticText(self, -1, "Package")
         self.Package = wxTextCtrl(self, wxNewId(), "", wxPoint(0,0), wxSize(250, 20))
         row+=30
+
         text1 = wxStaticText(self, -1, "Ebuild File")
         self.EbuildFile = wxTextCtrl(self, wxNewId(), "", wxPoint(0,0), wxSize(250, 20))
+        EVT_TEXT(self, self.EbuildFile.GetId(), self.EvtText)
+        EVT_CHAR(self.EbuildFile, self.EvtChar)
+        EVT_SET_FOCUS(self.EbuildFile, self.OnSetFocus)
+        EVT_KILL_FOCUS(self.EbuildFile, self.OnKillFocus)
+
         row+=30
         catButID = wxNewId()
         catButton = wxButton(self, catButID, "Category")
@@ -123,6 +129,22 @@ class main(wxPanel):
         self.stext.SetInsertionPoint(0)
         self.boxv = wxStaticBox( self, -1, "Other Variables", wxPoint(400, 132), wxSize(480, 40))
         #EVT_TEXT(self, stext.GetId(), self.EvtText)
+
+
+    def EvtText(self, event):
+        print('EvtText: %s\n' % event.GetString())
+
+    def EvtChar(self, event):
+        print('EvtChar: %d\n' % event.GetKeyCode())
+        event.Skip()
+
+    def OnSetFocus(self, evt):
+        print "OnSetFocus"
+        evt.Skip()
+
+    def OnKillFocus(self, evt):
+        print "OnKillFocus"
+        evt.Skip()
 
     def DeleteVars(self):
         self.varDict = {}
@@ -223,7 +245,7 @@ class main(wxPanel):
 
     def GetEbuildName(self):
         """Return name of ebuild"""
-        return self.ebuildName
+        return self.EbuildFile.GetValue()
 
     def SetPackage(self):
         """Set ebuild package name"""
