@@ -26,6 +26,7 @@ def LoadEbuild(parent, filename, portdir):
     #Check if ebuild has syntax errors before loading.
     #If there are errors ask if they want to edit it in external editor.
     #Try to load again after exiting external editor.
+    """
     os.system("chmod +x %s" % filename)
     cmd = "/bin/bash -n %s" % filename
     r, out = RunExtProgram(cmd)
@@ -41,7 +42,7 @@ def LoadEbuild(parent, filename, portdir):
         if val == wxID_OK:
             parent.OnMnuEdit(save=0, filename=filename)
         return
-
+    """
     parent.SetFilename(filename)
     parent.recentList.append(filename)
     vars = {}
