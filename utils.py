@@ -843,7 +843,7 @@ def WriteEbuild(parent, temp=0):
     SetFilename(parent, filename)
     parent.filehistory.AddFileToHistory(filename.strip())
     if parent.pref['stripHeader'] == 1:
-        parent.FindReplace("# $Header", '# ' + '$Header: /cvsroot/abeni/abeni/utils.py,v 1.34 2004/10/07 23:05:59 robc Exp $')
+        parent.FindReplace("# $Header", '# ' + '$' + 'Header' + ': $')
     txt = parent.STCeditor.GetText()
     # strip trailing whitespace
     out = '\n'.join([t.rstrip() for t in txt.splitlines() if t != '\n'])
