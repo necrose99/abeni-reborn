@@ -5,12 +5,9 @@ email pythonhead AT gentoo DOT org
 
 * Do by next release:
  - Disable menus/toolbar icons when not in edit mode
- - Disable cpvr inputs till editor is visible
  - Make sure caret is visible after ExecuteInLog? wx.CallAfter(self.EnsureCaretVisible)
 
 * General:
- - Need function to check/warn if external apps exist every time someone tries to launch
-   the external editor, web browser etc.
  - When you inherit an eclass, scan the functions and add them to Scintilla's
    keyword list for highlighting and auto-completion
  - Improve find / search&replace dialog: "whole word", "match case" don't work

@@ -1,3 +1,12 @@
+
+  18 Nov 2004; Rob Cakebread <pythonhead@gentoo.org>:
+
+  14 Nov 2004; Rob Cakebread <pythonhead@gentoo.org>:
+  Abeni now runs as regular user using sudo to perform any ebuild/emerge
+  and misc file handling commands
+
+*abeni-0.0.22 (Nov 14 2004)
+
   03 Nov 2004; Rob Cakebread <pythonhead@gentoo.org>:
   Fixed bug with templates not working in fresh installs,
   removed CVS functions until I make a better interface for

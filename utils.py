@@ -17,7 +17,6 @@ import options
 import __version__
 
 
-modulePath = "/usr/lib/python%s/site-packages/abeni" % sys.version[0:3]
 
 try:
     env = config(clone=settings).environ()
@@ -142,6 +141,12 @@ def LogBottom(parent, log):
     parent.pref['log'] = 'bottom'
 
 
+def write(parent, txt):
+    """Send text to log window"""
+    if parent.stdout:
+        print txt
+    WriteText(parent, txt)
+
 def WriteText(parent, text):
     """Send text to log window after colorizing"""
     parent.busywriting = 1
@@ -177,6 +182,7 @@ def WriteText(parent, text):
     # For the [ok]'s
     text = text.replace("\x1b[A", '')
     text = text.replace("\x1b[-7G", '')
+    text = text.replace("\x1b[73G", '')
 
     pref = text[0:3]
     if pref == ">>>" or pref == "<<<" or pref == "---" \
@@ -196,12 +202,6 @@ def WriteText(parent, text):
 def log_color(parent, color):
     """Set color of text sent to log window"""
     parent.text_ctrl_log.SetDefaultStyle(wx.TextAttr(wx.NamedColour(color)))
-
-def write(parent, txt):
-    """Send text to log window"""
-    if parent.stdout:
-        print txt
-    WriteText(parent, txt)
 
 def PostAction(parent, action):
     """Execute code after asynchronous job done with ExecuteInLog finishes"""
@@ -239,8 +239,10 @@ def PostAction(parent, action):
 def log_to_output(parent):
     """Get logfile text and display in output tab"""
     #TODO: Run through WriteText or something to get color/filter esc codes
-    t = commands.getoutput("sudo cat /var/tmp/abeni/emerge_log")
-    parent.text_ctrl_log.AppendText("%s\n" % t)
+    lines = commands.getoutput("sudo cat /var/tmp/abeni/emerge_log").splitlines()
+    for l in lines:
+        write(parent, l)
+    #parent.text_ctrl_log.AppendText("%s\n" % t)
 
 def ExportEbuild(parent):
     """Export ebuild directory to tar file"""
@@ -292,7 +294,7 @@ def ExportEbuild(parent):
         else:
             taroptions = "-cvf"
 
-        ExecuteInLog(parent, "tar "+taroptions+" "+tarballname+" -C "+GetCategoryPath(parent)+" "+reduce(lambda a,b: a+" "+b, filelist))
+        parent.ExecuteInLog("tar "+taroptions+" "+tarballname+" -C "+GetCategoryPath(parent)+" "+reduce(lambda a,b: a+" "+b, filelist))
 
         # FUTURE: once we have python-2.3 we can use the following:
         #os.chdir(parent.GetCategoryPath())
@@ -390,31 +392,12 @@ def SetS(parent, myp):
     p = getP(parent)
     parent.s = "%s/portage/%s/work/%s" % (portage_tmpdir, p, myp)
 
-def ExecuteInLog(parent, cmd, logMsg=''):
-    """Run a program and send stdout & stderr to the log window"""
-    if parent.running:
-        msg = ("Please wait till this finishes:\n %s" % parent.running)
-        title = 'Abeni: Error - Wait till external program is finished.'
-        MyMessage(parent, msg, title, "error")
-        return
-    if logMsg:
-        write(parent, logMsg)
-    parent.running = cmd
-    parent.toolbar.EnableTool(parent.StopID, True)
-    parent.process = wx.Process(parent)
-    parent.process.Redirect();
-    pyCmd = "python -u %s/doCmd.py %s" % (modulePath, cmd)
-    parent.pid = wx.Execute(pyCmd, wx.EXEC_ASYNC, parent.process)
-    #parent.pid = wx.Execute("sh -c '%s'" % cmd, wx.EXEC_ASYNC, parent.process)
-    #TODO: Maybe add option to show commands as they execute
-    #write(parent, cmd)
-    ID_Timer = wx.NewId()
-    parent.timer = wx.Timer(parent, ID_Timer)
-    wx.EVT_TIMER(parent,  ID_Timer, parent.OnTimer)
-    parent.timer.Start(100)
-
 def Reset(parent):
     """Reset abeni for new/loaded ebuild"""
+    parent.button_Category.Enable(True)
+    parent.text_ctrl_Category.Enable(True)
+    parent.text_ctrl_PN.Enable(True)
+    parent.text_ctrl_PVR.Enable(True)
     parent.text_ctrl_Category.SetValue("")
     parent.text_ctrl_PN.SetValue("")
     parent.text_ctrl_PVR.SetValue("")
@@ -425,6 +408,7 @@ def Reset(parent):
     parent.editing = 0
     parent.statusbar.SetStatusText('', 1)
     parent.filename = ""
+    parent.enable_toolbar(True)
 
 def VerifySaved(parent):
     """Check if the ebuild has changed and offer to save if so"""
@@ -554,9 +538,11 @@ def DoTitle(parent):
     """Set application's titlebar"""
     p = parent.GetParent()
     if p.STCeditor.GetModify():
-        p.SetTitle(getP(p) + " * Abeni " + __version__.version)
+        p.SetTitle("*" + getP(p) + " - Abeni " + __version__.version)
+        #p.enable_save_tool(True)
     else:
         p.SetTitle(getP(p) + " - Abeni " + __version__.version)
+        #p.enable_save_tool(False)
 
 def LoadByPackage(parent, query):
     """Offer list of ebuilds when given a package or filename on command line"""
@@ -742,6 +728,7 @@ def AddInherit(parent, eclass):
 
 def RunExtProgram(cmd):
     """Run program and return exit code, output in a list"""
+    #TODO: Replace with commands.getoutput
     out = []
     p = popen2.Popen4(cmd , 1)
     inp = p.fromchild

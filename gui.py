@@ -14,19 +14,11 @@ from wx.lib.dialogs import MultipleChoiceDialog, ScrolledMessageDialog
 from portage import config, settings, pkgsplit
 
 import utils
-import abeniCVS
 import __version__ 
-import AboutDialog
-import PrefsDialog
-import EmergeDialog
-import GetURIDialog
-import AddFunctionDialog
-import FileCopyDialog
-import HelpFkeysDialog
-import HelpCVSDialog
-import PortageFuncsDialog
+import dialogs
 import pyipc
 import options 
+#import abeniCVS
 
 env = config(clone=settings).environ()
 portdir_overlay = env['PORTDIR_OVERLAY'].split(" ")[0]
@@ -165,40 +157,40 @@ class MyFrame(wx.Frame):
         # Tool Bar
         self.toolbar = wx.ToolBar(self, -1, style=wx.TB_HORIZONTAL|wx.TB_FLAT)
         self.SetToolBar(self.toolbar)
-        global newID; newID = wx.NewId()
-        global openID; openID = wx.NewId()
-        global openOvlID; openOvlID = wx.NewId()
-        global saveID; saveID = wx.NewId()
-        global editID; editID = wx.NewId()
-        global newFuncID; newFuncID = wx.NewId()
-        global toolCleanID; toolCleanID = wx.NewId()
-        global digestID; digestID = wx.NewId()
-        global unpackID; unpackID = wx.NewId()
-        global compileID; compileID = wx.NewId()
-        global installID; installID = wx.NewId()
-        global qmergeID; qmergeID = wx.NewId()
-        global ebuildID; ebuildID = wx.NewId()
-        global emergeID; emergeID = wx.NewId()
-        global xtermID; xtermID = wx.NewId()
-        self.StopID = wx.NewId()
-        self.toolbar.AddLabelTool(newID, "new", wx.Bitmap("/usr/share/pixmaps/abeni/new.png", wx.BITMAP_TYPE_ANY), wx.NullBitmap, wx.ITEM_NORMAL, "New ebuild", "")
-        self.toolbar.AddLabelTool(openID, "open", wx.Bitmap("/usr/share/pixmaps/abeni/open.png", wx.BITMAP_TYPE_ANY), wx.NullBitmap, wx.ITEM_NORMAL, "Open ebuild in PORTDIR", "")
-        self.toolbar.AddLabelTool(openOvlID, "openOvl", wx.Bitmap("/usr/share/pixmaps/abeni/open_ovl.png", wx.BITMAP_TYPE_ANY), wx.NullBitmap, wx.ITEM_NORMAL, "Open ebuild in PORTDIR_OVERLAY", "")
-        self.toolbar.AddLabelTool(saveID, "save", wx.Bitmap("/usr/share/pixmaps/abeni/save.png", wx.BITMAP_TYPE_ANY), wx.NullBitmap, wx.ITEM_NORMAL, "Save ebuild Ctrl-S", "")
-        self.toolbar.AddLabelTool(editID, "edit", wx.Bitmap("/usr/share/pixmaps/abeni/edit.png", wx.BITMAP_TYPE_ANY), wx.NullBitmap, wx.ITEM_NORMAL, "Edit ebuild in external editor F7", "")
+        global TB_NEW_ID; TB_NEW_ID = wx.NewId()
+        global TB_OPEN_ID; TB_OPEN_ID = wx.NewId()
+        global TB_OPEN_OLAY_ID; TB_OPEN_OLAY_ID = wx.NewId()
+        global TB_SAVE_ID; TB_SAVE_ID = wx.NewId()
+        global TB_EDIT_ID; TB_EDIT_ID = wx.NewId()
+        global TB_FUNC_ID; TB_FUNC_ID = wx.NewId()
+        global TB_CLEAN_ID; TB_CLEAN_ID = wx.NewId()
+        global TB_DIGEST_ID; TB_DIGEST_ID = wx.NewId()
+        global TB_UNPACK_ID; TB_UNPACK_ID = wx.NewId()
+        global TB_COMPILE_ID; TB_COMPILE_ID = wx.NewId()
+        global TB_INSTALL_ID; TB_INSTALL_ID = wx.NewId()
+        global TB_QMERGE_ID; TB_QMERGE_ID = wx.NewId()
+        global TB_EBUILD_ID; TB_EBUILD_ID = wx.NewId()
+        global TB_EMERGE_ID; TB_EMERGE_ID = wx.NewId()
+        global TB_XTERM_ID; TB_XTERM_ID = wx.NewId()
+        global TB_STOP_ID; TB_STOP_ID = wx.NewId()
+        self.toolbar.AddLabelTool(TB_NEW_ID, "new", wx.Bitmap("/usr/share/pixmaps/abeni/new.png", wx.BITMAP_TYPE_ANY), wx.NullBitmap, wx.ITEM_NORMAL, "New ebuild", "")
+        self.toolbar.AddLabelTool(TB_OPEN_ID, "open", wx.Bitmap("/usr/share/pixmaps/abeni/open.png", wx.BITMAP_TYPE_ANY), wx.NullBitmap, wx.ITEM_NORMAL, "Open ebuild in PORTDIR", "")
+        self.toolbar.AddLabelTool(TB_OPEN_OLAY_ID, "openOvl", wx.Bitmap("/usr/share/pixmaps/abeni/open_ovl.png", wx.BITMAP_TYPE_ANY), wx.NullBitmap, wx.ITEM_NORMAL, "Open ebuild in PORTDIR_OVERLAY", "")
+        self.toolbar.AddLabelTool(TB_SAVE_ID, "save", wx.Bitmap("/usr/share/pixmaps/abeni/save.png", wx.BITMAP_TYPE_ANY), wx.NullBitmap, wx.ITEM_NORMAL, "Save ebuild Ctrl-S", "")
+        self.toolbar.AddLabelTool(TB_EDIT_ID, "edit", wx.Bitmap("/usr/share/pixmaps/abeni/edit.png", wx.BITMAP_TYPE_ANY), wx.NullBitmap, wx.ITEM_NORMAL, "Edit ebuild in external editor F7", "")
         self.toolbar.AddSeparator()
-        self.toolbar.AddLabelTool(newFuncID, "newFunc", wx.Bitmap("/usr/share/pixmaps/abeni/fx.png", wx.BITMAP_TYPE_ANY), wx.NullBitmap, wx.ITEM_NORMAL, "New Function F6", "")
-        self.toolbar.AddLabelTool(toolCleanID, "clean", wx.Bitmap("/usr/share/pixmaps/abeni/clean.png", wx.BITMAP_TYPE_ANY), wx.NullBitmap, wx.ITEM_NORMAL, "Clean Shift-F1", "")
-        self.toolbar.AddLabelTool(digestID, "digest", wx.Bitmap("/usr/share/pixmaps/abeni/digest.png", wx.BITMAP_TYPE_ANY), wx.NullBitmap, wx.ITEM_NORMAL, "Digest F1", "")
-        self.toolbar.AddLabelTool(unpackID, "unpack", wx.Bitmap("/usr/share/pixmaps/abeni/unpack.png", wx.BITMAP_TYPE_ANY), wx.NullBitmap, wx.ITEM_NORMAL, "Unpack F2", "")
-        self.toolbar.AddLabelTool(compileID, "compile", wx.Bitmap("/usr/share/pixmaps/abeni/compile.png", wx.BITMAP_TYPE_ANY), wx.NullBitmap, wx.ITEM_NORMAL, "Compile F3", "")
-        self.toolbar.AddLabelTool(installID, "install", wx.Bitmap("/usr/share/pixmaps/abeni/install.png", wx.BITMAP_TYPE_ANY), wx.NullBitmap, wx.ITEM_NORMAL, "Install F4", "")
-        self.toolbar.AddLabelTool(qmergeID, "qmerge", wx.Bitmap("/usr/share/pixmaps/abeni/qmerge.png", wx.BITMAP_TYPE_ANY), wx.NullBitmap, wx.ITEM_NORMAL, "Qmerge F5", "")
-        self.toolbar.AddLabelTool(ebuildID, "ebuild", wx.Bitmap("/usr/share/pixmaps/abeni/ebuild.png", wx.BITMAP_TYPE_ANY), wx.NullBitmap, wx.ITEM_NORMAL, "ebuild <this ebuild> command F9", "")
-        self.toolbar.AddLabelTool(emergeID, "emerge", wx.Bitmap("/usr/share/pixmaps/abeni/emerge.png", wx.BITMAP_TYPE_ANY), wx.NullBitmap, wx.ITEM_NORMAL, "emerge <options><this ebuild> F10", "")
-        self.toolbar.AddLabelTool(xtermID, "xterm", wx.Bitmap("/usr/share/pixmaps/abeni/xterm.png", wx.BITMAP_TYPE_ANY), wx.NullBitmap, wx.ITEM_NORMAL, "Launch xterm in $S F12", "")
+        self.toolbar.AddLabelTool(TB_FUNC_ID, "newFunc", wx.Bitmap("/usr/share/pixmaps/abeni/fx.png", wx.BITMAP_TYPE_ANY), wx.NullBitmap, wx.ITEM_NORMAL, "New Function F6", "")
+        self.toolbar.AddLabelTool(TB_CLEAN_ID, "clean", wx.Bitmap("/usr/share/pixmaps/abeni/clean.png", wx.BITMAP_TYPE_ANY), wx.NullBitmap, wx.ITEM_NORMAL, "Clean Shift-F1", "")
+        self.toolbar.AddLabelTool(TB_DIGEST_ID, "digest", wx.Bitmap("/usr/share/pixmaps/abeni/digest.png", wx.BITMAP_TYPE_ANY), wx.NullBitmap, wx.ITEM_NORMAL, "Digest F1", "")
+        self.toolbar.AddLabelTool(TB_UNPACK_ID, "unpack", wx.Bitmap("/usr/share/pixmaps/abeni/unpack.png", wx.BITMAP_TYPE_ANY), wx.NullBitmap, wx.ITEM_NORMAL, "Unpack F2", "")
+        self.toolbar.AddLabelTool(TB_COMPILE_ID, "compile", wx.Bitmap("/usr/share/pixmaps/abeni/compile.png", wx.BITMAP_TYPE_ANY), wx.NullBitmap, wx.ITEM_NORMAL, "Compile F3", "")
+        self.toolbar.AddLabelTool(TB_INSTALL_ID, "install", wx.Bitmap("/usr/share/pixmaps/abeni/install.png", wx.BITMAP_TYPE_ANY), wx.NullBitmap, wx.ITEM_NORMAL, "Install F4", "")
+        self.toolbar.AddLabelTool(TB_QMERGE_ID, "qmerge", wx.Bitmap("/usr/share/pixmaps/abeni/qmerge.png", wx.BITMAP_TYPE_ANY), wx.NullBitmap, wx.ITEM_NORMAL, "Qmerge F5", "")
+        self.toolbar.AddLabelTool(TB_EBUILD_ID, "ebuild", wx.Bitmap("/usr/share/pixmaps/abeni/ebuild.png", wx.BITMAP_TYPE_ANY), wx.NullBitmap, wx.ITEM_NORMAL, "ebuild <this ebuild> command F9", "")
+        self.toolbar.AddLabelTool(TB_EMERGE_ID, "emerge", wx.Bitmap("/usr/share/pixmaps/abeni/emerge.png", wx.BITMAP_TYPE_ANY), wx.NullBitmap, wx.ITEM_NORMAL, "emerge <options><this ebuild> F10", "")
+        self.toolbar.AddLabelTool(TB_XTERM_ID, "xterm", wx.Bitmap("/usr/share/pixmaps/abeni/xterm.png", wx.BITMAP_TYPE_ANY), wx.NullBitmap, wx.ITEM_NORMAL, "Launch xterm in $S F12", "")
         self.toolbar.AddSeparator()
-        self.toolbar.AddLabelTool(self.StopID, "stop", wx.Bitmap("/usr/share/pixmaps/abeni/stop.png", wx.BITMAP_TYPE_ANY), wx.NullBitmap, wx.ITEM_NORMAL, "Interrupt process running in log window", "")
+        self.toolbar.AddLabelTool(TB_STOP_ID, "stop", wx.Bitmap("/usr/share/pixmaps/abeni/stop.png", wx.BITMAP_TYPE_ANY), wx.NullBitmap, wx.ITEM_NORMAL, "Interrupt process running in log window", "")
         # Tool Bar end
         self.static_line_2 = wx.StaticLine(self, -1)
         self.button_Category = wx.Button(self.panel_cpvr, -1, "Category")
@@ -239,9 +231,13 @@ class MyFrame(wx.Frame):
         for i in range(len(statusbar_fields)):
             self.statusbar.SetStatusText(statusbar_fields[i], i)
         self.toolbar.Realize()
+        self.button_Category.Enable(False)
         self.text_ctrl_Category.SetToolTipString("Select a category")
+        self.text_ctrl_Category.Enable(False)
         self.text_ctrl_PN.SetToolTipString("Enter the Package Name")
+        self.text_ctrl_PN.Enable(False)
         self.text_ctrl_PVR.SetToolTipString("Enter the Package Version")
+        self.text_ctrl_PVR.Enable(False)
         self.button_1.SetValue(1)
         self.radio_box_env.SetSelection(0)
         # end wxGlade
@@ -300,7 +296,7 @@ class MyFrame(wx.Frame):
         self.window_1_pane_2.SetSizer(sizer_11)
         sizer_11.Fit(self.window_1_pane_2)
         sizer_11.SetSizeHints(self.window_1_pane_2)
-        self.window_1.SplitVertically(self.window_1_pane_1, self.window_1_pane_2, -361)
+        self.window_1.SplitVertically(self.window_1_pane_1, self.window_1_pane_2)
         sizer_9.Add(self.window_1, 1, wx.EXPAND, 0)
         self.panel_explorer.SetAutoLayout(True)
         self.panel_explorer.SetSizer(sizer_9)
@@ -349,29 +345,29 @@ class MyFrame(wx.Frame):
         wx.EVT_BUTTON(self, self.button_patch.GetId(), self.OnPatchButton)
         wx.EVT_BUTTON(self, self.button_delete.GetId(), self.OnDeleteButton)
         wx.EVT_BUTTON(self, self.button_Category.GetId(), self.OnCatButton)
-        wx.EVT_TOOL(self, newID, self.OnMnuNew)
-        wx.EVT_TOOL(self, openID, self.OnMnuLoad)
-        wx.EVT_TOOL(self, openOvlID, self.OnMnuLoadFromOverlay)
-        wx.EVT_TOOL(self, saveID, self.OnMnuSave)
-        wx.EVT_TOOL(self, editID, self.OnMnuEdit)
+        wx.EVT_TOOL(self, TB_NEW_ID, self.OnMnuNew)
+        wx.EVT_TOOL(self, TB_OPEN_ID, self.OnMnuLoad)
+        wx.EVT_TOOL(self, TB_OPEN_OLAY_ID, self.OnMnuLoadFromOverlay)
+        wx.EVT_TOOL(self, TB_SAVE_ID, self.OnMnuSave)
+        wx.EVT_TOOL(self, TB_EDIT_ID, self.OnMnuEdit)
 
         #Insert
-        wx.EVT_TOOL(self, newFuncID, self.OnMnuNewFunction)
+        wx.EVT_TOOL(self, TB_NEW_ID, self.OnMnuNewFunction)
         wx.EVT_TOOL(self, mnuLicenseID, self.InsertLicense)
 
         #Tools
 
-        wx.EVT_TOOL(self, toolCleanID, self.OnMnuClean)
-        wx.EVT_TOOL(self, digestID, self.OnMnuCreateDigest)
-        wx.EVT_TOOL(self, unpackID, self.OnToolbarUnpack)
-        wx.EVT_TOOL(self, compileID, self.OnToolbarCompile)
-        wx.EVT_TOOL(self, installID, self.OnToolbarInstall)
-        wx.EVT_TOOL(self, qmergeID, self.OnToolbarQmerge)
-        wx.EVT_TOOL(self, ebuildID, self.OnMnuEbuild)
-        wx.EVT_TOOL(self, emergeID, self.OnMnuEmerge)
-        wx.EVT_TOOL(self, xtermID, self.OnXtermInS)
-        wx.EVT_TOOL(self, self.StopID, self.KillProc)
-        wx.EVT_TOOL(self, mnuAddFuncID, self.OnMnuNewFunction)
+        wx.EVT_TOOL(self, TB_CLEAN_ID, self.OnMnuClean)
+        wx.EVT_TOOL(self, TB_DIGEST_ID, self.OnMnuCreateDigest)
+        wx.EVT_TOOL(self, TB_UNPACK_ID, self.OnToolbarUnpack)
+        wx.EVT_TOOL(self, TB_COMPILE_ID, self.OnToolbarCompile)
+        wx.EVT_TOOL(self, TB_INSTALL_ID, self.OnToolbarInstall)
+        wx.EVT_TOOL(self, TB_QMERGE_ID, self.OnToolbarQmerge)
+        wx.EVT_TOOL(self, TB_EBUILD_ID, self.OnMnuEbuild)
+        wx.EVT_TOOL(self, TB_EMERGE_ID, self.OnMnuEmerge)
+        wx.EVT_TOOL(self, TB_XTERM_ID, self.OnXtermInS)
+        wx.EVT_TOOL(self, TB_STOP_ID, self.KillProc)
+        #wx.EVT_TOOL(self, TB_FUNCTION_ID, self.OnMnuNewFunction)
 
         # File
 
@@ -442,7 +438,7 @@ class MyFrame(wx.Frame):
 
         self.process = None
 
-    	self.toolbar.EnableTool(self.StopID, False)
+    	self.toolbar.EnableTool(TB_STOP_ID, False)
 
         # Explorer tree:
         self.root = self.tree_ctrl_1.AddRoot(" ")
@@ -454,7 +450,6 @@ class MyFrame(wx.Frame):
         self.tree_ctrl_1.Expand(self.root)
         self.tree_ctrl_1.Expand(self.root)
         self.window_1_pane_2.Hide()
-
         #TODO: Add option to save current screen size when exiting
         self.SetSize((882, 696))
         #screenWidth =  wx.SystemSettings.GetMetric(wx.SYS_SCREEN_X)
@@ -530,6 +525,39 @@ class MyFrame(wx.Frame):
             print "Checking for package: %s" % f
             #Draw GUI before we start the slow search
             utils.LoadByPackage(self, f)
+        self.enable_toolbar(False)
+
+    def ExecuteInLog(self, cmd, logMsg=''):
+        """Run a program asynchronously and send stdout & stderr to the log window"""
+        # If you want to do something after async job finishes, set 
+        # self.action = "foo" See: utils.py PostAction
+        if self.running:
+            msg = ("Please wait till this finishes:\n %s" % self.running)
+            title = 'Abeni: Error - Wait till external program is finished.'
+            utils.MyMessage(self, msg, title, "error")
+            return
+        if logMsg:
+            utils.write(self, logMsg)
+        self.running = cmd
+        self.toolbar.EnableTool(TB_STOP_ID, True)
+        self.process = wx.Process(self)
+        self.process.Redirect();
+        modulePath = "/usr/lib/python%s/site-packages/abeni" % sys.version[0:3]
+        pyCmd = "python -u %s/doCmd.py %s" % (modulePath, cmd)
+        self.pid = wx.Execute(pyCmd, wx.EXEC_ASYNC, self.process)
+        ID_Timer = wx.NewId()
+        self.timer = wx.Timer(self, ID_Timer)
+        wx.EVT_TIMER(self,  ID_Timer, self.OnTimer)
+        self.timer.Start(100)
+
+    def enable_toolbar(self, state):
+        """Disable icons not applicable when ebuild not saved"""
+        ids = [TB_SAVE_ID,TB_EDIT_ID, TB_FUNC_ID, TB_CLEAN_ID, TB_DIGEST_ID, TB_UNPACK_ID, TB_COMPILE_ID, TB_INSTALL_ID, TB_QMERGE_ID,TB_EBUILD_ID, TB_EMERGE_ID,TB_XTERM_ID]
+        for id in ids:
+            self.toolbar.EnableTool(id, state)
+
+    def enable_save_toolbar(self, state):
+        self.toolbar.EnableTool(TB_SAVE_ID, state)
 
     def on_noauto(self, event):
         """Toggle noauto button"""
@@ -808,14 +836,31 @@ class MyFrame(wx.Frame):
         """Display html help file"""
         self.LaunchBrowser("http://abeni.sf.net/docs/ebuild-quick-reference.html")
 
+    def strip_opts(self, cmd):
+        """Strip any options from commands"""
+        return cmd.split(" ")[0]
+     
+    def command_exists(self, cmd):
+        """Return True if command exists"""
+        if not cmd:
+            return
+        cmd = self.strip_opts(cmd)
+        if cmd[0] == "/":
+            if os.path.exists(cmd):
+                return True
+        else:
+            o = commands.getoutput("which %s" % cmd)
+            if o[0:6] != "which:":
+                return True
+
     def LaunchBrowser(self, url):
         """launch web browser"""
-        if self.pref['browser']:
-            cmd = self.pref['browser'] + " " + url
-            os.system("%s &" % cmd)
-        else:
+        if not self.command_exists(self.pref['browser']):
             utils.MyMessage(self, "You need to define a browser in preferences.", \
               "Error", "error")
+            return
+        cmd = self.pref['browser'] + " " + url
+        os.system("%s &" % cmd)
 
     def OnMnuHelp(self, event):
         """Display html help file"""
@@ -980,7 +1025,7 @@ class MyFrame(wx.Frame):
             logMsg = '))) Creating digest...'
             #cmd = 'FEATURES="%s" USE="%s" sudo /usr/sbin/ebuild %s digest' % (self.pref['features'], self.pref['use'], self.filename)
             cmd = 'sudo /usr/sbin/ebuild %s digest' % self.filename
-            utils.ExecuteInLog(self, cmd, logMsg)
+            self.ExecuteInLog(cmd, logMsg)
 
     def OnToolbarCompile(self, event):
         """ebuild <this ebuild> compile"""
@@ -995,7 +1040,7 @@ class MyFrame(wx.Frame):
                 #    (self.pref['features'], self.pref['use'], self.filename)
                 cmd = '''xterm -e "sudo sh -c 'export %s;export USE='%s';sudo ebuild %s compile 2>&1| tee /var/tmp/abeni/emerge_log'"''' \
                          % (self.noauto, self.pref['use'], self.filename)
-                utils.ExecuteInLog(self, cmd, logMsg)
+                self.ExecuteInLog(cmd, logMsg)
 
     def OnMnuClean(self, event):
         """Run 'ebuild filename clean' on this ebuild"""
@@ -1006,7 +1051,7 @@ class MyFrame(wx.Frame):
         #cmd = 'FEATURES="%s" USE="%s" sudo /usr/sbin/ebuild %s clean' % \
         #      (self.pref['features'], self.pref['use'], self.filename)
         cmd = 'sudo /usr/sbin/ebuild %s clean' % self.filename
-        utils.ExecuteInLog(self, cmd, logMsg)
+        self.ExecuteInLog(cmd, logMsg)
 
     def OnToolbarEdit(self, event):
         """Edit this ebuild in external editor"""
@@ -1021,11 +1066,10 @@ class MyFrame(wx.Frame):
             self.focus_output()
             if not utils.VerifySaved(self):
                 self.action = 'unpack'
-                logMsg = '))) Unpacking...'
                 #cmd = 'FEATURES="%s" USE="%s" sudo /usr/sbin/ebuild %s unpack' % \
                 #    (self.pref['features'], self.pref['use'], self.filename)
                 cmd = 'sudo /usr/sbin/ebuild %s unpack' % self.filename
-                utils.ExecuteInLog(self, cmd, logMsg)
+                self.ExecuteInLog(cmd )
 
     def OnToolbarInstall(self, event):
         """ebuild <this ebuild> Install"""
@@ -1045,7 +1089,7 @@ class MyFrame(wx.Frame):
                          % (self.noauto, self.pref['use'], self.filename)
 
 
-                utils.ExecuteInLog(self, cmd, logMsg)
+                self.ExecuteInLog(cmd, logMsg)
 
     def OnToolbarQmerge(self, event):
         """ebuild <this ebuild> qmerge"""
@@ -1068,7 +1112,7 @@ class MyFrame(wx.Frame):
                 #         % (self.pref['use'], self.filename)
                 #cmd = 'sudo /usr/sbin/ebuild %s qmerge' % self.filename
                 utils.write(self, cmd)
-                utils.ExecuteInLog(self, cmd, logMsg)
+                self.ExecuteInLog(cmd, logMsg)
 
     def OnMnuImportPatch(self, event):
         """Import an existing patch"""
@@ -1556,7 +1600,7 @@ class MyFrame(wx.Frame):
 
     def OnMnuAbout(self, event):
         """Obligitory About me and my app screen"""
-        about = AboutDialog.MyAboutBox(self)
+        about = dialogs.AboutDialog.MyAboutBox(self)
         about.ShowModal()
         about.Destroy()
         event.Skip()
@@ -1587,13 +1631,13 @@ class MyFrame(wx.Frame):
 
     def KillProc(self, event):
         """Kill processes when stop button clicked"""
-        os.system("sudo kill %s" % self.pid)
-        utils.write(self, "Killed %s" % self.pid)
+        #os.system("sudo kill %s" % self.pid)
+        #utils.write(self, "Killed %s" % self.pid)
         try:
-            pid = open("/var/run/abeni_proc.pid", "r").read().strip()
-            os.system("sudo kill %s" % pid)
-            utils.write(self, "sub pid %s killed" % pid)
-            utils.write(self, "If running command in xterm, press Ctrl-C in that xterm." % pid)
+            #pid = open("/var/run/abeni_proc.pid", "r").read().strip()
+            #os.system("sudo kill %s" % pid)
+            #utils.write(self, "sub pid %s killed" % pid)
+            utils.write(self, "If you're running a command in an xterm, press Ctrl-C in that xterm." % pid)
         except:
             pass
         event.Skip()
@@ -1610,7 +1654,7 @@ class MyFrame(wx.Frame):
                 utils.write(self, t)
         self.process.Destroy()
         self.process = None
-        self.toolbar.EnableTool(self.StopID, False)
+        self.toolbar.EnableTool(TB_STOP_ID, False)
         self.running = None
         action = self.action
         self.action = None
@@ -1756,9 +1800,10 @@ class MyFrame(wx.Frame):
     def OnMnuEdit(self, event=None, save=1, filename=''):
         """Launch external editor then reload ebuild after editor exits"""
         if self.editing:
-            if not self.pref['editor']:
-                utils.MyMessage(self, "No editor defined in perferences", \
-                  "Error: no editor defined", "error")
+            if not self.command_exists(self.pref['editor']):
+                utils.MyMessage(self, "You need to define an editor in preferences.", \
+                  "Error", "error")
+                return
             if save:
                 if utils.SaveEbuild(self):
                     #utils.Reset(self)
@@ -1775,7 +1820,7 @@ class MyFrame(wx.Frame):
             return
         logMsg = "))) repoman --pretend scan\n))) Ignore warnings about ChangeLog and metadata.xml because we're in the overlay dir"
         cmd = 'cd %s;/usr/bin/repoman --pretend scan' % self.ebuildDir
-        utils.ExecuteInLog(self, cmd, logMsg)
+        self.ExecuteInLog(cmd, logMsg)
 
     def OnMnuRepomanFull(self, event):
         """Run repoman --pretend full on this ebuild"""
@@ -1783,7 +1828,7 @@ class MyFrame(wx.Frame):
             return
         logMsg = "))) repoman --pretend full\n))) Ignore warnings about metadata.xml because we're in the overlay dir"
         cmd = 'cd %s;/usr/bin/repoman --pretend full' % self.ebuildDir
-        utils.ExecuteInLog(self, cmd, logMsg)
+        self.ExecuteInLog(cmd, logMsg)
 
     def OnMnuEmerge(self, event):
         """Run 'emerge <options> <this ebuild>' """
@@ -1801,7 +1846,7 @@ class MyFrame(wx.Frame):
                 cmd = '''xterm -e "sudo sh -c 'export USE='%s';%s | tee /var/tmp/abeni/emerge_log'"''' \
                          % (win.use.GetValue(), win.emerge.GetValue())
                 logMsg = "))) %s" % cmd
-                utils.ExecuteInLog(self, cmd, logMsg)
+                self.ExecuteInLog(cmd, logMsg)
 
     def OnMnuEbuild(self, event):
         """Run 'ebuild <file> <cmd>' """
@@ -1829,7 +1874,7 @@ class MyFrame(wx.Frame):
             logMsg = "))) Executing:\n"
             logMsg += ")))   USE='%s' FEATURES='%s'\n" % (self.pref['use'], self.pref['features'])
             logMsg += ")))   sudo ebuild %s %s" % (self.filename, opt)
-            utils.ExecuteInLog(self, cmd, logMsg)
+            self.ExecuteInLog(cmd, logMsg)
 
 
 # end of class MyFrame
