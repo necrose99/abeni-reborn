@@ -2,6 +2,9 @@ Abeni ChangeLog
 
 0.0.9 -------------
 
+Aug 26, 2003:
+
+make the abeni status list configurable
 
 Aug 25, 2003 Changed File menu/Load from overlay hotkey to 'o'
 
@@ -13,6 +16,9 @@ new ebuilds will automatically have:
 SRC_URI=http://foo.com/${P}.tgz
 
 Upped max nbr of filehistory from 9 to 12, fixed bug where recent.txt kept growning with multiple entries of MRU
+
+implemented export function to create a tarball with the ebuild, digest and other
+files in $FILESDIR
 
 Aug 24, 2003 Added customizable templates in ~/.abeni/templates/Templates.py
 
