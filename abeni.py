@@ -1,4 +1,4 @@
- #!/usr/bin/env python
+#!/usr/bin/env python
 
 """Abeni - Gentoo Linux Ebuild Editor/Syntax Checker
 Released under the terms of the GNU Public License v2"""
@@ -11,16 +11,23 @@ from wxPython.help import *
 from wxPython.lib.dialogs import wxScrolledMessageDialog
 import os, os.path, string, sys, re, urlparse
 import panels, options
+from portage import config
 
 #Directory Abeni was started from
 appdir = os.path.abspath(os.path.join(os.getcwd(), sys.path[0]))
+
+#Get portage path locations from /etc/make.conf
+distdir = config().environ()['DISTDIR']
+portdir = config().environ()['PORTDIR']
+portdir_overlay = config().environ()['PORTDIR_OVERLAY']
+
 
 class MyFrame(wxFrame):
 
     """ Main frame that holds the menu, toolbar and notebook """
 
     def __init__(self, parent, id, title):
-        wxFrame.__init__(self, parent, -1, title, size=wxSize(800,480))
+        wxFrame.__init__(self, parent, -1, title, size=wxSize(800,500))
         self.SetAutoLayout(true)
         #Catch the close event so we can clean up nicely.
         EVT_CLOSE(self,self.OnClose)
@@ -81,7 +88,6 @@ class MyFrame(wxFrame):
         self.filehistory = wxFileHistory()
         self.filehistory.UseMenu(self.menu)
         EVT_WINDOW_DESTROY(self, self.Cleanup)
-
         # Edit
         menu_edit = wxMenu()
         mnuNewVariableID = wxNewId()
@@ -99,15 +105,32 @@ class MyFrame(wxFrame):
         menubar.Append(menu_edit, "&Edit")
         # Tools
         menu_tools = wxMenu()
+
+        mnuEbuildID = wxNewId()
+        menu_tools.Append(mnuEbuildID, "Run &ebuild <this ebuild> <command>")
+        EVT_MENU(self, mnuEbuildID, self.OnMnuEbuild)
+
+        mnuEmergeID = wxNewId()
+        menu_tools.Append(mnuEmergeID, "Run e&merge <args> <this ebuild>")
+        EVT_MENU(self, mnuEmergeID, self.OnMnuEmerge)
+
+
         mnuLintoolID = wxNewId()
         menu_tools.Append(mnuLintoolID, "Run &Lintool on this ebuild")
         EVT_MENU(self, mnuLintoolID, self.OnMnuLintool)
+        mnuRepomanID = wxNewId()
+        menu_tools.Append(mnuRepomanID, "Run &Repoman on this ebuild")
+        EVT_MENU(self, mnuRepomanID, self.OnMnuRepoman)
         mnuDigestID = wxNewId()
         menu_tools.Append(mnuDigestID, "&Create Digest")
         EVT_MENU(self, mnuDigestID, self.OnMnuCreateDigest)
         mnuDiffID = wxNewId()
         menu_tools.Append(mnuDiffID, "Observe &diff")
         EVT_MENU(self, mnuDiffID, self.OnMnuDiff)
+        mnuDiffCreateID = wxNewId()
+        menu_tools.Append(mnuDiffCreateID, "Create diff &file")
+        EVT_MENU(self, mnuDiffCreateID, self.OnMnuDiffCreate)
+
         menubar.Append(menu_tools, "&Tools")
         # Options
         menu_options = wxMenu()
@@ -230,8 +253,22 @@ class MyFrame(wxFrame):
             return
 
         orgFile = string.replace(self.filename, 'local/', '')
-        os.system('kompare ' + orgFile + ' ' + self.filename + ' &')
+        os.system(self.pref['diff'] + ' ' + orgFile + ' ' + self.filename + ' &')
 
+    def OnMnuDiffCreate(self, event):
+        """Create diff file of original vs. saved ebuild"""
+        #TODO: This only works if PORTDIR_OVERLAY is /usr/local/portage
+        # and PORTDIR is /usr/local
+
+        if not self.editing:
+            return
+
+        orgFile = string.replace(self.filename, 'local/', '')
+        diffFile = string.replace(self.ebuild_file, '.ebuild', '.diff')
+        print orgFile, diffFile
+        cmd = 'diff -u ' + orgFile + ' ' + self.filename + ' > ~/.abeni/' + diffFile
+        print cmd
+        os.system(cmd)
 
     def OnMnuCreateDigest(self, event):
         """Run 'ebuild filename digest' on this ebuild"""
@@ -241,18 +278,75 @@ class MyFrame(wxFrame):
         # I did this in an xterm because we need to be root and it has colored output.
         #TODO: Strip escape codes so we can put in a text widget for those who use sudo
 
-        cmd = 'su -c "ebuild ' + self.filename + ' digest' \
-                  + ' && echo \nYou can close this window now."'
-        os.system('xterm -T "Creating Digest" -hold -e ' + cmd + ' &')
+        cmd = 'su -c "ebuild ' + self.filename + ' digest"'
+        os.system(self.pref['xterm'] + ' -T "Creating Digest" -hold -e ' + cmd + ' &')
+
+    def OnMnuRepoman(self, event):
+        """Run 'repoman-local-5.py' on this ebuild"""
+        if not self.editing:
+            return
+        d = os.getcwd()
+        os.chdir(self.ebuildDir)
+        cmd = '"/usr/bin/repoman-safe.py ; echo Press ENTER ; read foo"'
+        cmd2 = self.pref['xterm'] + ' -T "repoman-safe" -e ' + cmd + ' &'
+        os.system(cmd2)
+        os.chdir(d)
+
+
+    def OnMnuEmerge(self, event):
+        """Run 'emerge <options> <this ebuild>' """
+        if not self.editing:
+            return
+
+        dlg = wxTextEntryDialog(self, 'What arguments do you want to pass?',
+                            'Arguments?', '')
+        dlg.SetValue("")
+        if dlg.ShowModal() == wxID_OK:
+            opts = dlg.GetValue()
+            dlg.Destroy()
+        else:
+            dlg.Destroy()
+            return
+
+        if opts == '-p' or opts == '--pretend':
+            cmd = '"emerge ' + opts + ' ' + self.filename + ' ; echo Done"'
+        else:
+            cmd = 'su -c "emerge ' + opts + ' ' + self.filename + ' ; echo Done"'
+        cmd2 = self.pref['xterm'] + ' -T "emerge" -hold -e ' + cmd + ' &'
+        os.system(cmd2)
+
+
+    def OnMnuEbuild(self, event):
+        """Run 'ebuild <file> <cmd>' """
+        if not self.editing:
+            return
+        c = ['setup', 'depend', 'merge', 'qmerge', 'unpack',
+             'compile', 'rpm', 'package', 'prerm', 'postrm',
+             'preinst', 'postinst', 'config', 'touch', 'clean',
+             'fetch', 'digest', 'install', 'unmerge']
+        c.sort()
+        dlg = wxSingleChoiceDialog(self, 'Command:', 'Choose ebuild command',
+                                   c, wxOK|wxCANCEL)
+        if dlg.ShowModal() == wxID_OK:
+            opt = dlg.GetStringSelection()
+            dlg.Destroy()
+        else:
+            dlg.Destroy()
+            return
+        cmd = 'su -c "ebuild ' + self.filename + ' ' + opt + ' ; echo Done"'
+        cmd2 = self.pref['xterm'] + ' -T "ebuild" -hold -e ' + cmd + ' &'
+        os.system(cmd2)
 
     def OnMnuLintool(self, event):
         """Run 'lintool' on this ebuild"""
         if not self.editing:
             return
 
-        cmd = '"/usr/bin/lintool ' + self.filename \
-                  + ' && echo You can close this window now."'
-        os.system('xterm -T "Lintool" -hold -e ' + cmd + ' &')
+        cmd = '"/usr/bin/lintool ' + self.filename + ' ; echo Press ENTER ; read foo"'
+        #print cmd
+        cmd2 = self.pref['xterm'] + ' -T "Lintool" -e ' + cmd + ' &'
+        #print cmd2
+        os.system(cmd2)
 
         #TODO use the Python tempfile module
         # This works, but need fixed width fonts:
@@ -269,6 +363,9 @@ class MyFrame(wxFrame):
         """Remove current function page"""
         #TODO: This removes any page
         self.nb.RemovePage(self.nb.GetSelection())
+        #Neither of these fix the bug where the tab still shows. If you resize the window, it deletes it.
+        self.nb.Refresh(true)
+        self.Refresh(true)
 
     def ClearNotebook(self):
         """Delete all pages in the notebook"""
@@ -291,7 +388,11 @@ class MyFrame(wxFrame):
         self.recentList.append(filename)
         vars = {}
         funcs = {}
+        self.varOrder = [] # Keep track of order variables are set
+        self.funcOrder = [] # Keep track of order functions are set
         statements = []
+        defaultVars = ['DESCRIPTION', 'HOMEPAGE', 'SRC_URI', 'LICENSE', 'SLOT'
+                        'KEYWORDS', 'IUSE', 'DEPEND', 'S']
         f = open(filename, 'r')
         while 1:
             l = f.readline()
@@ -323,11 +424,10 @@ class MyFrame(wxFrame):
                             s[1] = s[1].replace('\n\n', '\n')
                             break
 
-                #vars[s[0]] = string.replace(s[1], '"', '')
-                #Lets leave "$VAR-foo" alone
                 vars[s[0]] = s[1]
-
+                self.varOrder.append(s[0])
                 continue
+
             if funcTest1 or funcTest2 or funcTest3 or funcTest4:
                 tempf = []
                 fname = string.replace(l, "{", "")
@@ -340,6 +440,7 @@ class MyFrame(wxFrame):
                         for ls in tempf:
                             s += ls
                         funcs[fname] = s
+                        self.funcOrder.append(fname)
                         break
                 continue
             # Command like 'inherit cvs'
@@ -348,33 +449,72 @@ class MyFrame(wxFrame):
         f.close()
 
         s = string.split(filename, "/")
-        ebuild_file = s[len(s)-1]
+        self.ebuild_file = s[len(s)-1]
         ebuild = s[len(s)-2]
         category = s[len(s)-3]
-        clog = string.replace(filename, ebuild_file, '') + 'ChangeLog'
+
         myData = {}
         otherVars = {}
         myData, otherVars = self.SeparateVars(vars)
         myData['ebuild'] = ebuild
-        myData['ebuild_file'] = ebuild_file
+        myData['ebuild_file'] = self.ebuild_file
         myData['category'] = category
+
+        #If S isn't set it equals
+        if myData['S'] == '':
+            myData['S'] = '${WORKDIR}/${P}'
+
+        #You must set IUSE, even if you don't use it.
+        if myData['IUSE'] == '':
+            myData['IUSE'] = '""'
+
         self.editing = 1
         self.AddPages()
         self.PopulateForms(myData)
+        clog = string.replace(filename, self.ebuild_file, '') + 'ChangeLog'
+        self.ebuildDir = string.replace(filename, self.ebuild_file, '')
         self.panelChangelog.Populate(clog)
         #Add custom variables to Main panel
-        for v in otherVars:
-            self.AddNewVar(v, otherVars[v])
+
+        #This was un-ordered:
+        #for v in otherVars:
+        #    self.AddNewVar(v, otherVars[v])
+
+        # Put them in panel in the order they were in the ebuild
+        for n in range(len(self.varOrder) -1):
+            for v in otherVars:
+                if v == self.varOrder[n]:
+                    self.AddNewVar(v, otherVars[v])
+
         # Add function pages to notebook
-        for fname in funcs:
-            self.AddFunc(fname, funcs[fname])
+
+        #un-ordered:
+        #for fname in funcs:
+        #    self.AddFunc(fname, funcs[fname])
+
+        #Add functions in order they were in in ebuild:
+        for n in range(len(self.funcOrder)):
+            self.AddFunc(self.funcOrder[n], funcs[self.funcOrder[n]])
+
         for s in self.statementList:
             self.panelMain.AddStatement(s)
         # Add original ebuild file:
         self.AddEditor('Original File', open(filename, 'r').read())
         self.nb.SetSelection(0)
         # Set titlebar of app to ebuild name
-        self.SetTitle('Abeni ' + __version__ + ': ' + ebuild_file)
+        self.SetTitle('Abeni ' + __version__ + ': ' + self.ebuild_file)
+
+    def SeparateVars(self, vars):
+        """Separates variables into defaults (myData) and all others (otherVars)"""
+        l = ["SRC_URI", "HOMEPAGE", "DEPEND", "RDEPEND", "DESCRIPTION", "S", "IUSE", "SLOT", "KEYWORDS", "LICENSE"]
+        myData = {}
+        for key in l:
+            if vars.has_key(key):
+                myData[key] = vars[key]
+                del vars[key]
+            else:
+                myData[key] = ""
+        return myData, vars
 
     def OnFileHistory(self, evt):
         # get the file based on the menu ID
@@ -395,7 +535,7 @@ class MyFrame(wxFrame):
         #   ebuild into a tree, by vars, statements and functions, so I can put the
         #   comments back in the right place.
         wildcard = "ebuild files (*.ebuild)|*.ebuild"
-        dlg = wxFileDialog(self, "Choose a file", "/usr/portage/", "", \
+        dlg = wxFileDialog(self, "Choose a file", portdir, "", \
                             wildcard, wxOPEN)
         if dlg.ShowModal() == wxID_OK:
             filename = dlg.GetPath()
@@ -414,6 +554,7 @@ class MyFrame(wxFrame):
         self.panelMain.URI.SetValue(myData['SRC_URI'])
         self.panelMain.Homepage.SetValue(myData['HOMEPAGE'])
         self.panelMain.Desc.SetValue(myData['DESCRIPTION'])
+        self.panelMain.S.SetValue(myData['S'])
         self.panelMain.USE.SetValue(myData['IUSE'])
         self.panelMain.Slot.SetValue(myData['SLOT'])
         self.panelMain.Keywords.SetValue(myData['KEYWORDS'])
@@ -433,23 +574,14 @@ class MyFrame(wxFrame):
 
         self.panelDepend.elb2.SetStrings(rdepends)
 
-    def SeparateVars(self, vars):
-        """Separates variables into defaults (myData) and all others (otherVars)"""
-        l = ["SRC_URI", "HOMEPAGE", "DEPEND", "RDEPEND", "DESCRIPTION", "IUSE", "SLOT", "KEYWORDS", "LICENSE"]
-        myData = {}
-        for key in l:
-            if vars.has_key(key):
-                myData[key] = vars[key]
-                del vars[key]
-            else:
-                myData[key] = ""
-        return myData, vars
-
     def GetOptions(self):
         """Global options from apprc file"""
         myOptions = options.Options()
         self.pref = myOptions.Prefs()
-        #self.debug = self.pref['debug']
+        #self.pref['browser']
+        #self.pref['xterm']
+        #self.pref['diff'] etc.
+
 
     def OnToolZone(self, event):
         """Clear statusbar 3 seconds after mouse moves over toolbar icon"""
@@ -518,34 +650,13 @@ class MyFrame(wxFrame):
 
     def OnMnuHelpRef(self, event):
         """Display html help file"""
-        #TODO: Fix index. Doesn't die when you exit.
-        #Add: /usr/portage/profiles/use.desc
-        #os.system("netscape '/usr/share/abeni/ebuild-quick-reference.html' &")
-
-        os.system("netscape 'http://abeni.sf.net/docs/ebuild-quick-reference.html' &")
+        os.system(self.pref['browser'] + " 'http://abeni.sf.net/docs/ebuild-quick-reference.html' &")
 
     def OnMnuHelp(self, event):
         """Display html help file"""
-        #TODO: Fix index. Doesn't die when you exit.
+        #TODO:
         #Add: /usr/portage/profiles/use.desc
-        #os.system("netscape '/usr/share/abeni/index.html' &")
-        os.system("netscape 'http://abeni.sf.net/docs/index.html' &")
-
-        #import glob
-        #from wxPython.tools import helpviewer
-        #if __name__ == '__main__':
-        #    basePath = os.path.dirname(sys.argv[0])
-        #else:
-        #    basePath = os.path.dirname(__file__)
-        # setup the args
-        #args = ['',
-        #        '--cache='+basePath,
-        #        os.path.join(basePath, 'docs.zip'),
-        #        ]
-
-        # launch helpviewer
-        #helpviewer.main(args)
-
+        os.system(self.pref['browser'] + " 'http://abeni.sf.net/docs/index.html' &")
 
     def OnMnuSave(self, event):
         """Save ebuild file to disk"""
@@ -553,9 +664,6 @@ class MyFrame(wxFrame):
             return
         if self.checkEntries():
             myData = self.GatherData()
-            #This is for pickling data:
-            #file = open(self.panelMain.Ebuild.GetValue() + ".abeni", 'w')
-            #pickle.dump(myData, file)
             self.WriteEbuild()
         #TODO: dialog showing save failed
 
@@ -583,7 +691,7 @@ class MyFrame(wxFrame):
             self.panelMain.SetURI(self.URI)
             self.panelMain.SetName(self.URI)
             self.panelMain.SetEbuild()
-            self.panelChangelog.Populate(filename='/usr/portage/skel.ChangeLog')
+            self.panelChangelog.Populate(filename= portdir + '/skel.ChangeLog')
             #We are in the middle of createing an ebuild. Should probably check for
             #presence of wxNotebook instead
             self.editing = 1
@@ -639,10 +747,14 @@ class MyFrame(wxFrame):
         myData['LICENSE'] = self.panelMain.License.GetValue()
         myData['SLOT'] = self.panelMain.Slot.GetValue()
         myData['KEYWORDS'] = self.panelMain.Keywords.GetValue()
+        myData['S'] = self.panelMain.S.GetValue()
         myData['IUSE'] = self.panelMain.USE.GetValue()
         myData['DEPEND'] = self.panelDepend.elb1.GetStrings()
         myData['RDEPEND'] = self.panelDepend.elb2.GetStrings()
-        #myData['S'] = "S=${WORKDIR}/${P}"
+        if myData.has_key('S'):
+            pass
+        else:
+            myData['S'] = "S=${WORKDIR}/${P}"
         myData['changelog'] = self.panelChangelog.edChangelog.GetText()
         return myData
 
@@ -651,51 +763,36 @@ class MyFrame(wxFrame):
         #abeniPath = os.path.join(os.path.expanduser('~'), '.abeni')
         #if not os.path.exists(abeniPath):
         #    os.mkdir(abeniPath)
-        categoryDir = os.path.join ('/usr/local/portage', self.panelMain.Category.GetValue())
+        categoryDir = os.path.join (portdir_overlay, self.panelMain.Category.GetValue())
         if not os.path.exists(categoryDir):
             os.mkdir(categoryDir)
-        ebuildDir = os.path.join (categoryDir, self.panelMain.Ebuild.GetValue())
-        if not os.path.exists(ebuildDir):
-            os.mkdir(ebuildDir)
-        filename = os.path.join(ebuildDir, self.panelMain.EbuildFile.GetValue())
+        self.ebuildDir = os.path.join (categoryDir, self.panelMain.Ebuild.GetValue())
+        if not os.path.exists(self.ebuildDir):
+            os.mkdir(self.ebuildDir)
+        filename = os.path.join(self.ebuildDir, self.panelMain.EbuildFile.GetValue())
         self.SetFilename(filename)
         f = open(filename, 'w')
 
         f.write('# Copyright 1999-2003 Gentoo Technologies, Inc.\n')
         f.write('# Distributed under the terms of the GNU General Public License v2\n')
-        f.write('# ' + '$' + 'Header:' + '$\n')
-        # Heh. CVS fills this in, have to trick it with above. '# \$\Header: \$
+        f.write('# ' + '$' + 'Header:' + ' $\n\n')
+        # Heh. CVS fills this in, have to trick it with above.
 
         f.write(self.panelMain.stext.GetValue() + '\n')
         varList = self.panelMain.GetVars()
-        for key in varList.keys():
-            #f.write(key.GetLabel() + '="' + varList[key].GetValue() + '"\n')
-            f.write(key.GetLabel() + '=' + varList[key].GetValue() + '\n')
-            '''k = key.GetLabel()
-            v = varList[key].GetValue()
-            #We don't add quotes around values with env variables
-            if v.find('$') == -1:
-                f.write(k + '="' + v + '"\n')
-            else:
-                f.write(k + '=' + v + '\n')
-            '''
 
-        #f.write("S=${WORKDIR}/${P}\n\n")
-        '''
-        f.write('DESCRIPTION="' + self.panelMain.Desc.GetValue() + '"\n')
-        f.write('HOMEPAGE="' + self.panelMain.Homepage.GetValue() + '"\n')
-        f.write('SRC_URI="' + self.panelMain.URI.GetValue() + '"\n')
-        f.write('LICENSE="' + self.panelMain.License.GetValue() + '"\n')
-        f.write('SLOT="' + self.panelMain.Slot.GetValue() + '"\n')
-        f.write('KEYWORDS="' + self.panelMain.Keywords.GetValue() + '"\n')
-        f.write('IUSE="' + self.panelMain.USE.GetValue() + '"\n')
-        '''
+        for n in range(len(self.varOrder) -1):
+            for key in varList.keys():
+                if key.GetLabel() == self.varOrder[n]:
+                    f.write(key.GetLabel() + '=' + varList[key].GetValue() + '\n')
+
         f.write('DESCRIPTION=' + self.panelMain.Desc.GetValue() + '\n')
         f.write('HOMEPAGE=' + self.panelMain.Homepage.GetValue() + '\n')
         f.write('SRC_URI=' + self.panelMain.URI.GetValue() + '\n')
         f.write('LICENSE=' + self.panelMain.License.GetValue() + '\n')
         f.write('SLOT=' + self.panelMain.Slot.GetValue() + '\n')
         f.write('KEYWORDS=' + self.panelMain.Keywords.GetValue() + '\n')
+        f.write('S=' + self.panelMain.S.GetValue() + '\n')
         f.write('IUSE=' + self.panelMain.USE.GetValue() + '\n')
 
         dlist = self.panelDepend.elb1.GetStrings()
@@ -724,13 +821,18 @@ class MyFrame(wxFrame):
             ftext = fun.edNewFun.GetText()
             f.write(ftext + '\n')
         f.close()
+
+        #TODO: We need to get each notebook's tab/label for this:
+        #for n in range(len(self.funcOrder)):
+        #    self.AddFunc(self.funcOrder[n], funcs[self.funcOrder[n]])
+
         self.AddEditor('Saved File', open(self.filename, 'r').read())
 
-        changelog = os.path.join(ebuildDir, 'ChangeLog')
+        changelog = os.path.join(self.ebuildDir, 'ChangeLog')
         f = open(changelog, 'w')
         f.write(self.panelChangelog.edChangelog.GetText())
         f.close()
-
+        self.recentList.append(filename)
 
 class GetURIDialog(wxDialog):
 

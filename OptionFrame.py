@@ -10,15 +10,14 @@ class OptionFrame(wxFrame):
 
         myOptions = Options()
         self.pref = myOptions.Prefs()
-        self.debug = self.pref['debug']
 
-        wxFrame.__init__(self,parent, -1, title,wxDefaultPosition, wxSize(450,460))
+        wxFrame.__init__(self,parent, -1, title,wxDefaultPosition, wxSize(450,260))
         panel = wxPanel(self, -1,style=wxTAB_TRAVERSAL)
         buttonok = wxButton(panel, 1002, "Ok")
-        buttonok.SetPosition(wxPoint(105, 430))
+        buttonok.SetPosition(wxPoint(105, 220))
 
         button = wxButton(panel, 1003, "Cancel")
-        button.SetPosition(wxPoint(255, 430))
+        button.SetPosition(wxPoint(255, 220))
 
         EVT_BUTTON(self, 1002, self.OnOK)
         EVT_BUTTON(self, 1003, self.OnCloseMe)
@@ -29,15 +28,27 @@ class OptionFrame(wxFrame):
         width = 260
 
         row = row + 30
-        wxStaticText(panel, -1, "Debug 1=yes 0=no", wxPoint(15, row), wxSize(145, 20))
-        self.Inpdebug = wxTextCtrl(panel, wxNewId(), "", wxPoint(col, row), wxSize(width, 20))
+        wxStaticText(panel, -1, "Web Browser", wxPoint(15, row), wxSize(145, 20))
+        self.browser = wxTextCtrl(panel, wxNewId(), "", wxPoint(col, row), wxSize(width, 20))
+        self.browser.SetValue(self.pref['browser'])
 
-        self.Inpdebug.SetValue(self.debug)
+        row = row + 30
+        wxStaticText(panel, -1, "xterm", wxPoint(15, row), wxSize(145, 20))
+        self.xterm = wxTextCtrl(panel, wxNewId(), "", wxPoint(col, row), wxSize(width, 20))
+        self.xterm.SetValue(self.pref['xterm'])
+
+        row = row + 30
+        wxStaticText(panel, -1, "diff Program", wxPoint(15, row), wxSize(145, 20))
+        self.diff = wxTextCtrl(panel, wxNewId(), "", wxPoint(col, row), wxSize(width, 20))
+        self.diff.SetValue(self.pref['diff'])
+
 
     def OnOK(self, event):
         """Write file on OK button"""
         f = open(('%s/abenirc' % appdir), 'w')
-        f.write('debug = %s\n' % self.Inpdebug.GetValue())
+        f.write('browser = %s\n' % self.browser.GetValue())
+        f.write('xterm = %s\n' % self.xterm.GetValue())
+        f.write('diff = %s\n' % self.diff.GetValue())
         f.close()
         self.Close(true)
 
