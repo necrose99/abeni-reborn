@@ -4,14 +4,14 @@ from distutils.core import setup
 from glob import glob
 
 setup(name="abeni",
-      version="0.0.9",
+      version="0.0.10",
       description="Gentoo Linux ebuild GUI editor",
       author="Rob Cakebread",
-      author_email="robc@myrealbox.com",
-      url="http://abeni.sf.net/",
+      author_email="pythonhead@gentoo.org",
+      url="http://abeni.sourceforge.net/",
       packages=['abeni'],
       package_dir={'abeni':''},
-      scripts=['bin/abeni', 'bin/repoman-safe.py'],
+      scripts=['bin/abeni'],
       data_files=[('share/pixmaps/abeni', glob("Images/*.png"))]
       )
 

@@ -8,12 +8,13 @@ import shutil
 from wxPython.wx import *
 from wxPython.lib.dialogs import wxScrolledMessageDialog, wxMultipleChoiceDialog
 from portage import config, portdb, db, pkgsplit, catpkgsplit, settings
+sys.path.insert(0, "/usr/lib/gentoolkit/pym")
+import gentoolkit
 
 import options
 import panels
+import __version__
 
-sys.path.insert(0, "/usr/lib/gentoolkit/pym")
-import gentoolkit
 
 modulePath = "/usr/lib/python%s/site-packages/abeni" % sys.version[0:3]
 
@@ -23,7 +24,6 @@ except:
     print "ERROR: Can't read portage configuration from /etc/make.conf"
     sys.exit(1)
 
-__version__ = '0.0.10'
 
 defaults = ["SRC_URI", "HOMEPAGE", "DEPEND", "RDEPEND", "DESCRIPTION", \
             "S", "IUSE", "SLOT", "KEYWORDS", "LICENSE"]
@@ -330,6 +330,10 @@ def SetFilename(frame, filename):
     frame.filename = filename
     frame.sb.SetStatusText(filename, 1)
 
+def GetEbuildDir(frame):
+    """Get the full path to ebuild minus ebuild file"""
+    return os.path.dirname(GetFilename(frame))
+
 def GetFilename(frame):
     """Get the full path and filename of ebuild"""
     return frame.filename
@@ -550,9 +554,9 @@ def checkEntries(frame):
 def DoTitle(frame):
     ''' Set application's titlebar '''
     if not frame.saved:
-        frame.SetTitle(frame.panelMain.GetEbuildName() + " * Abeni " + __version__)
+        frame.SetTitle(frame.panelMain.GetEbuildName() + " * Abeni " + __version__.version)
     else:
-        frame.SetTitle(frame.panelMain.GetEbuildName() + " - Abeni " + __version__)
+        frame.SetTitle(frame.panelMain.GetEbuildName() + " - Abeni " + __version__.version)
 
 def AddPages(frame):
     """Add pages to blank notebook"""
@@ -1264,169 +1268,3 @@ def DelVariable(parent):
         for k in tmpDict.keys():
             parent.panelMain.AddVar(k, tmpDict[k][0])
     dlg.Destroy()
-
-
-class CVS:
-
-    """ CVS utilities """
-
-    def __init__(frame, parent):
-        frame.parent = parent
-        frame.cvsRoot = frame.parent.pref['cvsRoot']
-        frame.cat = frame.parent.GetCat()
-        frame.package = frame.parent.panelMain.Package.GetValue()
-        frame.ebuild = frame.parent.panelMain.EbuildFile.GetValue()
-        frame.userName = frame.parent.pref['userName']
-        frame.cvsDir = frame.QueryPath()
-        if not os.path.exists(frame.cvsDir):
-            CreateCVSdir(frame)
-        try:
-            os.chdir(frame.cvsDir)
-        except:
-            parent.write(frame, "ERROR: Couldn't cd to %s" % frame.cvsDir)
-        frame.cvsEbuild = "%s/%s" % (frame.cvsDir, frame.ebuild)
-        FixPerms(frame)
-
-    def QueryPath(frame):
-        """Return CVS directory of this ebuild"""
-        return "%s/%s/%s" % (frame.cvsRoot, frame.cat, frame.package)
-
-    def CreateCVSdir(frame):
-        """Create CVSroot/cat/package directory"""
-        catDir = "%s/%s" % (frame.cvsRoot, frame.cat)
-        if not os.path.exists(catDir):
-            os.mkdir(catDir)
-        try:
-            os.mkdir(frame.cvsDir)
-            frame.parent.write("Created %s" % frame.cvsDir)
-        except:
-            frame.parent.write("ERROR: Failed to create %s!" % frame.cvsDir)
-
-    def FileExistsInCVS(frame):
-        if os.path.exists('./%s' % frame.ebuild):
-            return 1
-
-    def CVSupdate(frame):
-        """/usr/bin/cvs update"""
-        cmd = "/usr/bin/cvs update"
-        frame.Execute(cmd)
-        frame.parent.write("(cvs update in this directory: %s)" % frame.cvsDir)
-
-    def CopyEbuild(frame):
-        """Copy ebuild and ${FILES} contents from PORT_OVERLAY to CVSroot/cat/package/"""
-        # TODO: Copy all files not added to CVS? Just check for patches/config files we added?
-        file = frame.parent.GetFilename()
-        shutil.copy(file, frame.cvsDir)
-        frame.parent.write("Copied %s to %s" % (file, frame.cvsDir))
-        frame.FixPerms()
-
-    def FixPerms(frame):
-        if len(os.listdir('./')):
-            os.system("chown %s -R %s/*" % (frame.userName, frame.cvsDir))
-        os.system("chown %s -R %s" % (frame.userName, frame.cvsDir))
-
-    def RepomanScan(frame):
-        if not frame.FileExistsInCVS():
-            frame.parent.write("WARNING: This ebuild hasn't been copied to CVS directory yet.")
-        cmd = "su %s -c '/usr/bin/repoman --pretend scan'" % frame.userName
-        frame.Execute(cmd)
-
-    def RepomanCommitPretend(frame):
-        """repoman commmit pretend"""
-        if frame.FileExistsInCVS():
-            cmd = """su %s -c '/usr/bin/repoman --pretend commit -m "test msg"'""" % frame.userName
-            frame.Execute(cmd)
-        else:
-            frame.parent.write("ERROR: Ebuild isn't in CVS directory yet.")
-
-    def RepomanCommit(frame):
-        if frame.FileExistsInCVS():
-            msg = frame.GetMsg()
-            if msg:
-                cmd = """su %s -c '/usr/bin/repoman --pretend commit -m "%s"'""" % (frame.userName, msg)
-                frame.Execute(cmd)
-            else:
-                frame.parent.write("ERROR: I won't commit without a message.")
-        else:
-            frame.parent.write("ERROR: ebuild isn't in CVS directory yet.")
-
-
-    def GetMsg(frame):
-        dlg = wxTextEntryDialog(frame.parent, 'Enter commit message:', 'Commit message:', '')
-        if dlg.ShowModal() == wxID_OK:
-            msg = dlg.GetValue()
-        dlg.Destroy()
-        return msg
-
-    def CreateDigest(frame):
-        if frame.FileExistsInCVS():
-            cmd = "PORTDIR_OVERLAY='%s' /usr/sbin/ebuild %s digest" % (frame.cvsRoot, frame.ebuild)
-            frame.Execute(cmd)
-        else:
-            frame.parent.write("ERROR: ebuild isn't in CVS directory yet.")
-
-    def AddDir(frame):
-        if frame.FileExistsInCVS():
-            os.chdir(os.path.dirname(frame.cvsDir))
-            cmd = "su rob -c '''/usr/bin/cvs add %s'''" % os.path.basename(frame.cvsDir)
-            frame.Execute(cmd)
-        else:
-            frame.parent.write("ERROR: ebuild isn't in CVS directory yet.")
-
-    def AddEbuild(frame):
-        """/usr/bin/cvs add ebuild"""
-        if frame.FileExistsInCVS():
-            cmd = "su rob -c /usr/bin/cvs add %s" % frame.ebuild
-            frame.Execute(cmd)
-        else:
-            frame.parent.write("ERROR: ebuild isn't in CVS directory yet.")
-
-    def AddDigest(frame):
-        """/usr/bin/cvs add digest"""
-        if not frame.FileExistsInCVS():
-            frame.parent.write("ERROR: ebuild isn't in CVS directory yet.")
-            return
-        digest = "digest-%s" % frame.ebuild[0:-7]
-        if os.path.exists('./files/%s' % digest):
-            cmd = "/usr/bin/cvs add files/%s" % digest
-            frame.Execute(cmd)
-        else:
-            frame.parent.write("ERROR: digest doesn't exist in CVS directory yet.")
-
-    def Execute(frame, cmd):
-        frame.parent.write("Executing: %s" % cmd)
-        frame.parent.ExecuteInLog(cmd)
-
-    def AddChangelog(frame):
-        if not frame.FileExistsInCVS():
-            frame.parent.write("ERROR: ebuild isn't in CVS directory yet.")
-            return
-        if os.path.exists('./ChangeLog'):
-            cmd = "/usr/bin/cvs add ChangeLog"
-            frame.Execute(cmd)
-        else:
-            frame.parent.write("ERROR: ChangeLog doesn't exist in CVS directory")
-
-    def AddMetadata(frame):
-        if not frame.FileExistsInCVS():
-            frame.parent.write("ERROR: ebuild isn't in CVS directory yet.")
-            return
-        if os.path.exists('./metadata.xml'):
-            cmd = "/usr/bin/cvs add metadata.xml"
-            frame.Execute(cmd)
-        else:
-            frame.parent.write("ERROR: metadata.xml doesn't exist in CVS directory")
-
-
-    def Echangelog(frame):
-        dlg = frame.parent.dialogs.EchangelogDialog(frame.parent, -1, "echangelog entry", \
-                                                    size=wxSize(350, 200), \
-                                                    style = wxDEFAULT_DIALOG_STYLE \
-                                                    )
-        dlg.CenterOnScreen()
-        val = dlg.ShowModal()
-        if val == wxID_OK:
-            l = dlg.inp.GetValue()
-            if l:
-                frame.parent.ExecuteInLog("/usr/bin/echangelog %s" % l)
-        dlg.Destroy()

@@ -1,11 +1,83 @@
+import os
+import gadfly
+import time
+import sys
+
 from wxPython.wx import *
 from wxPython.help import *
-from options import *
 from wxPython.lib.grids import wxGridSizer, wxFlexGridSizer
 from wxPython.lib.buttons import *
 from wxPython.stc import *
-import os, gadfly
+from wxPython.html import *
+import wx   # This module uses the new wx namespace
+import wx.html
+import wx.lib.wxpTag
+from options import *
 
+import utils
+import __version__
+
+#---------------------------------------------------------------------------
+
+class MyAboutBox(wx.Dialog):
+    text = '''
+<html>
+<body bgcolor="#dddaec">
+<center><table bgcolor="#7a5ada" width="100%%" cellspacing="0"
+cellpadding="0" border="1">
+<tr>
+    <td align="center">
+    <font color="#ffffff">
+    <h1>Abeni %s</h1>
+    Python %s<br>
+    wxPython %s<br> 
+    </font">
+    </td>
+</tr>
+</table>
+
+<p><b>Abeni</b> is an IDE for creating ebuilds for 
+Gentoo Linux</p>
+
+<p><b>Abeni</b> was written by <b>Rob Cakebread</b> <br>
+<b>with contributions from Marius Mauch. </b> <br><br>
+<b>Abeni</b> is Copyright (c) 2003-2004 Rob Cakebread <pythonhead@gentoo.org>.</p>
+
+<p>
+<font size="-1"><b>Abeni</b> is released under the terms of<br>
+the GNU Public License v.2</font>
+</p>
+
+<p><wxp module="wx" class="Button">
+    <param name="label" value="Okay">
+    <param name="id"    value="ID_OK">
+</wxp></p>
+</center>
+</body>
+</html>
+'''
+    def __init__(self, parent):
+        wx.Dialog.__init__(self, parent, -1, 'About Abeni',)
+        html = wx.html.HtmlWindow(self, -1, size=(420, -1))
+        py_version = sys.version.split()[0]
+        html.SetPage(self.text % (__version__.version, py_version, wx.VERSION_STRING))
+        btn = html.FindWindowById(wx.ID_OK)
+        btn.SetDefault()
+        ir = html.GetInternalRepresentation()
+        html.SetSize( (ir.GetWidth()+25, ir.GetHeight()+25) )
+        self.SetClientSize(html.GetSize())
+        self.CentreOnParent(wx.BOTH)
+
+#---------------------------------------------------------------------------
+
+
+
+if __name__ == '__main__':
+    app = wx.PySimpleApp()
+    dlg = MyAboutBox(None)
+    dlg.ShowModal()
+    dlg.Destroy()
+    app.MainLoop()
 
 [wxID_METADATADIALOG, wxID_METADATADIALOGGENBUTTON1,
  wxID_METADATADIALOGGENBUTTON2, wxID_METADATADIALOGNOTEBOOK1,
@@ -18,9 +90,9 @@ class MetadataDialog(wxDialog):
         # generated method, don't edit
 
         parent.AddPage(imageId=-1, page=self.styledTextCtrl1, select=True,
-              text='metadata.xml')
+                       text='metadata.xml')
         parent.AddPage(imageId=-1, page=self.styledTextCtrl2, select=False,
-              text='skel.metadata.xml')
+                       text='skel.metadata.xml')
 
     def _init_ctrls(self, prnt):
         # generated method, don't edit
@@ -57,10 +129,11 @@ class MetadataDialog(wxDialog):
 
     def __init__(self, parent):
         self._init_ctrls(parent)
-        metadata = "%s/metadata.xml" % parent.cvsDir
+        metadata = "%s/metadata.xml" % os.path.dirname(parent.filename)
         if os.path.exists(metadata):
             self.styledTextCtrl1.SetText(open(metadata).read())
 
+        #TODO: get PORTDIR
         skel = open("/usr/portage/skel.metadata.xml").read()
         self.styledTextCtrl2.EmptyUndoBuffer()
         #self.styledTextCtrl2.Colourise(0, -1)
@@ -329,9 +402,9 @@ class BugzillaDialog(wxDialog):
         self.connection.commit()
 
     def SaveInfo(self):
-        cat = self.parent.GetCat()
-        package = self.parent.GetPackageName()
-        p = self.parent.GetP()
+        cat = utils.GetCat(self.parent)
+        package = utils.GetPackageName(self.parent) 
+        p = utils.GetP(self.parent)
         bug, notes, bzstatus, bzresolution, mine, abenistatus = self.GetValues()
         if not bug.isdigit():
             bug = ''
@@ -347,9 +420,9 @@ class BugzillaDialog(wxDialog):
         self.connection.commit()
 
     def LoadInfo(self):
-        P = self.parent.GetP()
-        cat = self.parent.GetCat()
-        package = self.parent.GetPackageName()
+        P = utils.GetP(self.parent)
+        cat = utils.GetCat(self.parent)
+        package = utils.GetPackageName(self.parent)
         self.cursor.execute("SELECT p, package, cat, bug, bzstatus, bzresolution, notes, mine, abenistatus \
                                 FROM ebuilds WHERE p='%s'" % P)
         data = self.cursor.fetchall()
@@ -452,7 +525,7 @@ class BugzillaDialog(wxDialog):
         self.checkBox1.SetValue(False)
 
     def OnSubmitButton(self, event):
-            import time
+            #import time
             bugNbr = self.BugNbr.GetValue()
             if not bugNbr:
                 bugNbr = 0
@@ -519,7 +592,7 @@ class EmergeDialog(wxDialog):
                  style=wxDEFAULT_DIALOG_STYLE):
         provider = wxSimpleHelpProvider()
         wxHelpProvider_Set(provider)
-
+        self.parent = parent
         # Instead of calling wxDialog.__init__ we precreate the dialog
         # so we can set an extra style that must be set before
         # creation, and then we create the GUI dialog using the Create
@@ -553,8 +626,12 @@ class EmergeDialog(wxDialog):
         sizer.AddSizer(box, 0, wxGROW|wxALIGN_CENTER_VERTICAL|wxALL, 5)
 
         box = wxBoxSizer(wxHORIZONTAL)
-        cmd = "emerge %s" % parent.filename
-        self.emerge = wxTextCtrl(self, -1, cmd, size=(560,-1))
+        cat_pack = "%s/%s" % (utils.GetCategoryName(parent), utils.GetPackageName(parent))
+        #TODO: Get arch from config, add arch as config option ;)
+        self.cmd = "ACCEPT_KEYWORDS='~x86' emerge %s" %  cat_pack
+        self.pretend_cmd = "FEATURES='%s' USE='%s' ACCEPT_KEYWORDS='~x86' emerge -pv %s" \
+                   % (self.features.GetValue(), self.use.GetValue(), cat_pack)
+        self.emerge = wxTextCtrl(self, -1, self.cmd, size=(560,-1))
         self.emerge.SetHelpText("Enter any options for the emerge command.")
         box.Add(self.emerge, 1, wxALIGN_CENTRE|wxALL, 5)
         sizer.AddSizer(box, 0, wxGROW|wxALIGN_CENTER_VERTICAL|wxALL, 5)
@@ -565,10 +642,14 @@ class EmergeDialog(wxDialog):
         #sizer.Add(text, 0, wxALIGN_CENTER|wxALL, 5)
         sizer.Add(line, 0, wxGROW|wxALIGN_CENTER_VERTICAL|wxRIGHT|wxTOP, 5)
         box = wxBoxSizer(wxHORIZONTAL)
-        btn = wxButton(self, wxID_OK, " OK ")
-        btn.SetDefault()
+        btn = wxButton(self, wxID_OK, " Emerge ")
         box.Add(btn, 0, wxALIGN_CENTRE|wxALL, 5)
+        wxID_PRETEND_EMERGE = wxNewId()
+        btn = wxButton(self, wxID_PRETEND_EMERGE, " Pretend ")
+        box.Add(btn, 0, wxALIGN_CENTRE|wxALL, 5)
+        EVT_BUTTON(btn, wxID_PRETEND_EMERGE, self.OnPretendButton)
         btn = wxButton(self, wxID_CANCEL, " Cancel ")
+        btn.SetDefault()
         box.Add(btn, 0, wxALIGN_CENTRE|wxALL, 5)
         btn = wxContextHelpButton(self)
         box.Add(btn, 0, wxALIGN_CENTRE|wxALL, 5)
@@ -576,6 +657,11 @@ class EmergeDialog(wxDialog):
         self.SetSizer(sizer)
         self.SetAutoLayout(True)
         sizer.Fit(self)
+
+    def OnPretendButton(self, event):
+        """ emerge -pv this ebuild """
+        utils.write(self, self.pretend_cmd)
+        utils.ExecuteInLog(self.parent, self.pretend_cmd)
 
 class Preferences(wxDialog):
 
@@ -661,133 +747,139 @@ class Preferences(wxDialog):
         self.SetSizer(vs)
         self.browser.SetFocus()
 
-[wxID_WXDIALOG1,
- wxID_WXDIALOG1PANEL1, wxID_WXDIALOG1RADIOBUTTON1, wxID_WXDIALOG1RADIOBUTTON2,
- wxID_WXDIALOG1RADIOBUTTON3, wxID_WXDIALOG1RADIOBUTTON4,
- wxID_WXDIALOG1RADIOBUTTON5, wxID_WXDIALOG1STATICLINE1,
- wxID_WXDIALOG1STATICLINE2, wxID_WXDIALOG1STATICTEXT1,
- wxID_WXDIALOG1TEXTCTRL1,
-] = map(lambda _init_ctrls: wxNewId(), range(11))
+#[wxID_WXDIALOG1,
+# wxID_WXDIALOG1PANEL1, wxID_WXDIALOG1RADIOBUTTON1, wxID_WXDIALOG1RADIOBUTTON2,
+# wxID_WXDIALOG1RADIOBUTTON3, wxID_WXDIALOG1RADIOBUTTON4,
+# wxID_WXDIALOG1RADIOBUTTON5, wxID_WXDIALOG1STATICLINE1,
+# wxID_WXDIALOG1STATICLINE2, wxID_WXDIALOG1STATICTEXT1,
+# wxID_WXDIALOG1TEXTCTRL1,
+#] = map(lambda _init_ctrls: wxNewId(), range(11))
 
-class NewFunction(wxDialog):
+#class NewFunction(wxDialog):
 
-    def _init_ctrls(self, prnt):
-        # generated method, don't edit
-        wxDialog.__init__(self, id=wxID_WXDIALOG1, name='', parent=prnt,
-              pos=wxPoint(373, 191), size=wxSize(327, 307),
-              style=wxDEFAULT_DIALOG_STYLE, title='New Function')
+#    def _init_ctrls(self, prnt):
+#        # generated method, don't edit
+#        wxDialog.__init__(self, id=wxID_WXDIALOG1, name='', parent=prnt,
+#              pos=wxPoint(373, 191), size=wxSize(327, 307),
+#              style=wxDEFAULT_DIALOG_STYLE, title='New Function')
 
-        self.SetClientSize(wxSize(327, 307))
+#        self.SetClientSize(wxSize(327, 307))
 
-        self.panel1 = wxPanel(id=wxID_WXDIALOG1PANEL1, name='panel1',
-              parent=self, pos=wxPoint(0, 0), size=wxSize(327, 307),
-              style=wxTAB_TRAVERSAL)
+#        self.panel1 = wxPanel(id=wxID_WXDIALOG1PANEL1, name='panel1',
+#              parent=self, pos=wxPoint(0, 0), size=wxSize(327, 307),
+#              style=wxTAB_TRAVERSAL)
 
-        self.staticText1 = wxStaticText(id=wxID_WXDIALOG1STATICTEXT1,
-              label='Function Name', name='staticText1', parent=self.panel1,
-              pos=wxPoint(16, 26), size=wxSize(96, 16), style=0)
+#        self.staticText1 = wxStaticText(id=wxID_WXDIALOG1STATICTEXT1,
+#              label='Function Name', name='staticText1', parent=self.panel1,
+#              pos=wxPoint(16, 26), size=wxSize(96, 16), style=0)
 
-        self.textCtrl1 = wxTextCtrl(id=wxID_WXDIALOG1TEXTCTRL1,
-              name='textCtrl1', parent=self.panel1, pos=wxPoint(112, 24),
-              size=wxSize(176, 22), style=0, value='()')
+#        self.textCtrl1 = wxTextCtrl(id=wxID_WXDIALOG1TEXTCTRL1,
+#              name='textCtrl1', parent=self.panel1, pos=wxPoint(112, 24),
+#              size=wxSize(176, 22), style=0, value='()')
 
-        self.radioButton1 = wxRadioButton(id=wxID_WXDIALOG1RADIOBUTTON1,
-              label='empty', name='radioButton1', parent=self.panel1,
-              pos=wxPoint(32, 82), size=wxSize(94, 24), style=0)
-        self.radioButton1.SetValue(True)
-        EVT_RADIOBUTTON(self.radioButton1, wxID_WXDIALOG1RADIOBUTTON1,
-              self.OnRadiobutton1Radiobutton)
+#        self.radioButton1 = wxRadioButton(id=wxID_WXDIALOG1RADIOBUTTON1,
+#              label='empty', name='radioButton1', parent=self.panel1,
+#              pos=wxPoint(32, 82), size=wxSize(94, 24), style=0)
+#        self.radioButton1.SetValue(True)
+#        EVT_RADIOBUTTON(self.radioButton1, wxID_WXDIALOG1RADIOBUTTON1,
+#              self.OnRadiobutton1Radiobutton)
 
-        self.radioButton2 = wxRadioButton(id=wxID_WXDIALOG1RADIOBUTTON2,
-              label='src_compile - empty', name='radioButton2',
-              parent=self.panel1, pos=wxPoint(32, 104), size=wxSize(256, 32),
-              style=0)
-        self.radioButton2.SetValue(False)
-        EVT_RADIOBUTTON(self.radioButton2, wxID_WXDIALOG1RADIOBUTTON2,
-              self.OnRadiobutton2Radiobutton)
+#        self.radioButton2 = wxRadioButton(id=wxID_WXDIALOG1RADIOBUTTON2,
+#              label='src_compile - empty', name='radioButton2',
+#              parent=self.panel1, pos=wxPoint(32, 104), size=wxSize(256, 32),
+#              style=0)
+#        self.radioButton2.SetValue(False)
+#        EVT_RADIOBUTTON(self.radioButton2, wxID_WXDIALOG1RADIOBUTTON2,
+#              self.OnRadiobutton2Radiobutton)
 
-        self.radioButton3 = wxRadioButton(id=wxID_WXDIALOG1RADIOBUTTON3,
-              label='src_compile - ./configure - make', name='radioButton3',
-              parent=self.panel1, pos=wxPoint(32, 132), size=wxSize(256, 24),
-              style=0)
-        self.radioButton3.SetValue(False)
-        EVT_RADIOBUTTON(self.radioButton3, wxID_WXDIALOG1RADIOBUTTON3,
-              self.OnRadiobutton3Radiobutton)
+#        self.radioButton3 = wxRadioButton(id=wxID_WXDIALOG1RADIOBUTTON3,
+#              label='src_compile - ./configure - make', name='radioButton3',
+#              parent=self.panel1, pos=wxPoint(32, 132), size=wxSize(256, 24),
+#              style=0)
+#        self.radioButton3.SetValue(False)
+#        EVT_RADIOBUTTON(self.radioButton3, wxID_WXDIALOG1RADIOBUTTON3,
+#              self.OnRadiobutton3Radiobutton)
 
-        self.radioButton4 = wxRadioButton(id=wxID_WXDIALOG1RADIOBUTTON4,
-              label='src_install - make install', name='radioButton4',
-              parent=self.panel1, pos=wxPoint(32, 158), size=wxSize(264, 24),
-              style=0)
-        self.radioButton4.SetValue(False)
-        EVT_RADIOBUTTON(self.radioButton4, wxID_WXDIALOG1RADIOBUTTON4,
-              self.OnRadiobutton4Radiobutton)
+#        self.radioButton4 = wxRadioButton(id=wxID_WXDIALOG1RADIOBUTTON4,
+#              label='src_install - make install', name='radioButton4',
+#              parent=self.panel1, pos=wxPoint(32, 158), size=wxSize(264, 24),
+#              style=0)
+#        self.radioButton4.SetValue(False)
+#        EVT_RADIOBUTTON(self.radioButton4, wxID_WXDIALOG1RADIOBUTTON4,
+#              self.OnRadiobutton4Radiobutton)
 
-        self.radioButton5 = wxRadioButton(id=wxID_WXDIALOG1RADIOBUTTON5,
-              label='src_install - python setup.py install',
-              name='radioButton5', parent=self.panel1, pos=wxPoint(32, 184),
-              size=wxSize(264, 24), style=0)
-        self.radioButton5.SetValue(False)
-        EVT_RADIOBUTTON(self.radioButton5, wxID_WXDIALOG1RADIOBUTTON5,
-              self.OnRadiobutton5Radiobutton)
+#        self.radioButton5 = wxRadioButton(id=wxID_WXDIALOG1RADIOBUTTON5,
+#              label='src_install - python setup.py install',
+#              name='radioButton5', parent=self.panel1, pos=wxPoint(32, 184),
+#              size=wxSize(264, 24), style=0)
+#        self.radioButton5.SetValue(False)
+#        EVT_RADIOBUTTON(self.radioButton5, wxID_WXDIALOG1RADIOBUTTON5,
+#              self.OnRadiobutton5Radiobutton)
 
-        self.staticLine1 = wxStaticLine(id=wxID_WXDIALOG1STATICLINE1,
-              name='staticLine1', parent=self.panel1, pos=wxPoint(8, 56),
-              size=wxSize(312, 20), style=0)
+#        self.staticLine1 = wxStaticLine(id=wxID_WXDIALOG1STATICLINE1,
+#              name='staticLine1', parent=self.panel1, pos=wxPoint(8, 56),
+#              size=wxSize(312, 20), style=0)
 
-        self.staticLine2 = wxStaticLine(id=wxID_WXDIALOG1STATICLINE2,
-              name='staticLine2', parent=self.panel1, pos=wxPoint(8, 224),
-              size=wxSize(312, 4), style=0)
+#        self.staticLine2 = wxStaticLine(id=wxID_WXDIALOG1STATICLINE2,
+#              name='staticLine2', parent=self.panel1, pos=wxPoint(8, 224),
+#              size=wxSize(312, 4), style=0)
 
-        self.button1 = wxButton(id=wxID_OK, label='OK',
-              name='button1', parent=self.panel1, pos=wxPoint(48, 256),
-              size=wxSize(80, 22), style=0)
-        self.button1.SetDefault()
+#        self.button1 = wxButton(id=wxID_OK, label='OK',
+#              name='button1', parent=self.panel1, pos=wxPoint(48, 256),
+#              size=wxSize(80, 22), style=0)
+#        self.button1.SetDefault()
 
-        self.button2 = wxButton(id=wxID_CANCEL, label='Cancel',
-              name='button2', parent=self.panel1, pos=wxPoint(184, 256),
-              size=wxSize(80, 22), style=0)
+#        self.button2 = wxButton(id=wxID_CANCEL, label='Cancel',
+#              name='button2', parent=self.panel1, pos=wxPoint(184, 256),
+#              size=wxSize(80, 22), style=0)
 
-    def __init__(self, parent):
-        """Populate panel with controls"""
-        self._init_ctrls(parent)
-        self.val = None
-        self.textCtrl1.SetFocus()
+#    def __init__(self, parent):
+#        """Populate panel with controls"""
+#        self._init_ctrls(parent)
+#        self.val = None
+#        self.textCtrl1.SetFocus()
+import add_function_dialog
+class NewFunction(add_function_dialog.AddFunction):
+     def GetFunc(self):
+         """Returns function name and function body"""
+         return self.func, self.val
 
-    def GetFunc(self):
-        """Returns function name and function body"""
-        self.func = self.textCtrl1.GetValue()
-        if self.val == None:
-            self.val = self.func + ' {\n\n}\n'
-        return self.func, self.val
+#    def GetFunc(self):
+#        """Returns function name and function body"""
+#        self.func = self.textCtrl1.GetValue()
+#        if self.val == None:
+#            self.val = self.func + ' {\n\n}\n'
+#        return self.func, self.val
 
-    def OnRadiobutton1Radiobutton(self, event):
-        """empty custom function"""
-        self.textCtrl1.SetValue('()')
-        self.textCtrl1.SetFocus()
+#    def OnRadiobutton1Radiobutton(self, event):
+#        """empty custom function"""
+#        self.textCtrl1.SetValue('()')
+#        self.textCtrl1.SetFocus()
+#        self.val = None
 
-    def OnRadiobutton2Radiobutton(self, event):
-        """src_compile - empty"""
-        name = 'src_compile()'
-        self.textCtrl1.SetValue(name)
-        self.val = None
+#    def OnRadiobutton2Radiobutton(self, event):
+#        """src_compile - empty"""
+#        name = 'src_compile()'
+#        self.textCtrl1.SetValue(name)
+#        self.val = None
 
-    def OnRadiobutton3Radiobutton(self, event):
-        """src_compile - configure/make"""
-        name = 'src_compile()'
-        self.textCtrl1.SetValue(name)
-        self.val = name + ' {\n\teconf || die\n\temake || die\n}\n'
+#    def OnRadiobutton3Radiobutton(self, event):
+#        """src_compile - configure/make"""
+#        name = 'src_compile()'
+#        self.textCtrl1.SetValue(name)
+#        self.val = name + ' {\n\teconf || die\n\temake || die\n}\n'
 
-    def OnRadiobutton4Radiobutton(self, event):
-        """src_install - make install"""
-        name = 'src_install()'
-        self.textCtrl1.SetValue(name)
-        self.val = name + ' {\n\teinstall || die\n}\n'
+#    def OnRadiobutton4Radiobutton(self, event):
+#        """src_install - make install"""
+#        name = 'src_install()'
+#        self.textCtrl1.SetValue(name)
+#        self.val = name + ' {\n\teinstall || die\n}\n'
 
-    def OnRadiobutton5Radiobutton(self, event):
-        """src_install - python setup.py install"""
-        name = 'src_install()'
-        self.textCtrl1.SetValue(name)
-        self.val = name + ' {\n\tpython setup.py install || die\n}\n'
+#    def OnRadiobutton5Radiobutton(self, event):
+#        """src_install - python setup.py install"""
+#        name = 'src_install()'
+#        self.textCtrl1.SetValue(name)
+#        self.val = name + ' {\n\tpython setup.py install || die\n}\n'
 
 
 class EchangelogDialog(wxDialog):

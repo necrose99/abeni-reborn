@@ -1,4 +1,7 @@
-import sys, string, os, shutil
+import sys
+import os
+import string
+import shutil
 
 class Options:
     def __init__(self):
