@@ -20,7 +20,7 @@ import file_utils
 import icons.folder
 import icons.link
 import icons.file
-from Dialogs import PermsDialog
+import PermsDialog
 import options
 
 class AbstractFileWindow(wx.Panel):
