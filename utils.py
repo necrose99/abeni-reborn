@@ -320,7 +320,7 @@ def PostUnpack(parent):
     else:
         if GetS(parent) == "${WORKDIR}/${P}":
             parent.Write("))) More than one directory unpacked, you get to guess what ${S} is.")
-    log_color(parent, "BLACK")
+    #parent.log_color("BLACK")
 
 def SetS(parent, myp):
     """Set S"""

@@ -26,8 +26,8 @@ import MetadataDialog
 import PortageFuncsDialog
 import PrefsDialog
 from URI_Link import MyURILink
+from browsewin import LocalWindow
 import MyDatabase
-
 import pyipc
 import options 
 import abeniCVS
@@ -48,6 +48,7 @@ class MyFrame(wx.Frame):
         self.panel_1 = wx.Panel(self, -1)
         self.splitter = wx.SplitterWindow(self.panel_1, -1, style=wx.SP_3D|wx.SP_BORDER)
         self.notebook_1 = wx.Notebook(self.splitter, -1, style=wx.NB_BOTTOM)
+        self.notebook_1_pane_5 = wx.Panel(self.notebook_1, -1)
         self.notebook_1_pane_4 = wx.Panel(self.notebook_1, -1)
         self.panel_environment = wx.Panel(self.notebook_1, -1)
         self.panel_explorer = wx.Panel(self.notebook_1, -1)
@@ -232,6 +233,7 @@ class MyFrame(wx.Frame):
         self.text_ctrl_bugz = wx.TextCtrl(self.notebook_1_pane_4, -1, "")
         self.window_3 = MyURILink(self.notebook_1_pane_4, -1)
         self.text_ctrl_notes = wx.TextCtrl(self.notebook_1_pane_4, -1, "", style=wx.TE_MULTILINE)
+        self.window_2 = LocalWindow(self.notebook_1_pane_5)
 
         self.__set_properties()
         self.__do_layout()
@@ -268,6 +270,7 @@ class MyFrame(wx.Frame):
         # begin wxGlade: MyFrame.__do_layout
         sizer_1 = wx.BoxSizer(wx.VERTICAL)
         sizer_2 = wx.BoxSizer(wx.VERTICAL)
+        sizer_19 = wx.BoxSizer(wx.HORIZONTAL)
         sizer_15 = wx.StaticBoxSizer(self.sizer_15_staticbox, wx.VERTICAL)
         sizer_18 = wx.StaticBoxSizer(self.sizer_18_staticbox, wx.HORIZONTAL)
         sizer_17 = wx.BoxSizer(wx.HORIZONTAL)
@@ -347,10 +350,16 @@ class MyFrame(wx.Frame):
         self.notebook_1_pane_4.SetSizer(sizer_15)
         sizer_15.Fit(self.notebook_1_pane_4)
         sizer_15.SetSizeHints(self.notebook_1_pane_4)
+        sizer_19.Add(self.window_2, 1, wx.EXPAND, 0)
+        self.notebook_1_pane_5.SetAutoLayout(True)
+        self.notebook_1_pane_5.SetSizer(sizer_19)
+        sizer_19.Fit(self.notebook_1_pane_5)
+        sizer_19.SetSizeHints(self.notebook_1_pane_5)
         self.notebook_1.AddPage(self.panel_log, "Output")
         self.notebook_1.AddPage(self.panel_explorer, "Files")
         self.notebook_1.AddPage(self.panel_environment, "Environment")
         self.notebook_1.AddPage(self.notebook_1_pane_4, "Notes")
+        self.notebook_1.AddPage(self.notebook_1_pane_5, "$FILESDIR")
         self.splitter.SplitHorizontally(self.STCeditor, self.notebook_1)
         sizer_2.Add(self.splitter, 1, wx.EXPAND, 0)
         self.panel_1.SetAutoLayout(True)
@@ -390,10 +399,10 @@ class MyFrame(wx.Frame):
         wx.EVT_TOOL(self, TB_EDIT_ID, self.OnMnuEdit)
 
         #Insert
-        wx.EVT_TOOL(self, TB_FUNC_ID, self.OnMnuNewFunction)
         wx.EVT_TOOL(self, mnuLicenseID, self.InsertLicense)
-
-        #Tools
+        wx.EVT_TOOL(self, TB_FUNC_ID, self.OnMnuNewFunction)
+        wx.EVT_TOOL(self, mnuAddFuncID, self.OnMnuNewFunction)
+        #Tool
 
         wx.EVT_TOOL(self, TB_CLEAN_ID, self.OnMnuClean)
         wx.EVT_TOOL(self, TB_DIGEST_ID, self.OnMnuCreateDigest)
@@ -405,7 +414,6 @@ class MyFrame(wx.Frame):
         wx.EVT_TOOL(self, TB_EMERGE_ID, self.OnMnuEmerge)
         wx.EVT_TOOL(self, TB_XTERM_ID, self.OnXtermInS)
         wx.EVT_TOOL(self, TB_STOP_ID, self.KillProc)
-        #wx.EVT_TOOL(self, TB_FUNCTION_ID, self.OnMnuNewFunction)
 
         # File
 
