@@ -1,9 +1,10 @@
-browser = /usr/bin/netscape
+browser = /usr/bin/firebird
 xterm = /usr/X11R6/bin/xterm
 diff = /usr/kde/3.1/bin/kompare
 editor = /usr/bin/gedit
 autoTabs = no
 fileBrowser = Not Implented, leave this as is.
 use =
-features = notitles sandbox ccache
+features = notitles sandbox
 log = bottom
+

@@ -15,15 +15,13 @@ class Options:
         self.use= ''
         self.features = ''
         self.log = ''
+        self.email = ''
 
         self.Read_apprc()
 
     def Read_apprc(self):
         """ read and parse abenirc"""
-
         file = os.path.expanduser('~/.abeni/abenirc')
-        if not os.path.exists(file):
-            shutil.copy("/usr/share/abeni/abenirc", file)
         f = open(file)
         line = f.readline()
         while line:
@@ -55,6 +53,9 @@ class Options:
             if string.find(line, 'log') != -1:
                 self.log = string.strip(string.split(line, '=')[1])
 
+            if string.find(line, 'email') != -1:
+                self.email = string.strip(string.split(line, '=')[1])
+
             line = f.readline()
         f.close()
 
@@ -71,4 +72,5 @@ class Options:
         pref['use'] = self.use
         pref['features'] = self.features
         pref['log'] = self.log
+        pref['email'] = self.email
         return pref

@@ -1,7 +1,7 @@
 from portage import config
 from wxPython.wx import *
 from wxPython.grid import *
-import popen2, gadfly, os
+import popen2, gadfly, os, string
 
 env = config().environ()
 portdir_overlay = env['PORTDIR_OVERLAY'].split(" ")[0]
@@ -14,18 +14,16 @@ class CustomDataTable(wxPyGridTableBase):
     """
     """
 
-    def __init__(self, log):
+    def __init__(self):
         wxPyGridTableBase.__init__(self)
-        loc = "/home/rob/.abeni/bugz"
+        loc = os.path.expanduser('~/.abeni/bugz')
         if not os.path.exists("%s/EBUILDS.grl" % loc):
             print "Creating project database and tables..."
             self.createDB()
             print "Database created."
         else:
-            self.connection = gadfly.gadfly("bugzDB", "/home/rob/.abeni/bugz")
-            self.cursor = self.connection.cursor()
+            self.ConnectDB()
 
-        self.log = log
         self.colLabels = ['Package', 'Bugz Nbr', 'Bugzilla Status', 'Bugzilla Rsltn',
                           'Mine', 'In Portage', ' Abeni Status ']
         self.dataTypes = [wxGRID_VALUE_STRING,
@@ -38,9 +36,9 @@ class CustomDataTable(wxPyGridTableBase):
                           ]
 
         #self.data = [
-        #    [ "app-admin/abeni-0.0.6", 11010,'ASSIGNED', '', 1, 0, 0],
+        #    [ "app-admin/abeni-0.0.6", 11010,'ASSIGNED', '', 1, 0,'SUBMITTED'],
         #    [ "app-games/flowbie-0.1", 31011, "NEW", '', 0, 0, 0],
-        #    [ "media-sound/boobs-1.0", 21012, "RESOLVED", "FIXED", 'all', 0, 1, 1]
+        #    [ "media-sound/boobs-1.0", 21012, "RESOLVED", "FIXED", 'all', 0, 1, 'SUBMITTED']
         #    ]
 
         self.data = []
@@ -51,6 +49,7 @@ class CustomDataTable(wxPyGridTableBase):
             status = ""
             res = ""
             mine = 0
+            abenistatus = ''
             e = e.replace(portdir_overlay, "")
             e = e[1:-8]
             catpack = e.split("/")
@@ -59,16 +58,38 @@ class CustomDataTable(wxPyGridTableBase):
             e = "%s/%s" % (cat, p)
             self.cursor.execute("SELECT p, package, cat, bug, bzstatus, bzresolution, \
                                 notes, mine, abenistatus FROM ebuilds WHERE p='%s'" % p)
-            data = self.cursor.fetchall()
+            mydata = self.cursor.fetchall()
             bug = ''
-            if data:
-                p, package, cat, bug, bzstatus, bzresolution, notes, mine, abenistatus = data[0]
+            if mydata:
+                p, package, cat, bug, bzstatus, bzresolution, notes, mine, abenistatus = mydata[0]
                 if bzstatus:
                     status = bzstatus
                 if bzresolution:
                     res = bzresolution
             my = [e, bug, status, res, mine, portage, abenistatus]
             self.data.append(my)
+
+    def ConnectDB(self):
+        loc = os.path.expanduser('~/.abeni/bugz')
+        self.connection = gadfly.gadfly("bugzDB", loc)
+        self.cursor = self.connection.cursor()
+
+    def UpdateRow(self, p, row, col):
+        """Reload data in row,c with data found by p"""
+        #We need to reconnect the DB because another process updated it
+        self.ConnectDB()
+        self.cursor.execute("SELECT p, package, cat, bug, bzstatus, bzresolution, \
+                            notes, mine, abenistatus FROM ebuilds WHERE p='%s'" % p)
+        mydata = self.cursor.fetchall()
+        p, package, cat, bug, bzstatus, bzresolution, notes, mine, abenistatus = mydata[0]
+        self.SetValue(row, 1, mydata[0][3])
+        self.SetValue(row, 2, mydata[0][4])
+        self.SetValue(row, 3, mydata[0][5])
+        self.SetValue(row, 4, mydata[0][7])
+        self.SetValue(row, 6, mydata[0][8])
+
+        #'Package', 'Bugz Nbr', 'Bugzilla Status', 'Bugzilla Rsltn',
+        #                  'Mine', 'In Portage', ' Abeni Status ']
 
     def checkOverlay(self, n):
         o = n.replace(portdir_overlay, portdir).strip()
@@ -77,7 +98,8 @@ class CustomDataTable(wxPyGridTableBase):
 
     def createDB(self):
         self.connection = gadfly.gadfly()
-        self.connection.startup("bugzDB", "/home/rob/.abeni/bugz")
+        loc = os.path.expanduser('~/.abeni/bugz')
+        self.connection.startup("bugzDB", loc)
         self.cursor = self.connection.cursor()
         cmd = "create table ebuilds (\
            p VARCHAR, \
@@ -203,7 +225,6 @@ class CustomDataTable(wxPyGridTableBase):
         print "Done updating"
 
     def OnSaveButton(self):
-        wxSafeYield
         rs = self.GetNumberRows()
         cs = self.GetNumberCols()
         for row in range(rs-1):
@@ -214,6 +235,20 @@ class CustomDataTable(wxPyGridTableBase):
             self.UpdateDB(l)
         self.connection.commit()
 
+    def PtoPackage(self, p):
+        """Given P, return package name"""
+        parts = p.split("-")
+        n = len(parts)
+        if n == 2:
+            pn = parts[0]
+        else:
+            if parts[n-1][0] == "r":
+                pn = parts[:-2]
+            else:
+                pn = parts[:-1]
+            pn = string.join(pn, "-")
+        return pn
+
     def UpdateDB(self, l):
         p = l[0].split("/")[1]
         cat = l[0].split("/")[0]
@@ -222,7 +257,7 @@ class CustomDataTable(wxPyGridTableBase):
         bzresolution = l[3]
         mine = l[4]
         abenistatus = l[6]
-        package = ''
+        package = self.PtoPackage(p)
         notes = ''
         self.cursor.execute("SELECT p FROM ebuilds WHERE p='%s'" % p)
         exists = self.cursor.fetchall()
@@ -234,7 +269,6 @@ class CustomDataTable(wxPyGridTableBase):
         elif bug =='' and bzstatus =='' and bzresolution == '' and mine == 0 and abenistatus == '':
             pass
         else:
-            #TODO: Get package name
             #print "INSERT", p, cat, bug, bzstatus, bzresolution, mine
             self.cursor.execute("INSERT INTO ebuilds(p, package, cat, bug, bzstatus, \
                     bzresolution, notes, mine, abenistatus) \
@@ -255,6 +289,7 @@ class CustomDataTable(wxPyGridTableBase):
     def GetTypeName(self, row, col):
         return self.dataTypes[col]
 
+    # editor and renderer.  This allows you to enforce some type-safety
     # Called to determine how the data can be fetched and stored by the
     # editor and renderer.  This allows you to enforce some type-safety
     # in the grid.
@@ -271,10 +306,10 @@ class CustomDataTable(wxPyGridTableBase):
 #---------------------------------------------------------------------------
 
 class CustTableGrid(wxGrid):
-    def __init__(self, parent, log):
+    def __init__(self, parent):
         wxGrid.__init__(self, parent, -1)
 
-        self.table = CustomDataTable(log)
+        self.table = CustomDataTable()
 
         # The second parameter means that the grid is to take ownership of the
         # table and will destroy it when done.  Otherwise you would need to keep
@@ -286,9 +321,61 @@ class CustTableGrid(wxGrid):
         self.AutoSizeColumns(False)
 
         EVT_GRID_CELL_LEFT_DCLICK(self, self.OnLeftDClick)
+        #EVT_GRID_SELECT_CELL(self, self.OnCellSelect)
+        # I do this because I don't like the default behaviour of not starting the
+        # cell editor on double clicks, but only a second click.
 
-    # I do this because I don't like the default behaviour of not starting the
-    # cell editor on double clicks, but only a second click.
+    def GetCur(self):
+        """ Return row, col of cursor"""
+        r = self.GetGridCursorRow()
+        c = self.GetGridCursorCol()
+        return r, c
+
+    def GetP(self):
+        return self.p
+
+    def GetCat(self):
+        return self.cat
+
+    def GetPackage(self):
+        return self.package
+
+    def PtoPackage(self, p):
+        """Given P, return package name"""
+        parts = p.split("-")
+        n = len(parts)
+        if n == 2:
+            pn = parts[0]
+        else:
+            if parts[n-1][0] == "r":
+                pn = parts[:-2]
+            else:
+                pn = parts[:-1]
+            pn = string.join(pn, "-")
+        return pn
+
+    def OnEditInfo(self):
+        r, c = self.GetCur()
+        if c !=0:
+            #You must select a cell with cat/package
+            return
+        self.table.connection = None
+        from dialogs import BugzillaDialog
+        catpack = self.GetCellValue(r, c)
+        self.p = catpack.split("/")[1]
+        self.cat = catpack.split("/")[1]
+        self.package = self.PtoPackage(self.p)
+        dlg = BugzillaDialog(self)
+        dlg.CenterOnScreen()
+        v = dlg.ShowModal()
+        if v == wxID_OK:
+            res = dlg.SaveInfo()
+            self.table.UpdateRow(self.p, r, c)
+        dlg.Destroy()
+
+    def OnCellSelect(self, evt):
+        evt.Skip()
+
     def OnLeftDClick(self, evt):
         if self.CanEnableCellControl():
             self.EnableCellEditControl()
@@ -296,20 +383,25 @@ class CustTableGrid(wxGrid):
     def OnBugzFetchButton(self, l):
         self.table.OnBugzFetchButton(l)
 
+    def OnDelButton(self):
+        self.table.OnDelButton()
+
     def OnSaveButton(self):
+        self.SaveEditControlValue()
         self.table.OnSaveButton()
 
 #---------------------------------------------------------------------------
 
 class MyFrame(wxFrame):
-    def __init__(self, parent, log):
+    def __init__(self, parent):
         wxFrame.__init__(self, parent, -1, "Abeni Ebuild Project Manager", size=(800,480))
+        EVT_CLOSE(self,self.OnClose)
         self.parent = parent
         p = wxPanel(self, -1, style=0)
-        self.grid = CustTableGrid(p, log)
+        self.grid = CustTableGrid(p)
         b1 = wxButton(p, -1, "Save")
         EVT_BUTTON(self, b1.GetId(), self.OnSaveButton)
-        b2 = wxButton(p, -1, "Edit")
+        b2 = wxButton(p, -1, "Edit Info")
         EVT_BUTTON(self, b2.GetId(), self.OnEditButton)
         b3 = wxButton(p, -1, "Delete")
         EVT_BUTTON(self, b3.GetId(), self.OnDelButton)
@@ -317,6 +409,9 @@ class MyFrame(wxFrame):
         EVT_BUTTON(self, b4.GetId(), self.OnBugzFetchButton)
         b5 = wxButton(p, -1, "Cancel")
         EVT_BUTTON(self, b5.GetId(), self.OnCancelButton)
+        b6 = wxButton(p, -1, "Query/Find Bug#")
+        EVT_BUTTON(self, b6.GetId(), self.OnQueryButton)
+
         bs = wxBoxSizer(wxVERTICAL)
         buts = wxBoxSizer(wxHORIZONTAL)
         buts.Add(b1)
@@ -328,27 +423,58 @@ class MyFrame(wxFrame):
         buts.Add(b4)
         buts.Add((6,6))
         buts.Add(b5)
+        buts.Add((60,6))
+        buts.Add(b6)
         bs.Add(self.grid, 2, wxGROW|wxALL, 5)
         bs.Add(buts,0, wxEXPAND|wxALL, 10)
         p.SetSizer(bs)
 
+    def OnClose(self, evt):
+        self.CloseMe()
+
+    def CloseMe(self):
+        self.Destroy()
+
+    def OnQueryButton(self, evt):
+        pass
+        #t = self.QueryCtrl.GetValue()
+
     def OnSaveButton(self, evt):
+        wxSafeYield()
         self.grid.OnSaveButton()
 
     def OnDelButton(self, evt):
-        print "del"
+        self.grid.OnDelButton()
 
     def OnEditButton(self, evt):
-        print "edit"
+        self.grid.OnEditInfo()
 
     def OnCancelButton(self, evt):
-        pass
+        self.CloseMe()
 
     def OnBugzFetchButton(self, evt):
-        import urllib
+        import urllib, options
+        myOptions = options.Options()
+        pref = myOptions.Prefs()
         print "Fetching Info from bugs.gentoo.org..."
         wxSafeYield()
-        addr="http://bugs.gentoo.org/buglist.cgi?query_format=&short_desc_type=allwordssubstr&short_desc=&long_desc_type=substring&long_desc=&bug_file_loc_type=allwordssubstr&bug_file_loc=&keywords_type=allwords&keywords=&bug_status=UNCONFIRMED&bug_status=NEW&bug_status=ASSIGNED&bug_status=REOPENED&bug_status=RESOLVED&bug_status=VERIFIED&bug_status=CLOSED&emailassigned_to1=1&emailreporter1=1&emailqa_contact1=1&emailcc1=1&emaillongdesc1=1&emailtype1=exact&email1=robc%40myrealbox.com&emailtype2=substring&email2=&bugidtype=include&bug_id=&votes=&changedin=&chfieldfrom=&chfieldto=Now&chfieldvalue=&field0-0-0=noop&type0-0-0=noop&value0-0-0=&ctype=csv"
+        e = pref['email']
+        if not e:
+            print "No email address specified"
+            return
+        uname = e.split("@")[0]
+        host = e.split("@")[1]
+        email = uname+"%40"+host
+        print email
+        #"http://bugs.gentoo.org/buglist.cgi?query_format=&short_desc_type=allwordssubstr&short_desc=&long_desc_type=substring&long_desc=&bug_file_loc_type=allwordssubstr&bug_file_loc=&keywords_type=allwords&keywords=&bug_status=UNCONFIRMED&bug_status=NEW&bug_status=ASSIGNED&bug_status=REOPENED&bug_status=RESOLVED&bug_status=VERIFIED&bug_status=CLOSED&emailassigned_to1=1&emailreporter1=1&emailqa_contact1=1&emailcc1=1&emaillongdesc1=1&emailtype1=exact&email1=robc%40myrealbox.com&emailtype2=substring&email2=&bugidtype=include&bug_id=&votes=&changedin=&chfieldfrom=&chfieldto=Now&chfieldvalue=&field0-0-0=noop&type0-0-0=noop&value0-0-0=&ctype=csv"
+        addr1="http://bugs.gentoo.org/buglist.cgi?query_format=&short_desc_type=allwordssubstr&"
+        addr2="short_desc=&long_desc_type=substring&long_desc=&bug_file_loc_type=allwordssubstr&bug_file_loc=&"
+        addr3="keywords_type=allwords&keywords=&bug_status=UNCONFIRMED&bug_status=NEW&bug_status=ASSIGNED&bug_"
+        addr4="status=REOPENED&bug_status=RESOLVED&bug_status=VERIFIED&bug_status=CLOSED&emailassigned_to1=1&"
+        addr5="emailreporter1=1&emailqa_contact1=1&emailcc1=1&emaillongdesc1=1&emailtype1=exact&email1="
+        addr6="%s&emailtype2=substring&email2=&bugidtype=include&bug_id=&votes=&changedin=" % email
+        addr7="&chfieldfrom=&chfieldto=Now&chfieldvalue=&field0-0-0=noop&type0-0-0=noop&value0-0-0=&ctype=csv"
+        addr="%s%s%s%s%s%s%s" % (addr1, addr2, addr3, addr4, addr5, addr6, addr7)
         f = urllib.urlopen(addr)
         lines = f.readlines()
         self.grid.OnBugzFetchButton(lines)
@@ -358,7 +484,7 @@ class MyFrame(wxFrame):
 if __name__ == '__main__':
     import sys
     app = wxPySimpleApp()
-    frame = MyFrame(None, sys.stdout)
+    frame = MyFrame(None)
     frame.Show(true)
     app.MainLoop()
 

@@ -5,30 +5,35 @@ from wxPython.lib.grids import wxGridSizer, wxFlexGridSizer
 from wxPython.lib.buttons import *
 import os, gadfly
 
-[wxID_BUGZILLA, wxID_BUGZILLABUGNBR, wxID_BUGZILLABUGNBRSTATICTEXT,
- wxID_BUGZILLABUZILLASTATICBOX, wxID_BUGZILLACANCEL,
+
+
+[wxID_BUGZILLA, wxID_BUGZILLAABENICOMBOBOX, wxID_BUGZILLAABENISTATICBOX,
+ wxID_BUGZILLABUGNBR, wxID_BUGZILLABUGNBRSTATICTEXT,
+ wxID_BUGZILLABUZILLASTATICBOX, wxID_BUGZILLACANCEL, wxID_BUGZILLACHECKBOX1,
  wxID_BUGZILLANOTESSTATICBOX, wxID_BUGZILLANOTESTEXTCTRL, wxID_BUGZILLAOK,
- wxID_BUGZILLARESOLUTIONCOMBO, wxID_BUGZILLASEARCHBUTTON,
- wxID_BUGZILLASTATUSCOMBO,
-] = map(lambda _init_ctrls: wxNewId(), range(11))
+ wxID_BUGZILLAPACKAGETEXT, wxID_BUGZILLARESOLUTIONCOMBO,
+ wxID_BUGZILLASEARCHBUTTON, wxID_BUGZILLASTATUSCOMBO,
+] = map(lambda _init_ctrls: wxNewId(), range(15))
 
 
 class BugzillaDialog(wxDialog):
     def __init__(self, parent):
         self._init_ctrls(parent)
-        loc = "/home/rob/.abeni/bugz"
+        loc = os.path.expanduser('~/.abeni/bugz')
         if not os.path.exists("%s/EBUILDS.grl" % loc):
             self.parent.write("Creating project database and tables...")
             self.createDB()
             self.parent.write("Database created.")
         else:
-            self.connection = gadfly.gadfly("bugzDB", "/home/rob/.abeni/bugz")
+            loc = os.path.expanduser('~/.abeni/bugz')
+            self.connection = gadfly.gadfly("bugzDB", loc)
             self.cursor = self.connection.cursor()
         self.LoadInfo()
 
     def createDB(self):
         self.connection = gadfly.gadfly()
-        self.connection.startup("bugzDB", "/home/rob/.abeni/bugz")
+        loc = os.path.expanduser('~/.abeni/bugz')
+        self.connection.startup("bugzDB", loc)
         self.cursor = self.connection.cursor()
         cmd = "create table ebuilds (\
            p VARCHAR, \
@@ -38,35 +43,33 @@ class BugzillaDialog(wxDialog):
            bzstatus VARCHAR, \
            bzresolution VARCHAR, \
            notes VARCHAR, \
-           mine BOOL, \
+           mine INTEGER, \
            abenistatus VARCHAR \
            )"
-        self.cursor.execute(cmd)
-        self.cursor.execute("CREATE UNIQUE INDEX pkey ON ebuilds (p)")
         self.cursor.execute(cmd)
         self.connection.commit()
 
     def SaveInfo(self):
+        cat = self.parent.GetCat()
+        package = self.parent.GetPackage()
         p = self.parent.GetP()
-        cat = self.parent.panelMain.Category.GetValue()
-        package = self.parent.panelMain.Package.GetValue()
-        bug, notes, bzstatus, bzresolution = self.GetValues()
-        abenistatus = '1'
+        bug, notes, bzstatus, bzresolution, mine, abenistatus = self.GetValues()
+
         if self.new:
-            self.cursor.execute("INSERT INTO ebuilds(p, package, cat, bug, bzstatus, bzresolution, notes, abenistatus) \
-                VALUES ('%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s')" \
+            self.cursor.execute("INSERT INTO ebuilds(p, package, cat, bug, bzstatus, bzresolution, notes, mine, abenistatus) \
+                VALUES ('%s', '%s', '%s', '%s', '%s', '%s', '%s', %i, '%s')" \
                 % (p, package, cat, bug, bzstatus, bzresolution, notes, mine, abenistatus)\
                 )
         else:
             self.cursor.execute("UPDATE ebuilds SET p='%s', package='%s', cat='%s', bug='%s', bzstatus='%s',  \
-                                bzresolution='%s', notes='%s', mine='%s', abenistatus='%s' WHERE p='%s'" \
+                                bzresolution='%s', notes='%s', mine=%i, abenistatus='%s' WHERE p='%s'" \
                                 % (p, package, cat, bug, bzstatus, bzresolution, notes, mine, abenistatus, p))
         self.connection.commit()
 
     def LoadInfo(self):
         P = self.parent.GetP()
-        cat = self.parent.panelMain.Category.GetValue()
-        package = self.parent.panelMain.Package.GetValue()
+        cat = self.parent.GetCat()
+        package = self.parent.GetPackage()
         self.cursor.execute("SELECT p, package, cat, bug, bzstatus, bzresolution, notes, mine, abenistatus \
                                 FROM ebuilds WHERE p='%s'" % P)
         data = self.cursor.fetchall()
@@ -84,10 +87,91 @@ class BugzillaDialog(wxDialog):
             self.StatusCombo.SetValue(bzstatus)
         if bzresolution != '':
             self.ResolutionCombo.SetValue(bzresolution)
+        if mine:
+            self.checkBox1.SetValue(1)
+        if abenistatus != '':
+            self.AbeniComboBox.SetValue(abenistatus)
 
     def _init_ctrls(self, prnt):
         self.parent = prnt
         # generated method, don't edit
+
+        wxDialog.__init__(self, id=wxID_BUGZILLA, name='Bugzilla', parent=prnt,
+              pos=wxPoint(306, 74), size=wxSize(462, 548),
+              style=wxDEFAULT_DIALOG_STYLE, title='Bugzilla Info & Notes')
+
+        self.SetClientSize(wxSize(462, 548))
+
+        self.BugNbrstaticText = wxStaticText(id=wxID_BUGZILLABUGNBRSTATICTEXT,
+              label='Bug Number', name='BugNbrstaticText', parent=self,
+              pos=wxPoint(16, 48), size=wxSize(88, 24), style=0)
+
+        self.BugNbr = wxTextCtrl(id=wxID_BUGZILLABUGNBR, name='BugNbr',
+              parent=self, pos=wxPoint(96, 48), size=wxSize(120, 22), style=0,
+              value='')
+
+        self.SearchButton = wxButton(id=wxID_BUGZILLASEARCHBUTTON,
+              label='Get Bug# / Query', name='SearchButton', parent=self,
+              pos=wxPoint(226, 48), size=wxSize(126, 22), style=0)
+        EVT_BUTTON(self, wxID_BUGZILLASEARCHBUTTON, self.OnSearchButton)
+
+        self.NotestextCtrl = wxTextCtrl(id=wxID_BUGZILLANOTESTEXTCTRL,
+              name='NotestextCtrl', parent=self, pos=wxPoint(16, 228),
+              size=wxSize(432, 264), style=wxTAB_TRAVERSAL | wxTE_MULTILINE,
+              value='')
+        self.NotestextCtrl.SetToolTipString('')
+
+        self.OK = wxGenButton(ID=wxID_OK, label='OK', name='OK',
+              parent=self, pos=wxPoint(112, 512), size=wxSize(81, 27), style=0)
+
+        self.Cancel = wxGenButton(ID=wxID_CANCEL, label='Cancel',
+              name='Cancel', parent=self, pos=wxPoint(264, 512), size=wxSize(81,
+              27), style=0)
+
+        self.BuzillaStaticBox = wxStaticBox(id=wxID_BUGZILLABUZILLASTATICBOX,
+              label='Bugzilla Information', name='BuzillaStaticBox',
+              parent=self, pos=wxPoint(10, 8), size=wxSize(448, 114), style=0)
+
+        statusList = ['NEW', 'UNCONFIRMED', 'ASSIGNED', 'REOPENED', 'RESOLVED', 'VERIFIED', 'CLOSED']
+        self.StatusCombo = wxComboBox(choices=statusList, id=wxID_BUGZILLASTATUSCOMBO,
+              name='StatusCombo', parent=self, pos=wxPoint(16, 88),
+              size=wxSize(200, 22), style=0, validator=wxDefaultValidator,
+              value='NEW')
+        self.StatusCombo.SetLabel('')
+
+        resolutionList = ['FIXED', 'INVALID', 'WONTFIX', 'LATER', 'REMIND', 'DUPLICATE', 'WORKSFORME']
+        self.ResolutionCombo = wxComboBox(choices=resolutionList,
+              id=wxID_BUGZILLARESOLUTIONCOMBO, name='ResolutionCombo',
+              parent=self, pos=wxPoint(224, 88), size=wxSize(224, 22), style=0,
+              validator=wxDefaultValidator, value='FIXED')
+        self.ResolutionCombo.SetLabel('')
+
+        self.NotesStaticBox = wxStaticBox(id=wxID_BUGZILLANOTESSTATICBOX,
+              label='Notes', name='NotesStaticBox', parent=self, pos=wxPoint(8,
+              208), size=wxSize(448, 296), style=0)
+
+        self.AbeniStaticBox = wxStaticBox(id=wxID_BUGZILLAABENISTATICBOX,
+              label='Abeni Information', name='AbeniStaticBox', parent=self,
+              pos=wxPoint(8, 132), size=wxSize(450, 64), style=0)
+
+        self.PackageText = wxStaticText(id=wxID_BUGZILLAPACKAGETEXT,
+              label='Ebuild Package', name='PackageText', parent=self,
+              pos=wxPoint(228, 20), size=wxSize(88, 16), style=0)
+
+        abeniList = ['FIXED', 'INVALID', 'WONTFIX', 'LATER', 'REMIND', 'OBSOLETE', 'SUBMITTED']
+        self.AbeniComboBox = wxComboBox(choices=abeniList,
+              id=wxID_BUGZILLAABENICOMBOBOX, name='AbeniComboBox', parent=self,
+              pos=wxPoint(224, 160), size=wxSize(224, 22), style=0,
+              validator=wxDefaultValidator, value='FIXED')
+        self.AbeniComboBox.SetLabel('')
+
+        self.checkBox1 = wxCheckBox(id=wxID_BUGZILLACHECKBOX1,
+              label='Ebuild is Mine', name='checkBox1', parent=self,
+              pos=wxPoint(24, 160), size=wxSize(144, 24), style=0)
+        self.checkBox1.SetValue(False)
+
+
+        '''
         wxDialog.__init__(self, id=wxID_BUGZILLA, name='Bugzilla', parent=prnt,
               pos=wxPoint(278, 137), size=wxSize(462, 493),
               style=wxDEFAULT_DIALOG_STYLE, title='Bugzilla Info & Notes')
@@ -140,9 +224,10 @@ class BugzillaDialog(wxDialog):
         self.NotesStaticBox = wxStaticBox(id=wxID_BUGZILLANOTESSTATICBOX,
               label='Notes', name='NotesStaticBox', parent=self, pos=wxPoint(8,
               144), size=wxSize(448, 280), style=0)
+        '''
 
     def OnSearchButton(self, event):
-        bugNbr, foo, foo, foo = self.GetValues()
+        bugNbr, foo, foo, foo, foo, foo = self.GetValues()
         URL = "http://bugs.gentoo.org/show_bug.cgi?id=%s" % bugNbr
         os.system("%s %s &" % (self.parent.pref['browser'], URL))
 
@@ -151,7 +236,14 @@ class BugzillaDialog(wxDialog):
         notes = self.NotestextCtrl.GetValue()
         status = self.StatusCombo.GetStringSelection()
         resolution = self.ResolutionCombo.GetStringSelection()
-        return bug, notes, status, resolution
+        mine = self.checkBox1.GetValue()
+        if mine:
+            mine = 1
+        else:
+            mine = 0
+        abenistatus = self.AbeniComboBox.GetStringSelection()
+        print "mine, ab", mine, abenistatus
+        return bug, notes, status, resolution, mine, abenistatus
 
 class GetURIDialog(wxDialog):
 
@@ -320,6 +412,8 @@ class Preferences(wxDialog):
         self.use.SetValue(self.pref['use'])
         self.log = wxTextCtrl(self, wxNewId(), "", size=(200,-1))
         self.log.SetValue(self.pref['log'])
+        self.email = wxTextCtrl(self, wxNewId(), "", size=(200,-1))
+        self.email.SetValue(self.pref['email'])
 
         gs.AddMany([
         (wxStaticText(self, -1, "Web browser"), 0, wxALIGN_LEFT),
@@ -338,9 +432,10 @@ class Preferences(wxDialog):
         (self.use, 0, wxALIGN_RIGHT),
         (wxStaticText(self, -1, "FEATURES"), 0, wxALIGN_LEFT),
         (self.features, 0, wxALIGN_RIGHT),
-
         (wxStaticText(self, -1, "Log (bottom/window)"), 0, wxALIGN_LEFT),
         (self.log, 0, wxALIGN_RIGHT),
+        (wxStaticText(self, -1, "Bugzilla Email Addr"), 0, wxALIGN_LEFT),
+        (self.email, 0, wxALIGN_RIGHT),
 
         (btnOK, 0, wxALIGN_CENTER),
         (btnCancel, 0, wxALIGN_CENTER)
