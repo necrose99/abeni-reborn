@@ -15,7 +15,17 @@ from portage import config, settings, pkgsplit
 
 import utils
 import __version__ 
-import dialogs
+import AboutDialog
+import AddFunctionDialog
+import EmergeDialog
+import FileCopyDialog
+import GetURIDialog
+import HelpCVSDialog
+import HelpFkeysDialog
+#import MetadataDialog
+import PortageFuncsDialog
+import PrefsDialog
+
 import pyipc
 import options 
 #import abeniCVS
@@ -1423,10 +1433,6 @@ class MyFrame(wx.Frame):
 
     def OnMnuPrivHelp(self, event):
         """View private portage fnunctions"""
-        #win = PortageFuncsDialog.MyDialog(self, -1, "Preferences", \
-        #                          size=wx.Size(350, 200), \
-        #                          style = wx.DEFAULT_DIALOG_STYLE \
-        #                          )
         win = PortageFuncsDialog.MyDialog(self, -1, "Portage Private Functions",
                                   style = wx.DEFAULT_DIALOG_STYLE)
         win.CenterOnScreen()
@@ -1600,7 +1606,7 @@ class MyFrame(wx.Frame):
 
     def OnMnuAbout(self, event):
         """Obligitory About me and my app screen"""
-        about = dialogs.AboutDialog.MyAboutBox(self)
+        about = AboutDialog.MyAboutBox(self)
         about.ShowModal()
         about.Destroy()
         event.Skip()
