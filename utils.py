@@ -125,49 +125,50 @@ def LogWindow(parent):
         parent.pref['log'] = 'window'
         parent.menu_options.Check(parent.mnuLogWindowID, 1)
 
-#TODO: Add this option back in? I never actually used it myself.
-def LogBottom(parent, log):
-    """Show log at the bottom"""
-    parent.menu_options.Check(parent.mnuLogBottomID, 1)
-    parent.text_ctrl_log = log
-    parent.text_ctrl_log.Reparent(parent.splitter)
-    wx.Log_SetActiveTarget(MyLog(parent.text_ctrl_log))
-    parent.splitter.SplitHorizontally(parent.nb, parent.text_ctrl_log, 400)
-    parent.splitter.SetMinimumPaneSize(20)
-    parent.text_ctrl_log.Show(True)
-    parent.pref['log'] = 'bottom'
+def RefreshS(parent):
+    """Refresh ${S} file browser"""
+    s = GetS(parent)
+    print s
+    if s:
+        if os.path.exists(s):
+            parent.sDir.onRefresh(-1)
+        else:
+            parent.sDir.clearList()
+    else:
+        parent.sDir.clearList()
 
 def PostAction(parent, action):
     """Execute code after asynchronous job done with ExecuteInLog finishes"""
     if action == "setup":
         ViewEnvironment(parent)
         parent.filesDir.onRefresh(-1)
-        #parent.sDir.onRefresh(-1)
+        RefreshS(parent)
     if action == "clean":
         parent.Write("))) All clean.")
         parent.filesDir.onRefresh(-1)
+        parent.sDir.clearList()
         ViewEnvironment(parent)
     if action == 'digest':
         parent.filesDir.onRefresh(-1)
     if action == 'unpack':
         PostUnpack(parent)
         parent.filesDir.onRefresh(-1)
-        #parent.sDir.onRefresh(-1)
+        RefreshS(parent)
     if action == 'compile':
-        #parent.sDir.onRefresh(-1)
+        RefreshS(parent)
         LogToOutput(parent)
         parent.Write("))) compile finished")
     if action == 'install':
         PostInstall(parent)
         LogToOutput(parent)
-        #parent.sDir.onRefresh(-1)
+        RefreshS(parent)
         parent.Write("))) install finished")
     if action == 'qmerge':
-        #parent.sDir.onRefresh(-1)
+        RefreshS(parent)
         LogToOutput(parent)
         parent.Write("))) qmerge finished")
     if action == 'emerge':
-        #parent.sDir.onRefresh(-1)
+        RefreshS(parent)
         parent.filesDir.onRefresh(-1)
         LogToOutput(parent)
         parent.Write("))) emerge finished")
@@ -750,8 +751,6 @@ def LoadEbuild(parent, filename):
     parent.STCeditor.SetSavePoint()
     SetFilename(parent, filename)
     parent.STCeditor.SetFocus()
-    parent.window_1_pane_2.Hide()
-    parent.tree_ctrl_1.UnselectAll()
     parent.ApplyPrefs()
     ViewEnvironment(parent)
     GetStatus(parent)
@@ -760,7 +759,18 @@ def LoadEbuild(parent, filename):
     if parent.db:
         LoadDbRecord(parent)
     f = "%s/files/" % os.path.split(filename)[0]
+
+    parent.filesDir.clearList()
+
     parent.filesDir.populate(f)
+    s = GetS(parent)
+    if s:
+        if os.path.exists(s):
+            parent.sDir.populate(s)
+        else:
+            parent.sDir.clearList()
+    else:
+        parent.sDir.clearList()
     if IsOverlay(parent, filename):
         parent.button_filesdir_edit.Enable(True)
         parent.button_filesdir_new.Enable(True)

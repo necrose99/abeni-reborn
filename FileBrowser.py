@@ -128,6 +128,7 @@ class MyBrowser(AbstractFileWindow):
     idPOPUP_DELETE  = wx.NewId()
     idPOPUP_CREATE  = wx.NewId()
     idPOPUP_CHMOD   = wx.NewId()
+    idPOPUP_REFRESH = wx.NewId()
 
     time_re = re.compile('[A-Za-z]+\s+([A-Za-z]+\s+\d+\s+\d+:\d+):(\d+)\s+\d+')
 
@@ -148,9 +149,10 @@ class MyBrowser(AbstractFileWindow):
         self.list.SetColumnWidth(0, 200)
 
     def populate(self, myDir):
-        self.setDir(myDir)
-        self.last_listing = None
-        self.updateListing(self.getDir())
+        if os.path.exists(myDir):
+            self.setDir(myDir)
+            self.last_listing = None
+            self.updateListing(self.getDir())
 
     def onDoubleClick(self, event):
         item = self.list.GetNextItem(-1, wx.LIST_NEXT_ALL, wx.LIST_STATE_SELECTED)
@@ -274,6 +276,7 @@ class MyBrowser(AbstractFileWindow):
 
 
     def readDir(self, dir):
+        #print dir
         try:
             files = os.listdir(dir)
         except OSError, strerror:

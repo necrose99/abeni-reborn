@@ -19,13 +19,13 @@ import AboutDialog
 import AddFunctionDialog
 import EmergeDialog
 import FileCopyDialog
-from GentooSTC import GentooSTC
-import GetURIDialog
 import HelpCVSDialog
 import HelpFkeysDialog
 import MetadataDialog
 import PortageFuncsDialog
 import PrefsDialog
+from GentooSTC import GentooSTC
+from GetURIDialog import GetURIDialog
 from URI_Link import MyURILink
 from FileBrowser import MyBrowser
 import MyDatabase
@@ -49,15 +49,11 @@ class MyFrame(wx.Frame):
         self.panel_main = wx.Panel(self, -1)
         self.splitter = wx.SplitterWindow(self.panel_main, -1, style=wx.SP_3D|wx.SP_BORDER)
         self.notebook_1 = wx.Notebook(self.splitter, -1, style=wx.NB_BOTTOM)
+        self.notebook_1_pane_5 = wx.Panel(self.notebook_1, -1)
         self.notebook_s = wx.Panel(self.notebook_1, -1)
         self.notebook_filesdir = wx.Panel(self.notebook_1, -1)
         self.notebook_notes = wx.Panel(self.notebook_1, -1)
         self.panel_environment = wx.Panel(self.notebook_1, -1)
-        self.panel_explorer = wx.Panel(self.notebook_1, -1)
-        self.window_1 = wx.SplitterWindow(self.panel_explorer, -1, style=wx.SP_3DBORDER|wx.SP_BORDER)
-        self.window_1_pane_2 = wx.Panel(self.window_1, -1)
-        self.window_1_pane_1 = wx.Panel(self.window_1, -1)
-        self.panel_log = wx.Panel(self.notebook_1, -1)
         self.splitter_2 = wx.SplitterWindow(self.splitter, -1, style=wx.SP_3D|wx.SP_BORDER)
         self.panel_top_log = wx.Panel(self.splitter_2, -1)
         self.panel_editor = wx.Panel(self.splitter_2, -1)
@@ -101,8 +97,6 @@ class MyFrame(wx.Frame):
         global mnuViewMetadataID; mnuViewMetadataID = wx.NewId()
         global mnuViewChangeLogID; mnuViewChangeLogID = wx.NewId()
         global mnuClearLogID; mnuClearLogID = wx.NewId()
-        global mnuBottomLogID; mnuBottomLogID = wx.NewId()
-        global mnuTopLogID; mnuTopLogID = wx.NewId()
         global mnuPrefID; mnuPrefID = wx.NewId()
         global mnuHelpID; mnuHelpID = wx.NewId()
         global mnuHelpRefID; mnuHelpRefID = wx.NewId()
@@ -159,11 +153,6 @@ class MyFrame(wx.Frame):
         self.menubar.Append(wxglade_tmp_menu, "&View")
         self.menu_options = wx.Menu()
         self.menu_options.Append(mnuClearLogID, "&Clear log window\tF11", "", wx.ITEM_NORMAL)
-        self.menu_options.AppendSeparator()
-        self.BottomLog = wx.MenuItem(self.menu_options, mnuBottomLogID, "Bottom", "", wx.ITEM_RADIO)
-        self.menu_options.AppendItem(self.BottomLog)
-        self.TopLog = wx.MenuItem(self.menu_options, mnuTopLogID, "Top", "", wx.ITEM_RADIO)
-        self.menu_options.AppendItem(self.TopLog)
         self.menubar.Append(self.menu_options, "Lo&g")
         wxglade_tmp_menu = wx.Menu()
         wxglade_tmp_menu.Append(mnuPrefID, "&Preferences", "", wx.ITEM_NORMAL)
@@ -230,15 +219,7 @@ class MyFrame(wx.Frame):
         self.button_1 = wx.ToggleButton(self.panel_cpvr, -1, "noauto")
         self.static_line_3 = wx.StaticLine(self.panel_main, -1)
         self.STCeditor = GentooSTC(self.panel_editor, self, self.toolbar, TB_SAVE_ID)
-        self.text_ctrl_top_log = wx.TextCtrl(self.panel_top_log, -1, "", style=wx.TE_MULTILINE|wx.TE_READONLY)
-        self.text_ctrl_log = wx.TextCtrl(self.panel_log, -1, "", style=wx.TE_MULTILINE|wx.TE_READONLY)
-        global treeID; treeID = wx.NewId()
-        self.tree_ctrl_1 = wx.TreeCtrl(self.window_1_pane_1, treeID, style=wx.SUNKEN_BORDER)
-        self.explorer = wx.GenericDirCtrl(self.window_1_pane_2, -1, filter="All files|*")
-        self.button_view = wx.Button(self.window_1_pane_2, -1, "View")
-        self.button_edit = wx.Button(self.window_1_pane_2, -1, "Edit")
-        self.button_patch = wx.Button(self.window_1_pane_2, -1, "Create patch")
-        self.button_delete = wx.Button(self.window_1_pane_2, -1, "Delete")
+        self.text_ctrl_log = wx.TextCtrl(self.panel_top_log, -1, "", style=wx.TE_MULTILINE|wx.TE_READONLY)
         self.text_ctrl_environment = wx.TextCtrl(self.panel_environment, -1, "", style=wx.TE_MULTILINE|wx.TE_READONLY)
         self.button_env_refresh = wx.Button(self.panel_environment, -1, "Refresh")
         self.radio_box_env = wx.RadioBox(self.panel_environment, -1, "View", choices=["Brief", "Full"], majorDimension=1, style=wx.RA_SPECIFY_ROWS)
@@ -257,6 +238,9 @@ class MyFrame(wx.Frame):
         self.button_s_edit = wx.Button(self.notebook_s, -1, "Edit")
         self.button_s_delete = wx.Button(self.notebook_s, -1, "Delete")
         self.button_s_patch = wx.Button(self.notebook_s, -1, "Patch")
+        self.dDir = MyBrowser(self.notebook_1_pane_5)
+        self.button_d_view = wx.Button(self.notebook_1_pane_5, -1, "View")
+        self.button_d_refresh = wx.Button(self.notebook_1_pane_5, -1, "Refresh")
 
         self.__set_properties()
         self.__do_layout()
@@ -293,6 +277,8 @@ class MyFrame(wx.Frame):
         # begin wxGlade: MyFrame.__do_layout
         sizer_main = wx.BoxSizer(wx.VERTICAL)
         sizer_cpvr_notebook = wx.BoxSizer(wx.VERTICAL)
+        sizer_1 = wx.BoxSizer(wx.HORIZONTAL)
+        sizer_2 = wx.BoxSizer(wx.VERTICAL)
         sizer_s = wx.BoxSizer(wx.HORIZONTAL)
         sizer_s_buttons = wx.BoxSizer(wx.VERTICAL)
         sizer_filesdir = wx.BoxSizer(wx.HORIZONTAL)
@@ -303,11 +289,6 @@ class MyFrame(wx.Frame):
         sizer_bugzilla = wx.BoxSizer(wx.HORIZONTAL)
         sizer_environment = wx.BoxSizer(wx.VERTICAL)
         sizer_environment_ctrls = wx.BoxSizer(wx.HORIZONTAL)
-        sizer_9 = wx.BoxSizer(wx.HORIZONTAL)
-        sizer_11 = wx.BoxSizer(wx.VERTICAL)
-        sizer_12 = wx.BoxSizer(wx.HORIZONTAL)
-        sizer_10 = wx.BoxSizer(wx.HORIZONTAL)
-        sizer_4 = wx.BoxSizer(wx.VERTICAL)
         sizer_top_log = wx.BoxSizer(wx.HORIZONTAL)
         sizer_editor = wx.BoxSizer(wx.HORIZONTAL)
         sizer_cpvr = wx.BoxSizer(wx.HORIZONTAL)
@@ -338,38 +319,12 @@ class MyFrame(wx.Frame):
         self.panel_editor.SetSizer(sizer_editor)
         sizer_editor.Fit(self.panel_editor)
         sizer_editor.SetSizeHints(self.panel_editor)
-        sizer_top_log.Add(self.text_ctrl_top_log, 1, wx.EXPAND|wx.FIXED_MINSIZE, 0)
+        sizer_top_log.Add(self.text_ctrl_log, 1, wx.EXPAND|wx.FIXED_MINSIZE, 0)
         self.panel_top_log.SetAutoLayout(True)
         self.panel_top_log.SetSizer(sizer_top_log)
         sizer_top_log.Fit(self.panel_top_log)
         sizer_top_log.SetSizeHints(self.panel_top_log)
         self.splitter_2.SplitHorizontally(self.panel_editor, self.panel_top_log)
-        sizer_4.Add(self.text_ctrl_log, 1, wx.EXPAND, 0)
-        self.panel_log.SetAutoLayout(True)
-        self.panel_log.SetSizer(sizer_4)
-        sizer_4.Fit(self.panel_log)
-        sizer_4.SetSizeHints(self.panel_log)
-        sizer_10.Add(self.tree_ctrl_1, 1, wx.EXPAND, 0)
-        self.window_1_pane_1.SetAutoLayout(True)
-        self.window_1_pane_1.SetSizer(sizer_10)
-        sizer_10.Fit(self.window_1_pane_1)
-        sizer_10.SetSizeHints(self.window_1_pane_1)
-        sizer_11.Add(self.explorer, 1, wx.EXPAND, 0)
-        sizer_12.Add(self.button_view, 0, wx.LEFT, 8)
-        sizer_12.Add(self.button_edit, 0, wx.LEFT, 8)
-        sizer_12.Add(self.button_patch, 0, wx.LEFT, 8)
-        sizer_12.Add(self.button_delete, 0, wx.LEFT, 8)
-        sizer_11.Add(sizer_12, 0, wx.EXPAND, 0)
-        self.window_1_pane_2.SetAutoLayout(True)
-        self.window_1_pane_2.SetSizer(sizer_11)
-        sizer_11.Fit(self.window_1_pane_2)
-        sizer_11.SetSizeHints(self.window_1_pane_2)
-        self.window_1.SplitVertically(self.window_1_pane_1, self.window_1_pane_2)
-        sizer_9.Add(self.window_1, 1, wx.EXPAND, 0)
-        self.panel_explorer.SetAutoLayout(True)
-        self.panel_explorer.SetSizer(sizer_9)
-        sizer_9.Fit(self.panel_explorer)
-        sizer_9.SetSizeHints(self.panel_explorer)
         sizer_environment.Add(self.text_ctrl_environment, 1, wx.EXPAND, 0)
         sizer_environment_ctrls.Add(self.button_env_refresh, 0, wx.ALL, 10)
         sizer_environment_ctrls.Add(self.radio_box_env, 0, wx.BOTTOM, 12)
@@ -410,12 +365,19 @@ class MyFrame(wx.Frame):
         self.notebook_s.SetSizer(sizer_s)
         sizer_s.Fit(self.notebook_s)
         sizer_s.SetSizeHints(self.notebook_s)
-        self.notebook_1.AddPage(self.panel_log, "Output")
-        self.notebook_1.AddPage(self.panel_explorer, "Files")
+        sizer_1.Add(self.dDir, 1, wx.EXPAND, 0)
+        sizer_2.Add(self.button_d_view, 0, wx.ALL|wx.FIXED_MINSIZE, 8)
+        sizer_2.Add(self.button_d_refresh, 0, wx.ALL|wx.FIXED_MINSIZE, 8)
+        sizer_1.Add(sizer_2, 0, wx.EXPAND, 0)
+        self.notebook_1_pane_5.SetAutoLayout(True)
+        self.notebook_1_pane_5.SetSizer(sizer_1)
+        sizer_1.Fit(self.notebook_1_pane_5)
+        sizer_1.SetSizeHints(self.notebook_1_pane_5)
         self.notebook_1.AddPage(self.panel_environment, "Environment")
         self.notebook_1.AddPage(self.notebook_notes, "Notes")
         self.notebook_1.AddPage(self.notebook_filesdir, "${FILESDIR}")
         self.notebook_1.AddPage(self.notebook_s, "${S}")
+        self.notebook_1.AddPage(self.notebook_1_pane_5, "${D}")
         self.splitter.SplitHorizontally(self.splitter_2, self.notebook_1)
         sizer_cpvr_notebook.Add(self.splitter, 1, wx.EXPAND, 0)
         self.panel_main.SetAutoLayout(True)
@@ -439,8 +401,6 @@ class MyFrame(wx.Frame):
             sys.exit(1)
 
 
-        wx.EVT_TREE_SEL_CHANGED(self, treeID, self.OnTreeActivate)
-        wx.EVT_TREE_SEL_CHANGED(self, self.explorer.GetTreeCtrl().GetId(), self.OnFileSelect)
         wx.EVT_BUTTON(self, self.button_bugzilla.GetId(), self.LaunchBugz) 
         wx.EVT_BUTTON(self, self.button_env_refresh.GetId(), self.ViewEnvironment)
         wx.EVT_BUTTON(self, self.button_Category.GetId(), self.OnCatButton)
@@ -517,8 +477,6 @@ class MyFrame(wx.Frame):
 
         # Log:
         wx.EVT_MENU(self, mnuClearLogID, self.OnMnuClearLog)
-        wx.EVT_MENU(self, mnuTopLogID, self.OnTopLog)
-        wx.EVT_MENU(self, mnuBottomLogID, self.OnBottomLog)
 
         # Options:
         wx.EVT_MENU(self, mnuPrefID, self.OnMnuPref)
@@ -545,16 +503,6 @@ class MyFrame(wx.Frame):
 
     	self.toolbar.EnableTool(TB_STOP_ID, False)
 
-        # Explorer tree:
-        self.root = self.tree_ctrl_1.AddRoot(" ")
-        self.tree_ctrl_1.SetPyData(self.root, None)
-        self.tree_ctrl_1.AppendItem(self.root, "$FILESDIR")
-        self.tree_ctrl_1.AppendItem(self.root, "$S")
-        self.tree_ctrl_1.AppendItem(self.root, "$D")
-        self.tree_ctrl_1.AppendItem(self.root, "CVS/category/PN")
-        self.tree_ctrl_1.Expand(self.root)
-        self.tree_ctrl_1.Expand(self.root)
-        self.window_1_pane_2.Hide()
         #TODO: Add option to save current screen size when exiting
         self.SetSize((882, 696))
         #screenWidth =  wx.SystemSettings.GetMetric(wx.SYS_SCREEN_X)
@@ -562,14 +510,13 @@ class MyFrame(wx.Frame):
         #print screenHeight, screenWidth
         #Prevent splitter windows from becoming un-split
         self.splitter.SetMinimumPaneSize(20)
+        self.splitter_2.SetMinimumPaneSize(20)
         #SashPosition(230)
         #SashPosition(370)
-        self.window_1.SetMinimumPaneSize(20)
 
         # Are we in the process of editing an ebuild?
         self.editing = 0
 
-        self.busywriting = 0
         #Load recently accessed ebuilds
         abeniDir = os.path.expanduser('~/.abeni')
         bookmarks = '%s/recent.txt' % abeniDir
@@ -606,7 +553,7 @@ class MyFrame(wx.Frame):
         self.running = None
         # Action performed during external commands
         self.action = None
-        self.STCeditor.Hide()
+        #self.STCeditor.Hide()
         
         points = self.text_ctrl_log.GetFont().GetPointSize()  # get the current size
         f = wx.Font(points, wx.MODERN, wx.NORMAL, True)
@@ -637,19 +584,14 @@ class MyFrame(wx.Frame):
             utils.LoadByPackage(self, f)
         self.EnableToolbar(False)
 
-    def OnTopLog(self, evt):
-        wx.Log_SetActiveTarget(MyLog(self.text_ctrl_top_log))
-
-
-    def OnBottomLog(self, evt):
-        self.text_ctrl_log = wx.TextCtrl(self.panel_top_log, -1, "", style=wx.TE_MULTILINE|wx.TE_READONLY)
- 
-        sizer_top_log.Add(self.text_ctrl_log, 1, wx.EXPAND, 0)
-        points = self.text_ctrl_log.GetFont().GetPointSize()  # get the current size
-        f = wx.Font(points, wx.MODERN, wx.NORMAL, True)
-        self.text_ctrl_log.SetDefaultStyle(wx.TextAttr("BLACK", wx.NullColour, f))
-        wx.Log_SetActiveTarget(MyLog(self.text_ctrl_log))
-
+        #Restore frame and splitters to last size/positions:
+        if self.pref.has_key('splitterPosition'):
+            self.splitter.SetSashPosition(string.atoi(self.pref['splitterPosition']), True)
+        if self.pref.has_key('splitter2Position'):
+            self.splitter_2.SetSashPosition(string.atoi(self.pref['splitter2Position']), True)
+        if self.pref.has_key('frameSize'):
+            x, y = self.pref['frameSize'].split(" ")
+            self.SetSize((string.atoi(x), string.atoi(y)))
 
     def Write(self, txt):
         """Send text to log window"""
@@ -659,7 +601,6 @@ class MyFrame(wx.Frame):
 
     def WriteText(self, text):
         """Send text to log window after colorizing"""
-        self.busywriting = 1
         #TODO: No idea why this is output at the end of every ExecuteInLog:
         #TODO: Log file to disk code can go here 
         #if string.find(text, "md5 src_uri") == 4:
@@ -707,12 +648,9 @@ class MyFrame(wx.Frame):
         else:
             wx.LogMessage(text)
 
-        self.busywriting = 0
-
     def LogColor(self, color):
         """Set color of text sent to log window"""
         self.text_ctrl_log.SetDefaultStyle(wx.TextAttr(wx.NamedColour(color)))
-
 
     def ExecuteInLog(self, cmd, logMsg=''):
         """Run a program asynchronously and send stdout & stderr to the log window"""
@@ -752,10 +690,6 @@ class MyFrame(wx.Frame):
             self.noauto = "FEATURES='-noauto'"
         else:
             self.noauto = "FEATURES='noauto'"
-
-    def FocusOutput(self):
-        """Switch to Output notebook page"""
-        self.notebook_1.SetSelection(0)
 
     def OnMnuExportEbuild(self, event):
         """Export ebuild and auxiliary files as tarball"""
@@ -884,79 +818,6 @@ class MyFrame(wx.Frame):
                     utils.MyMessage(self, "Couldn't delete file.", \
                           "Error", "error")
             self.filesDir.onRefresh(-1)
-        #self.SetExplorer(self.branch)
-        #itemId = self.explorer.GetTreeCtrl().GetSelection()
-        #self.explorer.GetTreeCtrl().CollapseAndReset(itemId)
-        #self.explorer.GetTreeCtrl().Expand(itemId)
-
-    def OnTreeActivate(self, evt):
-        """Get tree selection ($S, $D, etc) and show filesystem"""
-        self.treeItem = evt.GetItem()   
-        self.branch = self.tree_ctrl_1.GetItemText(self.treeItem) 
-        self.SetExplorer(self.branch)
-
-    def RefreshExplorer(self):
-        """Refresh the file explorer"""
-        self.SetExplorer("/") 
-        itemId = self.explorer.GetTreeCtrl().GetSelection()
-        self.explorer.GetTreeCtrl().CollapseAndReset(itemId)
-        self.explorer.GetTreeCtrl().Expand(itemId)
-        try:
-            self.SetExplorer(self.branch)
-            itemId = self.explorer.GetTreeCtrl().GetSelection()
-            self.explorer.GetTreeCtrl().CollapseAndReset(itemId)
-            self.explorer.GetTreeCtrl().Expand(itemId)
-        except:
-            #ctrl hasn't been clicked on yet
-            pass
-
-    def SetExplorer(self, txt):
-        if not self.window_1_pane_2.IsShown():
-            self.window_1_pane_2.Show()
-        if txt == "$FILESDIR":
-            f = utils.GetFilesDir(self)
-            if os.path.exists(f):
-                self.filesDir.populate(f)
-                self.button_view.Enable(True)
-                self.button_edit.Enable(True)
-                self.button_patch.Enable(False)
-                self.button_delete.Enable(True)
-                self.explorer.SetPath(f)
-                self.explorer.ExpandPath(f)
-            else:
-                self.window_1_pane_2.Hide()
-        if txt == "$S":
-            f = utils.GetS(self)
-            if f:
-                self.sDir.populate(f)
-                self.explorer.ExpandPath(f)
-                self.button_view.Enable(True)
-                self.button_edit.Enable(True)
-                self.button_patch.Enable(True)
-                self.button_delete.Enable(True)
-            else:
-                self.window_1_pane_2.Hide()
-        if txt == "$D":
-            f = utils.GetD(self)
-            if f:
-                self.button_view.Enable(True)
-                self.button_edit.Enable(False)
-                self.button_patch.Enable(False)
-                self.button_delete.Enable(False)
-                self.explorer.ExpandPath(f)
-            else:
-                self.window_1_pane_2.Hide()
-
-        if txt == "CVS/category/PN":
-            cvs = self.GetCVScatPN()
-            if cvs:
-                self.explorer.ExpandPath(cvs)
-                self.button_view.Enable(True)
-                self.button_edit.Enable(True)
-                self.button_patch.Enable(False)
-                self.button_delete.Enable(True)
-            else:
-                self.window_1_pane_2.Hide()
 
     def OnCatButton(self, event):
         """Choose ebuild category"""
@@ -976,8 +837,7 @@ class MyFrame(wx.Frame):
             opt = dlg.GetStringSelection()
             #Mark all games stable: Bugzilla #25708
             self.text_ctrl_Category.SetValue(opt)
-            if opt == 'app-games':
-                pass
+            #if opt == 'app-games':
                 #self.Keywords.SetValue(self.Keywords.GetValue().replace('~', ''))
 
     def OnTimer(self, evt):
@@ -985,9 +845,6 @@ class MyFrame(wx.Frame):
         self.HandleIdle()
 
     def HandleIdle(self):
-        if self.busywriting:
-            print "busy"
-            return
         if self.process is not None:
             stream = self.process.GetInputStream()
             if stream.CanRead():
@@ -997,7 +854,6 @@ class MyFrame(wx.Frame):
             if stream.CanRead():
                 t = stream.readline()
                 self.Write(t)
-
 
     def OnFileHistory(self, event):
         """Load ebuild on FileHistory event"""
@@ -1129,10 +985,10 @@ class MyFrame(wx.Frame):
     def OnMnuNew(self,event):
         """Creates a new ebuild from scratch"""
         if not utils.VerifySaved(self):
-            win = GetURIDialog.GetURIDialog(self, -1, "Enter Package URI", \
-                                       size=wx.Size(350, 200), \
-                                       style = wx.DEFAULT_DIALOG_STYLE \
-                                       )
+            win = GetURIDialog(self, -1, "Enter Package URI", \
+                               size=wx.Size(350, 200), \
+                               style = wx.DEFAULT_DIALOG_STYLE \
+                               )
             win.CenterOnScreen()
             val = win.ShowModal()
             uri = win.URI.GetValue()
@@ -1168,7 +1024,6 @@ class MyFrame(wx.Frame):
             self.STCeditor.EmptyUndoBuffer()
             self.STCeditor.SetSavePoint()
             self.STCeditor.Show()
-            self.window_1_pane_2.Hide()
             self.editing = 1
             self.saved = 0
             self.FindReplace("SRC_URI", 'SRC_URI="%s"' % uri)
@@ -1186,6 +1041,15 @@ class MyFrame(wx.Frame):
                 f.write(self.filehistory.GetHistoryFile(e) + '\n')
             f.close()
             self.Destroy()
+
+        #Save size of window:
+        self.pref['splitterPosition'] = self.splitter.GetSashPosition()
+        self.pref['splitter2Position'] = self.splitter_2.GetSashPosition()
+        self.pref['frameSize'] = "%s %s" % (self.GetSize()[0], self.GetSize()[1])
+        f = open(os.path.expanduser('~/.abeni/abenirc'), 'w')
+        for v in self.pref.keys():
+            f.write('%s = %s\n' % (v, self.pref[v]))
+        f.close()
 
     def OnMnuExit(self,event):
         """Exits and closes application"""
@@ -1223,7 +1087,6 @@ class MyFrame(wx.Frame):
         if not utils.VerifySaved(self):
             self.action = "digest"
             logMsg = '))) Creating digest...'
-            #cmd = 'FEATURES="%s" USE="%s" sudo /usr/sbin/ebuild %s digest' % (self.pref['features'], self.pref['use'], self.filename)
             cmd = 'sudo /usr/sbin/ebuild %s digest' % self.filename
             self.ExecuteInLog(cmd, logMsg)
 
@@ -1236,8 +1099,6 @@ class MyFrame(wx.Frame):
             if not utils.VerifySaved(self):
                 self.action = "compile"
                 logMsg = '))) Compiling...'
-                #cmd = 'FEATURES="%s" USE="%s" sudo /usr/sbin/ebuild %s compile' % \
-                #    (self.pref['features'], self.pref['use'], self.filename)
                 cmd = '''xterm -e "sudo sh -c 'export %s;export USE='%s';sudo ebuild %s compile 2>&1| tee /var/tmp/abeni/emerge_log'"''' \
                          % (self.noauto, self.pref['use'], self.filename)
                 self.ExecuteInLog(cmd, logMsg)
@@ -1263,7 +1124,6 @@ class MyFrame(wx.Frame):
             if not utils.IsOverlay(self, self.filename):
                 utils.MyMessage(self, "You need to save the ebuild first.", "error")
                 return 0
-            self.FocusOutput()
             if not utils.VerifySaved(self):
                 self.action = 'unpack'
                 #cmd = 'FEATURES="%s" USE="%s" sudo /usr/sbin/ebuild %s unpack' % \
@@ -1278,7 +1138,6 @@ class MyFrame(wx.Frame):
                 utils.MyMessage(self, "You need to save the ebuild first.", "error")
                 return 0
 
-            self.FocusOutput()
             if not utils.VerifySaved(self):
                 self.action = 'install'
                 logMsg = '))) Installing...'
@@ -1298,7 +1157,6 @@ class MyFrame(wx.Frame):
                 utils.MyMessage(self, "You need to save the ebuild first.", "error")
                 return 0
 
-            self.FocusOutput()
             if not utils.VerifySaved(self):
                 self.action = 'qmerge'
                 logMsg = '))) Qmerging...'
@@ -1736,6 +1594,7 @@ class MyFrame(wx.Frame):
             self.pref['show_whitespace'] = win.checkbox_whitespace.GetValue()
             self.pref['tabsize'] = win.text_ctrl_1.GetValue()
             self.pref['db'] = win.radio_box_database.GetSelection()
+            #self.pref['frameSize'] = "%s %s" % (self.GetSize()[0], self.GetSize()[1])
             f = open(os.path.expanduser('~/.abeni/abenirc'), 'w')
 
             for v in self.pref.keys():
@@ -2118,5 +1977,4 @@ class MyLog(wx.PyLog):
         #    message = time.strftime("%X", time.localtime(timeStamp)) + \
         if self.tc:
             self.tc.AppendText(message + '\n')
-
 
