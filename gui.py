@@ -523,6 +523,7 @@ class MyFrame(wxFrame):
         self.finddata = wxFindReplaceData()
         self.ExternalControlListen()
         self.pref['gtk'] = utils.GetGtkVersion(self)
+        self.ApplyPrefs()
 
         #Load ebuild if specified on command line, by filename or by
         ## full package name
@@ -740,7 +741,7 @@ class MyFrame(wxFrame):
 
     def OnCatButton(self, event):
         """Choose ebuild category"""
-        c = open('%s/profiles/categories' % "/usr/portage").readlines()
+        c = open('%s/profiles/categories' % portdir).readlines()
         def strp(s): return s.strip()
         c = map(strp, c)
         c = filter(None, c)
@@ -1042,7 +1043,7 @@ class MyFrame(wxFrame):
             return
 
         f = utils.GetFilesDir(self)
-        dlg = wxFileDialog(self, "Choose a file", "/tmp", "", "*", wxOPEN)
+        dlg = wxFileDialog(self, "Choose a file", "/var/tmp", "", "*", wxOPEN)
 
         if dlg.ShowModal() == wxID_OK:
             orig = dlg.GetPaths()
@@ -1079,16 +1080,15 @@ class MyFrame(wxFrame):
             else:
                 return
         f = utils.GetFilesDir(self)
-        #copy file to /tmp
+        #copy file to /var/tmp
         base = os.path.basename(orig[0])
-        #TODO: Use Python's tmpfile module:
-        shutil.copy(orig[0], "/tmp")
-        out = os.path.join("/tmp", base)
+        shutil.copy(orig[0], "/var/tmp")
+        out = os.path.join("/var/tmp", base)
         if not self.pref['editor']:
             utils.MyMessage(self, "No editor defined in perferences", \
               "Error: no editor defined", "error")
         os.system('%s %s' % (self.pref['editor'], out))
-        os.system("diff -u %s %s > /tmp/abeni_.diff" % (orig[0], out))
+        os.system("diff -u %s %s > /var/tmp/abeni_.diff" % (orig[0], out))
 
         dlg = wxTextEntryDialog(self, 'Choose name for your patch:',
                             'Choose patch name', '')
@@ -1101,7 +1101,7 @@ class MyFrame(wxFrame):
         dlg.Destroy()
 
         dest = "%s/%s" % (f, pname)
-        shutil.copy("/tmp/abeni_.diff", dest)
+        shutil.copy("/var/tmp/abeni_.diff", dest)
 
         #insert inheirt eutils:
         p = self.STCeditor.FindText(0, self.LastPos(), "^inherit", wxSTC_FIND_REGEXP)
@@ -1551,7 +1551,7 @@ class MyFrame(wxFrame):
         os.system("kill %s" % self.pid)
         utils.write(self, "Killed %s" % self.pid)
         try:
-            pid = open("/tmp/abeni_proc.pid", "r").read().strip()
+            pid = open("/var/run/abeni_proc.pid", "r").read().strip()
             os.system("kill %s" % pid)
             utils.write(self, "sub pid %s killed" % pid)
         except:
