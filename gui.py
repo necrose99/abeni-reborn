@@ -26,7 +26,7 @@ import MetadataDialog
 import PortageFuncsDialog
 import PrefsDialog
 from URI_Link import MyURILink
-from browsewin import LocalWindow
+from FileBrowser import LocalWindow
 import MyDatabase
 import pyipc
 import options 

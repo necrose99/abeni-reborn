@@ -1,13 +1,8 @@
 This is the TODO file for Abeni.
 
 
-    utils.LoadByPackage(self, f)
-  File "/home/rob/abeni/utils.py", line 633, in LoadByPackage
-    LoadEbuild(parent, fname)
-  File "/home/rob/abeni/utils.py", line 836, in LoadEbuild
-    if parent.db:
-AttributeError: 'MyFrame' object has no attribute 'db'
-
+Add interface to bugzilla's attachments so we can add
+any file with ease.
 
 
 If you are interested in working on any of these, please
