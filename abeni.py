@@ -5,7 +5,7 @@ Released under the terms of the GNU Public License v2"""
 
 __author__ = 'Rob Cakebread'
 __email__ = 'robc@myrealbox.com'
-__version__ = '0.0.9pre'
+__version__ = '0.0.9'
 __changelog_ = 'http://abeni.sf.net/ChangeLog'
 
 print "Importing portage config, wxPython, Python and Abeni modules..."
@@ -1527,9 +1527,9 @@ class MyFrame(wxFrame):
         mnuSumID = wxNewId()
         menu_proj.Append(mnuSumID, "Project Manager")
         EVT_MENU(self, mnuSumID, self.OnMnuProjManager)
-        mnuSubmitID = wxNewId()
-        menu_proj.Append(mnuSubmitID, "Submit ebuild to bugs.gentoo.org")
-        EVT_MENU(self, mnuSubmitID, self.OnMnuSubmitEbuild)
+        #mnuSubmitID = wxNewId()
+        #menu_proj.Append(mnuSubmitID, "Submit ebuild to bugs.gentoo.org")
+        #EVT_MENU(self, mnuSubmitID, self.OnMnuSubmitEbuild)
         menubar.Append(menu_proj, "&Project")
 
         # View

@@ -5,6 +5,6 @@ editor = /usr/bin/gedit
 autoTabs = no
 fileBrowser = kfmclient -exec
 use =
-features = notitles sandbox ccache
+features = notitles sandbox
 log = bottom
 
