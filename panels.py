@@ -5,9 +5,8 @@ from wxPython.lib.editor import wxEditor
 
 
 class main(wxPanel):
-    """
-    Main panel for entering info
-    """
+
+    """Main panel for entering info"""
 
     def __init__(self, parent, sb, pref):
         wxPanel.__init__(self, parent, -1)
@@ -19,20 +18,25 @@ class main(wxPanel):
         col = 130
         width = 260
 
+        wxStaticText(self, -1, "Ebuild", wxPoint(15, row), wxSize(145, 20))
+        self.Ebuild = wxTextCtrl(self, wxNewId(), "", wxPoint(col, row), wxSize(width, 20))
+
+        row+=30
+        wxStaticText(self, -1, "Ebuild file", wxPoint(15, row), wxSize(145, 20))
+        self.EbuildFile = wxTextCtrl(self, wxNewId(), "", wxPoint(col, row), wxSize(width, 20))
+
+        row+=30
         wxStaticText(self, -1, "Package URI", wxPoint(15, row), wxSize(145, 20))
         self.URI = wxTextCtrl(self, wxNewId(), "", wxPoint(col, row), wxSize(width, 20))
 
         row+=30
-        wxStaticText(self, -1, "Package Name", wxPoint(15, row), wxSize(145, 20))
-        self.Name = wxTextCtrl(self, wxNewId(), "", wxPoint(col, row), wxSize(width, 20))
-
-        row+=30
-        wxStaticText(self, -1, "Package Rev", wxPoint(15, row), wxSize(145, 20))
-        self.Rev = wxTextCtrl(self, wxNewId(), "0", wxPoint(col, row), wxSize(width, 20))
+        wxStaticText(self, -1, "Ebuild Rev", wxPoint(15, row), wxSize(145, 20))
+        self.Rev = wxTextCtrl(self, wxNewId(), "", wxPoint(col, row), wxSize(width, 20))
 
         row+=30
         wxStaticText(self, -1, "Homepage", wxPoint(15, row), wxSize(145, 20))
-        self.Homepage = wxTextCtrl(self, wxNewId(), "http://", wxPoint(col, row), wxSize(width, 20))
+        self.Homepage = wxTextCtrl(self, wxNewId(), "", wxPoint(col, row), wxSize(width, 20))
+        self.Homepage.SetFocus()
 
         row+=30
         wxStaticText(self, -1, "Description", wxPoint(15, row), wxSize(145, 20))
@@ -44,18 +48,25 @@ class main(wxPanel):
 
         row+=30
         wxStaticText(self, -1, "Slot", wxPoint(15, row), wxSize(145, 20))
-        self.Slot = wxTextCtrl(self, wxNewId(), "0", wxPoint(col, row), wxSize(width, 20))
+        self.Slot = wxTextCtrl(self, wxNewId(), "", wxPoint(col, row), wxSize(width, 20))
 
         row+=30
         wxStaticText(self, -1, "Keywords", wxPoint(15, row), wxSize(145, 20))
-        self.Arch = wxTextCtrl(self, wxNewId(), "~x86", wxPoint(col, row), wxSize(width, 20))
+        self.Keywords = wxTextCtrl(self, wxNewId(), "", wxPoint(col, row), wxSize(width, 20))
 
         row+=30
         wxStaticText(self, -1, "License", wxPoint(15, row), wxSize(145, 20))
         licenseList = ['Artistic', 'BSD', 'GPL-1', 'GPL-2']
-        self.ch = wxChoice(self, wxNewId(), (col, row), choices = licenseList)
-        EVT_CHOICE(self, wxNewId(), self.EvtChoice)
+        chEvt = wxNewId()
+        self.ch = wxChoice(self, chEvt, (col, row), choices = licenseList)
+        self.License = licenseList[0]
+        EVT_CHOICE(self, chEvt, self.EvtChoice)
 
+    def PopulateDefault(self):
+        self.Keywords.SetValue("~x86")
+        self.Slot.SetValue("0")
+        self.Homepage.SetValue("http://")
+        self.Rev.SetValue("0")
 
     def EvtChoice(self, event):
         self.License = event.GetString()
@@ -70,67 +81,71 @@ class main(wxPanel):
         file = string.replace(file, ".tgz", "")
         file = string.replace(file, ".tar.gz", "")
         file = string.replace(file, ".tar.bz2", "")
-        self.Name.SetValue(file)
+        file = string.replace(file, ".tbz2", "")
+        self.SetEbuildName(file)
+
+    def SetEbuildName(self, file):
+        self.ebuildName = file + ".ebuild"
+
+    def GetEbuildName(self):
+        return self.ebuildName
+
+    def SetEbuild(self):
+        self.EbuildFile.SetValue(self.ebuildName)
+        ebuild = string.split(self.ebuildName, '-')
+        self.Ebuild.SetValue(ebuild[0])
 
 
-class depends(wxPanel):
-    """
-    This class is for adding DEPENDS
+class depend(wxPanel):
 
-    """
+    """This class is for adding DEPEND and RDEPEND info"""
 
     def __init__(self, parent, statusbar, pref):
         wxPanel.__init__(self, parent, -1)
         self.statusbar = statusbar
         self.pref = pref
         self.parent=parent
-        self.elb1 = wxEditableListBox(self, -1, "DEPENDS",
+        self.elb1 = wxEditableListBox(self, -1, "DEPEND",
                                      (10,10), (250, 150),)
 
-        self.elb2 = wxEditableListBox(self, -1, "RDEPENDS",
+        self.elb2 = wxEditableListBox(self, -1, "RDEPEND",
                                      (290,10), (250, 150),)
 
 
 class changelog(wxPanel):
-    """
-    This class is for viewing the Changelog file
-    TODO: Use the new simple wxEditor
 
-    """
+    """This class is for viewing the Changelog file"""
 
     def __init__(self, parent, statusbar, pref):
         wxPanel.__init__(self, parent, -1)
         self.statusbar = statusbar
         self.pref = pref
         self.parent=parent
-        ed = wxEditor(self, -1, style=wxSUNKEN_BORDER)
+        self.ed = wxEditor(self, -1, style=wxSUNKEN_BORDER)
         box = wxBoxSizer(wxVERTICAL)
-        box.Add(ed, 1, wxALL|wxGROW, 1)
+        box.Add(self.ed, 1, wxALL|wxGROW, 1)
         self.SetSizer(box)
         self.SetAutoLayout(True)
 
-        ed.SetText(open('/usr/portage/skel.ChangeLog').readlines())
+        self.ed.SetText(open('/usr/portage/skel.ChangeLog').readlines())
 
 
 class compile(wxPanel):
-    """
-    This class is for setting the compile specifications
-    using a simple text editor
 
-    """
+    """Set compile specifications using a simple text editor"""
 
     def __init__(self, parent, statusbar, pref):
         wxPanel.__init__(self, parent, -1)
         self.statusbar = statusbar
         self.pref = pref
         self.parent=parent
-        ed = wxEditor(self, -1, style=wxSUNKEN_BORDER)
+        self.ed = wxEditor(self, -1, style=wxSUNKEN_BORDER)
         box = wxBoxSizer(wxVERTICAL)
-        box.Add(ed, 1, wxALL|wxGROW, 1)
+        box.Add(self.ed, 1, wxALL|wxGROW, 1)
         self.SetSizer(box)
         self.SetAutoLayout(True)
 
-        ed.SetText(["src_compile(){",
+        self.ed.SetText(["src_compile(){",
                     "    ./configure \\",
                     "       --host=${CHOST} \\",
                     "       --prefix=/usr \\",
@@ -141,25 +156,22 @@ class compile(wxPanel):
 
                     ])
 
-class build(wxPanel):
-    """
-    This class is for setting the build specifications
-    using a simple text editor
+class install(wxPanel):
 
-    """
+    """Set the install specifications using a simple text editor"""
 
     def __init__(self, parent, statusbar, pref):
         wxPanel.__init__(self, parent, -1)
         self.statusbar = statusbar
         self.pref = pref
         self.parent=parent
-        ed = wxEditor(self, -1, style=wxSUNKEN_BORDER)
+        self.ed = wxEditor(self, -1, style=wxSUNKEN_BORDER)
         box = wxBoxSizer(wxVERTICAL)
-        box.Add(ed, 1, wxALL|wxGROW, 1)
+        box.Add(self.ed, 1, wxALL|wxGROW, 1)
         self.SetSizer(box)
         self.SetAutoLayout(True)
 
-        ed.SetText(["build_src(){",
+        self.ed.SetText(["src_install(){",
                         "make DESTDIR=${D} install || die",
                     "}"
                   ])

@@ -1,10 +1,10 @@
 
 class Options:
     def __init__(self):
-        self.Readapprc()
+        self.Read_apprc()
         import sys
 
-    def Readapprc(self):
+    def Read_apprc(self):
         import string, sys, os
         appdir = os.path.abspath(os.path.join(os.getcwd(), sys.path[0]))
         f = open('%s/abenirc' % appdir)

@@ -4,7 +4,7 @@ from options import *
 
 appdir = os.path.abspath(os.path.join(os.getcwd(), sys.path[0]))
 
-class optionFrame(wxFrame):
+class OptionFrame(wxFrame):
     def __init__(self, parent, id, title):
 
         myOptions = Options()
@@ -30,7 +30,6 @@ class optionFrame(wxFrame):
         row = row + 30
         wxStaticText(panel, -1, "Debug 1=yes 0=no", wxPoint(15, row), wxSize(145, 20))
         self.Inpdebug = wxTextCtrl(panel, wxNewId(), "", wxPoint(col, row), wxSize(width, 20))
-
 
         self.Inpdebug.SetValue(self.debug)
 
