@@ -122,16 +122,16 @@ class wxDialog1(wxDialog):
         """src_compile - configure/make"""
         name = 'src_compile()'
         self.textCtrl1.SetValue(name)
-        self.val = name + ' {\n    econf || die\n    emake || die\n}\n'
+        self.val = name + ' {\n\teconf || die\n\temake || die\n}\n'
 
     def OnRadiobutton4Radiobutton(self, event):
         """src_install - make install"""
         name = 'src_install()'
         self.textCtrl1.SetValue(name)
-        self.val = name + ' {\n    einstall || die\n}\n'
+        self.val = name + ' {\n\teinstall || die\n}\n'
 
     def OnRadiobutton5Radiobutton(self, event):
         """src_install - python setup.py install"""
         name = 'src_install()'
         self.textCtrl1.SetValue(name)
-        self.val = name + ' {\n    python setup.py install || die\n}\n'
+        self.val = name + ' {\n\tpython setup.py install || die\n}\n'
