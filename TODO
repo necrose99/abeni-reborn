@@ -46,7 +46,11 @@ Bugs:
 
 Add Features:
 
+    Add confirmation dialog when creating or viewing diffs and add option to choose file to compare opened ebuild with.
+
     Add option to run ebuild/emerge without checking for password when people have commands setup with sudo.
+
+    If running root, don't ask for password. Bad idea?
 
     Options screen:
         Not sure if I should add these:

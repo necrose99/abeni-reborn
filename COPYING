@@ -2,6 +2,8 @@
 Abeni is Copyright 2003 Rob Cakebread, 
 released under the terms of the GNU General Public License, version II:
 
+repoman-safe.py is based on Genone's repoman-local-5, which is based
+on Gentoo's repoman (GPL-2)
 
 		    GNU GENERAL PUBLIC LICENSE
 		       Version 2, June 1991

@@ -1,12 +1,44 @@
 Abeni
 
-0.0.2
+0.0.4 -------------
+
+Convert spaces to tabs during import. Works good, but not perfect if
+they use retarted space tab space etc. combo. Are there any shell script
+tabify-ers out there?
+
+Open ebuild if you pass filename on command line
+
+Added full path to ebuild in statusbar
+
+Changed layout of titlebar to ebuild | Abeni __version__
+
+When creating diff file or viewing diff file it now compares opened ebuild
+with last ebuild opened (stored in self.lastFile)
+
+Was writing to /usr/share/abenirc instead of ~/.abeni/abenirc
+
+Created dialogs.py and moved dialogs from abeni.py there
+
+Fixed path to digest.png
+
+
+
+0.0.3 -------------
+
+Main reason for this version was to change setup.py to not install
+documentation and put icons in new location.
+
+Added Eclass menu with distutils and cvs templates
 
 Added 'emerge' command to menu with option to pass any args:
     * ebuild <args> <current ebuild file>
 
 Added 'ebuild' command to menu with option to pass any command:
     * ebuild <current ebuild file> compile
+
+
+
+0.0.2 -------------
 
 Added /usr/bin/repoman-safe.py. Version of repoman for non-developers.
 

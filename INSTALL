@@ -3,15 +3,14 @@
 The ebuild runs 'python setup.py install' to install Abeni.
 
 All your ebuilds are saved in your PORTDIR_OVERLAY directory, which is
-defined in /etc/make.conf. It is NOT set by default, so please go uncomment
-it.
+defined in /etc/make.conf. Make sure you have +rw on PORTDIR_OVERLAY
+
+By default PORTDIR_OVERLAY is /usr/local/portage if it isn't set in /etc/make.conf
 
 All ebuilds are saved in PORTDIR_OVERLAY, as opposed to /usr/portage,
 so they won't be erased after every 'emerge rsync'.
 
-The help system is online via the web at the moment. Your default
-web browser should be launched from within Abeni to reach all the
-help files.
+The help system is online via the web at the moment. Set your favorite web browser under Options.
 
 
 Rob Cakebread <robc AT myrealbox DOT com>
