@@ -13,7 +13,7 @@ print "Importing portage config, wxPython, Python and Abeni modules..."
 from portage import config, portdb, db, pkgsplit, catpkgsplit
 from wxPython.wx import *
 from wxPython.lib.dialogs import wxScrolledMessageDialog
-import os, string, sys, urlparse, time, re, shutil
+import os, string, sys, urlparse, time, re, shutil   #, tarfile
 #Abeni modules:
 import dialogs, panels
 from utils import *
@@ -35,6 +35,8 @@ portdir = env['PORTDIR']
 try:
     #Users may specify multiple overlay directories, we use the first one:
     portdir_overlay = env['PORTDIR_OVERLAY'].split(":")[0]
+    if portdir_overlay[-1] == "/":
+        portdir_overlay = portdir_overlay[:-1]
 except:
     print "ERROR: You must define PORTDIR_OVERLAY in your /etc/make.conf"
     print "You can simply uncomment this line:"
@@ -868,6 +870,43 @@ class MyFrame(wxFrame):
             self.MyMessage(msg, title, "error")
             return 0
 
+    def OnMnuExport(self, event):
+        """Export ebuild and auxiliary files as tarball"""
+        if not self.editing:
+            return
+        self.ExportEbuild()
+
+    def ExportEbuild(self):
+        self.GetEnvs()
+        if self.SaveEbuild():
+            filelist = []
+            filelist.append(self.GetFilename())
+            filelist.append(self.env['FILESDIR']+"/digest-"+self.GetP())
+            auxfilelist = [self.env['FILESDIR']+"/"+f for f in os.listdir(self.env['FILESDIR']) if f[:6] != "digest"]
+            
+            # TODO: add all filenames that are present in the ebuild and ask 
+            # the user about the others. For now just add all files
+            filelist += auxfilelist
+            
+            filelist = [f.replace(self.GetCategory()+"/", "") for f in filelist]
+			
+            # TODO: let the user select a name/location for the tarball
+            tarballname = "/tmp/"+self.GetP()+".tar.bz2"
+			
+            tarcmd = "tar -cjf " + tarballname + " -C " + self.GetCategory() + " " + reduce(lambda a,b: a+" "+b, filelist)
+            self.ExecuteInLog(tarcmd)
+            
+            # FUTURE: once we have python-2.3 we can use the following:
+			#os.chdir(self.GetCategory())
+            #tarball = tarfile.open(tarballname, "w:bz2")
+            #for f in filelist:
+            #    tarball.add(f)
+            #tarball.close()
+            self.sb.SetStatusText("Ebuild exported to " + tarballname, 0)
+            return 1
+        else:
+            return 0
+
     def GetPackageName(self):
         return self.panelMain.GetPackageName()
 
@@ -1358,6 +1397,9 @@ class MyFrame(wxFrame):
         mnuSaveID=wxNewId()
         menu_file.Append(mnuSaveID, "&Save ebuild")
         EVT_MENU(self, mnuSaveID, self.OnMnuSave)
+        mnuExportID=wxNewId()
+        menu_file.Append(mnuExportID, "&Export ebuild")
+        EVT_MENU(self, mnuExportID, self.OnMnuExport)
         mnuExitID=wxNewId()
         menu_file.Append(mnuExitID, "E&xit\tAlt-X")
         EVT_MENU(self, mnuExitID, self.OnMnuExit)
