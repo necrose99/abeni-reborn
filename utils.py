@@ -590,9 +590,9 @@ def run_ext_cmd(cmd):
     r = p.wait()
     return r, out
 
-def get_options(parent):
+def get_options():
     """Global options from abenirc file"""
-    parent.pref = options.Options().Prefs()
+    return options.Options().Prefs()
 
 def query_metadata(parent):
     """Parse metadata.xml in PORTDIR"""
