@@ -1,0 +1,46 @@
+Abeni
+
+0.0.2
+
+Added 'emerge' command to menu with option to pass any args:
+    * ebuild <args> <current ebuild file>
+
+Added 'ebuild' command to menu with option to pass any command:
+    * ebuild <current ebuild file> compile
+
+Added /usr/bin/repoman-safe.py. Version of repoman for non-developers.
+
+Creating a digest opens xterm and asks for password (su -c ebuild foo digest)
+
+Editor show if you use spaces instead of tabs in functions
+
+Ability to delete functions or variables
+
+Removed wxHelp system, use online html now with web browser of choice
+
+New icons on toolbar for new variable, new function (thanks far from Gentoo forums)
+
+Added icons on toolbar for lintool and create digest
+
+Create or update a digest
+
+Saves history of recent ebuilds loaded and saved, accessible via File menu
+
+Import portage to parse /etc/make.conf to get PORTDIR, PORTDIR_OVERLAY, DISTDIR
+
+Variables are now kept in order they appear in original ebuild when imported and saved.
+
+Functions are shown in order loaded from original ebuild.
+
+.abenirc is created in home directory now, copied from template in /usr/share/abeni/abenirc
+
+Options dialog works now, has diff, web browser and xterm options.
+
+You can create a diff between a loaded and saved ebuild to submit to bugs.gentoo.org
+
+You can view diff between a loaded and saved ebuild using kompare or any visual diff program
+
+Help system added with links to official Gentoo ebuild/portage section, quick start, version
+bumping, ebuild quick reference, link to 'common mistakes' page.
+
+Show quotes around variables on the main form.
