@@ -81,12 +81,6 @@ class wxFrame1(wxFrame):
         self.fdir = "%s/files" % fdir
         self.fdir_olay = "%s/files" % fdir_olay
 
-        if not os.path.exists(fdir_olay):
-            dlg = wxMessageDialog(self, "Nothing in ${FILESDIR}\n\nNo digest yet.", "Error", wxOK)
-            dlg.ShowModal()
-            dlg.Destroy()
-            return
-
         if not os.path.exists(self.fdir):
             #Disable widgets if package doesn't exist in PORTDIR 
             self.listBox1.Disable()

@@ -6,22 +6,25 @@ import shutil
 class Options:
     def __init__(self):
 
-        """Set all var names"""
+        """Set vars to sane values"""
         self.pref = {}
-        self.pref['browser'] = ''
-        self.pref['xterm'] = ''
-        self.pref['diff'] = ''
+        self.pref['stripHeader'] = 1
+        self.pref['clearLog'] = 1
+        self.pref['checkSyntax'] = 1
+        self.pref['logfile'] = 0
+        self.pref['logFilename'] = "/root/.abeni/log.txt"
+        self.pref['font'] = "Courier 12"
+        self.pref['highlighting'] = 1
+        self.pref['gentooHighlight'] = 1
+        self.pref['browser'] = '/usr/bin/firebird'
+        self.pref['xterm'] = '/usr/X11R6/bin/xterm'
+        self.pref['diff'] = '/usr/bin/gtkdiff'
         self.pref['editor'] = ''
-        self.pref['autoTabs'] = ''
-        self.pref['fileBrowser'] = ''
         self.pref['use'] = ''
-        self.pref['features'] = ''
-        self.pref['log'] = ''
-        self.pref['email'] = ''
-        self.pref['statuslist'] = 'FIXED,WONTFIX,LATER,OBSOLETE,TESTING,REMIND,SUBMITTED'
+        self.pref['features'] = 'noauto'
         self.pref['userName'] = ''
-        self.pref['cvsOptions'] = ''
         self.pref['cvsRoot'] = ''
+        self.pref['devUserName'] = ''
         self.Read_apprc()
 
     def Read_apprc(self):
@@ -33,6 +36,10 @@ class Options:
             if string.find(l, '=') != -1:
                 var = string.split(l, '=')[0].strip()
                 val = string.split(l, '=')[1].strip()
+                if val == '1':
+                    val = 1
+                if val == '0':
+                    val = 0
                 self.pref[var] = val
             l = f.readline()
         f.close()

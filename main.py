@@ -59,12 +59,7 @@ if not portdir_overlay:
     print "ERROR: Create the directory PORTDIR_OVERLAY in /etc/make.conf"
     sys.exit(1)
 
-portage_tmpdir = env['PORTAGE_TMPDIR']
-#Lets choose the first arch they have, in case of multiples.
-#TODO: Mention in documentation
-arch = '~%s' % env['ACCEPT_KEYWORDS'].split(' ')[0].replace('~', '')
-
-class MyApp(wxPySimpleApp):
+class MyApp(wxApp):
 
     """ Main wxPython app class """
 
@@ -79,5 +74,5 @@ class MyApp(wxPySimpleApp):
         return true
 
 
-app=MyApp()
+app=MyApp(0)
 app.MainLoop()

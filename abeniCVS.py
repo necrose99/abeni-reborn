@@ -27,7 +27,6 @@ codes["darkred"]="\x1b[31;06m"
 codes["reset"] = "\x1b[0m"
 
 
-
 class CVS:
 
     """ CVS utilities imported from gui.py """
@@ -36,9 +35,9 @@ class CVS:
         self.parent = parent
         self.cvsRoot = self.parent.pref['cvsRoot']
         self.category = utils.GetCategoryName(self.parent)
-        self.package = self.parent.panelMain.Package.GetValue()
+        self.package = utils.getPN(self.parent)
         self.cvsEbuildDir = self.QueryPath()
-        self.ebuild = self.parent.panelMain.EbuildFile.GetValue()
+        self.ebuild = utils.GetEbuildFileBase(self.parent)
         #full path to PORTDIR_OVERLAY ebuild:
         self.overlay_file = self.parent.filename
         self.overlay_dir = os.path.dirname(self.overlay_file)
@@ -54,8 +53,11 @@ class CVS:
 
     def FullCommit(self):
         """Does the whole repoman CVS commit dealio"""
-        cur_dir = os.getcwd()
 
+        try:
+            cur_dir = os.getcwd()
+        except:
+            cur_dir = self.overlay_dir
         
         busy = wxBusyInfo("Copying ebuild and creating digest...")
 
@@ -70,7 +72,7 @@ class CVS:
                 return
 
             if (self.CreateCVSdir()):
-                utils.write(self.parent, ">>> Created directory %s" % self.cvsEbuildDir)
+                utils.write(self.parent, "))) Created directory %s" % self.cvsEbuildDir)
             else:
                 utils.write(self.parent, "!!! Failed to create %s" % self.cvsEbuildDir)
                 utils.write(self.parent, "!!! Aborted CVS commit.")
@@ -94,11 +96,12 @@ class CVS:
 
         # Copy ebuild from PORTDIR_OVERLAY to CVS_DIR
         self.CopyEbuild()
-        utils.write(self.parent, ">>> Ebuild copied to CVS dir")
+        utils.write(self.parent, "))) Ebuild copied to CVS dir")
 
         # /usr/bin/cvs add ebuild
         #self.CVSAdd(self.cvsEbuild)
-        self.CVSAdd(self.ebuild)
+        self.CVSAdd(os.path.basename(self.cvsEbuild))
+        utils.write(self.parent, "))) Ebuild added to CVS repository")
 
         # Prompt user to copy any files from $FILESDIR to CVS_DIR/FILESDIR
         # /usr/bin/cvs add em all
@@ -107,7 +110,7 @@ class CVS:
             utils.write(self.parent, "!!! Aborted CVS commit.")
             return
         if r == 0:
-            utils.write(self.parent, ">>> No files from $FILESDIR copied.")
+            utils.write(self.parent, "))) No files from $FILESDIR to copy.")
 
 
         # Show dialog with metadata.xml in case they need to change it
@@ -116,19 +119,35 @@ class CVS:
         if self.newPackage:
             busy = None
             if not os.path.exists("%s/metadata.xml" % self.overlay_dir):
-                dlg = MetadataDialog(self.parent)
-            if not self.CopyMetadata():
-                utils.write(self.parent, "!!! Failed to copy metadata.xml.")
-                utils.write(self.parent, "!!! Aborted CVS commit.")
-                return
+                dlg = MetadataDialog.MetadataDialog(self.parent, -1, "metadata.xml", \
+                                                   size=wxSize(350, 200), \
+                                                   style = wxDEFAULT_DIALOG_STYLE \
+                                                   )
+                dlg.CenterOnScreen()
+                v = dlg.ShowModal()
+                if v == wxID_OK:
+                    t = dlg.metadata_out.GetText()
+                    try:
+                        f = open("%s/metadata.xml" % self.cvsEbuildDir, "w")
+                        f.write(t)
+                        f.close()
+                    except:
+                        utils.write(self.parent, "!!! Failed to write metadata.xml.")
+                        utils.write(self.parent, "%s/metadata.xml" % self.cvsEbuildDir)
+                        utils.write(self.parent, "!!! Aborted CVS commit.")
+                        return
+
+            #if not self.CopyMetadata():
+            #    utils.write(self.parent, "!!! Failed to copy metadata.xml.")
+            #    utils.write(self.parent, "!!! Aborted CVS commit.")
+            #    return
             self.FixPerms()
             busy = wxBusyInfo("Adding metadata...")
-            self.CVSAdd("metadta.xml")
+            self.CVSAdd("metadata.xml")
 
         self.FixPerms()
         # Create digest for ebuild (should auto-add to cvs)
         self.CreateDigest()
-        wxYield()
         utils.write(self.parent, "     ")
         busy = None
 
@@ -140,17 +159,14 @@ class CVS:
             return
 
         #kludge to keep log window scrolled to bottom:
-        wxSafeYield()
         utils.write(self.parent, "     ")
 
         self.Echangelog(self.cmsg)
 
-        wxSafeYield()
         utils.write(self.parent, "     ")
 
         if self.newPackage:
             self.CVSAdd("ChangeLog")
-            wxSafeYield()
             utils.write(self.parent, "     ")
 
 
@@ -169,7 +185,6 @@ class CVS:
         dlg.ShowModal()
         dlg.Destroy()
 
-        wxSafeYield()
         utils.write(self.parent, "     ")
 
 
@@ -188,7 +203,6 @@ class CVS:
             utils.write(self.parent, "!!! CVS commit Cancelled.")
             return
 
-        wxSafeYield()
         utils.write(self.parent, "     ")
 
         msg = 'Happy with repoman --pretend commit?\nDo you want to run:\n \
@@ -199,14 +213,16 @@ class CVS:
             busy = wxBusyInfo("Running repoman commit...")
             self.SyncExecute('''PORTDIR_OVERLAY=%s /usr/bin/repoman commit -m "%s"''' % (self.cvsEbuildDir, self.cmsg))
             busy=None
-
             wxSafeYield()
-            utils.write(self.parent,">>> Repoman commit finished.")
+            utils.write(self.parent,"))) Repoman commit finished.")
         else:
             utils.write(self.parent, "!!! CVS commit Cancelled.")
 
         # go back to overlay dir
-        os.chdir(cur_dir)
+        try:
+            os.chdir(cur_dir)
+        except:
+            pass
 
     def DoFilesdir(self):
         """Copy files from overlay ${FILESDIR} to CVS ${FILESDIR} """
@@ -242,7 +258,7 @@ class CVS:
             fpath = "%s/%s" % (filesdir, f)
             try:
                 shutil.copy(fpath, cvs_filesdir)
-                utils.write(self.parent, ">>> Copied: %s " % f)
+                utils.write(self.parent, "))) Copied: %s " % f)
             except:
                 utils.write(self.parent, "!!! Failed to copy %s from %s" % (f, filesdir))
                 return "error"
@@ -265,7 +281,7 @@ class CVS:
         """cvs update"""
         cmd = "/usr/bin/cvs update"
         self.SyncExecute(cmd)
-        utils.write(self.parent, ">>> CVS update finished")
+        utils.write(self.parent, "))) CVS update finished")
 
     def CopyEbuild(self):
         """Copy ebuild from PORT_OVERLAY to CVSroot/category/package/"""
@@ -312,7 +328,7 @@ class CVS:
             return 0
 
     def CreateDigest(self):
-        cmd = "/usr/sbin/ebuild %s digest" % self.cvsEbuild
+        cmd = "/usr/sbin/ebuild %s digest" % os.path.basename(self.cvsEbuild)
         self.SyncExecute(cmd)
 
     def CVSAddDir(self):
@@ -324,13 +340,13 @@ class CVS:
         self.SyncExecute(cmd)
 
     def Execute(self, cmd):
-        su_cmd = "su %s -c '%s'" % (self.userName, cmd)
-        utils.write(self.parent, ">>> Executing:\n>>>  %s" % su_cmd)
+        su_cmd = "su %s -c '. ~%s/.keychain/localhost-sh; %s'" % (self.userName, self.userName, cmd)
+        utils.write(self.parent, "))) Executing:\n)))  %s" % su_cmd)
         utils.ExecuteInLog(self.parent, su_cmd)
 
     def SyncExecute(self, cmd, ret=0, strip_color=0):
-        su_cmd = "su %s -c '%s'" % (self.userName, cmd)
-        utils.write(self.parent, ">>> Executing:\n>>>  %s" % su_cmd)
+        su_cmd = "su %s -c '. ~%s/.keychain/localhost-sh; %s'" % (self.userName, self.userName, cmd)
+        utils.write(self.parent, "))) Executing:\n)))  %s" % su_cmd)
         a = popen2.Popen4(su_cmd , 1)
         inp = a.fromchild
         lines = "" 

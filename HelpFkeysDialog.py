@@ -25,18 +25,20 @@ cellpadding="0" border="1">
 </tr>
 </table>
 <p>
+Shift+F1  - clean<br>
 F1  - create digest<br>
 F2  - unpack<br>
 F3  - compile<br>
-F4  - ebuild <this ebuild> command<br>
-F5  - clean<br>
-F6  - ${FILESDIR} copy/edit/diff/delete<br>
+F4  - install<br>
+F5  - qmerge<br> 
+F6  - New function<br>
 F7  - edit this ebuild in external editor<br>
-F8  - New variable<br>
-F9  - New function<br>
+F8  - ${FILESDIR} dialog: copy from PORTDIR, rm, diff etc.<br>
+F9  - ebuild <this ebuild> command<br>
 F10 - emerge<br>
 F11 - Clear log window<br>
 F12 - xterm in ${S}<br>
+Shift+F12 - xterm in CVS cat/pn dir<br>
 </p>
 <center>
 <p><wxp module="wx" class="Button">

@@ -26,17 +26,28 @@ cellpadding="0" border="1">
 </table>
 
 Official Gentoo developers can use the CVS menu in Abeni to
-do repoman commits. It will do a <b>cvs update</b>, copy the build
-and files needed from $FILESDIR to your CVS dir, create a digest,
-give a dialog for Changelog/commit msgs, do a 
-<b>repoman full</b>, <b>repoman --pretend commit</b>
-and then ask if you want to actually commit.
+do repoman commits. It will do the following:<br>
+<br>
+<ul>
+<li>cvs update</li>
+<li>copy the build to the CVS dir</li>
+<li>prompt you if there are patches etc. in $FILEDIR to copy</li>
+<li>create a digest</li>
+<li>give a metadata.xml dialog if there is none present</li>
+<li>give a dialog for Changelog/commit msgs</li>
+<li>repoman full</li>
+<li>repoman --pretend commit</li>
+<li>ask if you want to actually commit</li>
+</ul>
 
 <h2>NOTE:</h2>
 
-Abeni's repoman commit will only work if you don't use your
-CVS directory as your PORTDIR. The next version of Abeni will
-be able to handle that situation.
+Abeni's repoman commit won't work if you use your
+CVS directory as your PORTDIR. A future version of Abeni 
+will be able to handle that situation. I've never
+used CVS as my PORTDIR so haven't tested it. If any
+developer would like to try it out, please let me know
+how it goes and if special steps are needed.
 <center>
 <p><wxp module="wx" class="Button">
     <param name="label" value="Okay">

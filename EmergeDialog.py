@@ -31,7 +31,7 @@ class EmergeDialog(wxDialog):
         useLabel.SetHelpText("Enter any USE variables for the emerge command.")
         box.Add(useLabel, 0, wxALIGN_CENTRE|wxALL, 5)
 
-        self.use = wxTextCtrl(self, -1, parent.pref["use"], size=(280,-1))
+        self.use = wxTextCtrl(self, -1, parent.pref["use"], size=(100,-1))
         self.use.SetHelpText("Enter any USE variables for the emerge command.")
         box.Add(self.use, 1, wxALIGN_CENTRE|wxALL, 5)
 
@@ -39,19 +39,28 @@ class EmergeDialog(wxDialog):
         featuresLabel.SetHelpText("Enter any variables for FEATURES.")
         box.Add(featuresLabel, 0, wxALIGN_CENTRE|wxALL, 5)
 
-        self.features = wxTextCtrl(self, -1, parent.pref["features"], size=(280,-1))
+        self.features = wxTextCtrl(self, -1, parent.pref["features"], size=(100,-1))
         self.features.SetHelpText("Enter any variables for FEATURES.")
         box.Add(self.features, 1, wxALIGN_CENTRE|wxALL, 5)
+
+        kwLabel = wxStaticText(self, -1, "ACCEPT_KEYWORDS=")
+        kwLabel.SetHelpText("Enter archs (x86, ~x86 etc)")
+        box.Add(kwLabel, 0, wxALIGN_CENTRE|wxALL, 5)
+
+        self.kw = wxTextCtrl(self, -1, "", size=(100,-1))
+        self.kw.SetHelpText("Enter arch")
+        box.Add(self.kw, 1, wxALIGN_CENTRE|wxALL, 5)
 
         sizer.AddSizer(box, 0, wxGROW|wxALIGN_CENTER_VERTICAL|wxALL, 5)
         box = wxBoxSizer(wxHORIZONTAL)
 
         self.cat_pack_ver = utils.GetCatPackVer(parent)
 
-        cmd = "emerge =%s"  % self.cat_pack_ver
+        cmd = "emerge --nospinner =%s"  % self.cat_pack_ver
 
-        pretend_cmd = "emerge -pv =%s"  % self.cat_pack_ver
+        pretend_cmd = "emerge --nospinner -pv =%s"  % self.cat_pack_ver
 
+        self.kw.SetValue(utils.GetArch())
         self.emerge = wxTextCtrl(self, -1, cmd, size=(560,-1))
         self.emerge.SetHelpText("Enter any options for the emerge command.")
         box.Add(self.emerge, 1, wxALIGN_CENTRE|wxALL, 5)
@@ -62,10 +71,8 @@ class EmergeDialog(wxDialog):
         sizer.Add(line, 0, wxGROW|wxALIGN_CENTER_VERTICAL|wxRIGHT|wxTOP, 5)
         box = wxBoxSizer(wxHORIZONTAL)
 
-        wxID_EMERGE = wxNewId()
-        btn = wxButton(self, wxID_EMERGE, " Emerge ")
+        btn = wxButton(self, wxID_OK, " Emerge ")
         box.Add(btn, 0, wxALIGN_CENTRE|wxALL, 5)
-        EVT_BUTTON(btn, wxID_EMERGE, self.OnEmergeButton)
 
         wxID_PRETEND_EMERGE = wxNewId()
         btn = wxButton(self, wxID_PRETEND_EMERGE, " Pretend ")
@@ -85,14 +92,7 @@ class EmergeDialog(wxDialog):
 
     def OnPretendButton(self, event):
         """ emerge -pv this ebuild """
-        pretend_cmd = "FEATURES='%s' USE='%s' emerge --nospinner -pv =%s" \
-                   % (self.features.GetValue(), self.use.GetValue(), self.cat_pack_ver)
+        pretend_cmd = "ACCEPT_KEYWORDS='%s' FEATURES='%s' USE='%s' emerge --nospinner -pv =%s" \
+                   % (self.kw.GetValue(), self.features.GetValue(), self.use.GetValue(), self.cat_pack_ver)
         utils.write(self.parent, ">>> %s" % pretend_cmd)
         utils.ExecuteInLog(self.parent, pretend_cmd)
-
-    def OnEmergeButton(self, event):
-        """ emerge this ebuild """
-        cmd = "FEATURES='%s' USE='%s' emerge --nospinner =%s" \
-                   % (self.features.GetValue(), self.use.GetValue(), self.cat_pack_ver)
-        utils.write(self.parent, ">>> %s" % cmd)
-        utils.ExecuteInLog(self.parent, cmd)
