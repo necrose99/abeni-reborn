@@ -3,20 +3,20 @@
 import os
 import string
 
-from wxPython.wx import *
+import wx
 
-class GetURIDialog(wxDialog):
+class GetURIDialog(wx.Dialog):
     def __init__(self, *args, **kwds):
         # begin wxGlade: GetURIDialog.__init__
-        kwds["style"] = wxDEFAULT_DIALOG_STYLE
-        wxDialog.__init__(self, *args, **kwds)
-        self.label_uri = wxStaticText(self, -1, "Package URI:")
-        self.URI = wxTextCtrl(self, -1, "")
-        self.label_template = wxStaticText(self, -1, "Template:")
-        self.combo_box_1 = wxComboBox(self, -1, choices=[], style=wxCB_DROPDOWN|wxCB_READONLY|wxCB_SORT)
-        self.static_line_2 = wxStaticLine(self, -1)
-        self.button_cancel = wxButton(self, wxID_CANCEL, "Cancel")
-        self.button_ok = wxButton(self, wxID_OK, "Ok")
+        kwds["style"] = wx.DEFAULT_DIALOG_STYLE
+        wx.Dialog.__init__(self, *args, **kwds)
+        self.label_uri = wx.StaticText(self, -1, "Package URI:")
+        self.URI = wx.TextCtrl(self, -1, "")
+        self.label_template = wx.StaticText(self, -1, "Template:")
+        self.combo_box_1 = wx.ComboBox(self, -1, choices=[], style=wx.CB_DROPDOWN|wx.CB_READONLY|wx.CB_SORT)
+        self.static_line_2 = wx.StaticLine(self, -1)
+        self.button_cancel = wx.Button(self, wx.ID_CANCEL, "Cancel")
+        self.button_ok = wx.Button(self, wx.ID_OK, "Ok")
 
         self.__set_properties()
         self.__do_layout()
@@ -32,21 +32,21 @@ class GetURIDialog(wxDialog):
 
     def __do_layout(self):
         # begin wxGlade: GetURIDialog.__do_layout
-        sizer_1 = wxBoxSizer(wxVERTICAL)
-        sizer_4 = wxBoxSizer(wxHORIZONTAL)
-        sizer_3 = wxBoxSizer(wxHORIZONTAL)
-        sizer_2 = wxBoxSizer(wxHORIZONTAL)
-        sizer_2.Add(self.label_uri, 0, wxLEFT, 4)
-        sizer_2.Add(self.URI, 1, wxLEFT, 12)
-        sizer_1.Add(sizer_2, 0, wxTOP|wxBOTTOM|wxEXPAND, 10)
-        sizer_3.Add(self.label_template, 0, wxLEFT|wxALIGN_RIGHT, 4)
-        sizer_3.Add(self.combo_box_1, 1, wxLEFT, 20)
-        sizer_1.Add(sizer_3, 0, wxTOP|wxBOTTOM|wxEXPAND, 10)
-        sizer_1.Add(self.static_line_2, 0, wxEXPAND, 0)
+        sizer_1 = wx.BoxSizer(wx.VERTICAL)
+        sizer_4 = wx.BoxSizer(wx.HORIZONTAL)
+        sizer_3 = wx.BoxSizer(wx.HORIZONTAL)
+        sizer_2 = wx.BoxSizer(wx.HORIZONTAL)
+        sizer_2.Add(self.label_uri, 0, wx.LEFT, 4)
+        sizer_2.Add(self.URI, 1, wx.LEFT, 12)
+        sizer_1.Add(sizer_2, 0, wx.TOP|wx.BOTTOM|wx.EXPAND, 10)
+        sizer_3.Add(self.label_template, 0, wx.LEFT|wx.ALIGN_RIGHT, 4)
+        sizer_3.Add(self.combo_box_1, 1, wx.LEFT, 20)
+        sizer_1.Add(sizer_3, 0, wx.TOP|wx.BOTTOM|wx.EXPAND, 10)
+        sizer_1.Add(self.static_line_2, 0, wx.EXPAND, 0)
         sizer_4.Add(self.button_cancel, 0, 0, 0)
         sizer_4.Add((20, 20), 0, 0, 0)
         sizer_4.Add(self.button_ok, 0, 0, 0)
-        sizer_1.Add(sizer_4, 0, wxALL|wxEXPAND, 12)
+        sizer_1.Add(sizer_4, 0, wx.ALL|wx.EXPAND, 12)
         self.SetAutoLayout(1)
         self.SetSizer(sizer_1)
         sizer_1.Fit(self)
@@ -54,7 +54,7 @@ class GetURIDialog(wxDialog):
         self.Layout()
         # end wxGlade
 
-        EVT_COMBOBOX(self, self.combo_box_1.GetId(), self.EvtComboBox) 
+        wx.EVT_COMBOBOX(self, self.combo_box_1.GetId(), self.EvtComboBox) 
         self.template = "Minimum.ebuild"
 
         lines = os.listdir("/usr/share/abeni/templates/")

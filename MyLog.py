@@ -1,21 +1,21 @@
 
-from wxPython.wx import *
+import wx
 
 import utils
 
-class LogWindow(wxFrame):
+class LogWindow(wx.Frame):
     """Separate window for log"""
     def __init__(self, parent):
-        wxFrame.__init__(self, parent, -1, "Abeni Log", size=wxSize(900, 450))
+        wx.Frame.__init__(self, parent, -1, "Abeni Log", size=wx.Size(900, 450))
         self.parent=parent
         self.AddToolbar()
-        EVT_CLOSE(self, self.OnClose)
-        self.splitter = wxSplitterWindow(self, -1, style=wxNO_3D|wxSP_3D)
+        wx.EVT_CLOSE(self, self.OnClose)
+        self.splitter = wx.SplitterWindow(self, -1, style=wx.NO_3D|wx.SP_3D)
         self.parent.text_ctrl_log.Reparent(self.splitter)
-        self.scrollLog = wxTextCtrl(self.splitter, -1, style = wxTE_MULTILINE|wxTE_READONLY)
+        self.scrollLog = wx.TextCtrl(self.splitter, -1, style = wx.TE_MULTILINE|wx.TE_READONLY)
         #TODO: I forget why I did this. Is it necessary?
         def EmptyHandler(evt): pass
-        EVT_ERASE_BACKGROUND(self.splitter, EmptyHandler)
+        wx.EVT_ERASE_BACKGROUND(self.splitter, EmptyHandler)
         # ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
         self.splitter.SplitHorizontally(self.scrollLog, self.parent.text_ctrl_log, 1)
         self.splitter.SetMinimumPaneSize(1)
@@ -28,24 +28,24 @@ class LogWindow(wxFrame):
     def AddToolbar(self):
         #Create Toolbar with icons
         # icons are  28 pixels high, variable width
-        self.tb = self.CreateToolBar(wxTB_HORIZONTAL|wxNO_BORDER|wxTB_FLAT)
-        self.ScrollID = wxNewId()
+        self.tb = self.CreateToolBar(wx.TB_HORIZONTAL|wx.NO_BORDER|wx.TB_FLAT)
+        self.ScrollID = wx.NewId()
         ScrollBmp = ('/usr/share/pixmaps/abeni/split.png')
-        self.tb.AddSimpleTool(self.ScrollID, wxBitmap(ScrollBmp, wxBITMAP_TYPE_PNG), \
+        self.tb.AddSimpleTool(self.ScrollID, wx.Bitmap(ScrollBmp, wx.BITMAP_TYPE_PNG), \
                                 "Scrollback in split window")
-        EVT_TOOL(self, self.ScrollID, self.ScrollBack)
+        wx.EVT_TOOL(self, self.ScrollID, self.ScrollBack)
 
-        self.UnsplitID = wxNewId()
+        self.UnsplitID = wx.NewId()
         UnsplitBmp = ('/usr/share/pixmaps/abeni/unsplit.png')
-        self.tb.AddSimpleTool(self.UnsplitID, wxBitmap(UnsplitBmp, wxBITMAP_TYPE_PNG), \
+        self.tb.AddSimpleTool(self.UnsplitID, wx.Bitmap(UnsplitBmp, wx.BITMAP_TYPE_PNG), \
                                 "Un-split window")
-        EVT_TOOL(self, self.UnsplitID, self.Unsplit)
+        wx.EVT_TOOL(self, self.UnsplitID, self.Unsplit)
 
-        self.CloseID = wxNewId()
+        self.CloseID = wx.NewId()
         CloseBmp = ('/usr/share/pixmaps/abeni/close_scrollback.png')
-        self.tb.AddSimpleTool(self.CloseID, wxBitmap(CloseBmp, wxBITMAP_TYPE_PNG), \
+        self.tb.AddSimpleTool(self.CloseID, wx.Bitmap(CloseBmp, wx.BITMAP_TYPE_PNG), \
                                 "Close this log window")
-        EVT_TOOL(self, self.CloseID, self.OnClose)
+        wx.EVT_TOOL(self, self.CloseID, self.OnClose)
         self.tb.Realize()
 
     def ScrollBack(self, event):

@@ -3,24 +3,24 @@
 
 import os
 
-from wxPython.wx import *
-from wxPython.html import *
+import wx
+import wx.html
 
 
-class MyDialog(wxDialog):
+class MyDialog(wx.Dialog):
     def __init__(self, *args, **kwds):
         # begin wxGlade: MyDialog.__init__
-        kwds["style"] = wxDEFAULT_DIALOG_STYLE
-        wxDialog.__init__(self, *args, **kwds)
-        self.window_1 = wxSplitterWindow(self, -1)
-        self.window_1_pane_2 = wxPanel(self.window_1, -1, style=wxNO_BORDER|wxTAB_TRAVERSAL)
-        self.window_2 = wxSplitterWindow(self.window_1_pane_2, -1)
-        self.window_2_pane_2 = wxPanel(self.window_2, -1, style=wxNO_BORDER|wxTAB_TRAVERSAL)
-        self.window_2_pane_1 = wxPanel(self.window_2, -1, style=wxNO_BORDER|wxTAB_TRAVERSAL)
-        self.window_1_pane_1 = wxPanel(self.window_1, -1, style=wxNO_BORDER|wxTAB_TRAVERSAL)
-        self.list_box_1 = wxListBox(self.window_1_pane_1, -1, choices=[])
-        self.wxhtml_window = wxHtmlWindow(self.window_2_pane_1, -1)
-        self.text_ctrl_function_contents = wxTextCtrl(self.window_2_pane_2, -1, "", style=wxTE_MULTILINE|wxTE_READONLY)
+        kwds["style"] = wx.DEFAULT_DIALOG_STYLE
+        wx.Dialog.__init__(self, *args, **kwds)
+        self.window_1 = wx.SplitterWindow(self, -1)
+        self.window_1_pane_2 = wx.Panel(self.window_1, -1, style=wx.NO_BORDER|wx.TAB_TRAVERSAL)
+        self.window_2 = wx.SplitterWindow(self.window_1_pane_2, -1)
+        self.window_2_pane_2 = wx.Panel(self.window_2, -1, style=wx.NO_BORDER|wx.TAB_TRAVERSAL)
+        self.window_2_pane_1 = wx.Panel(self.window_2, -1, style=wx.NO_BORDER|wx.TAB_TRAVERSAL)
+        self.window_1_pane_1 = wx.Panel(self.window_1, -1, style=wx.NO_BORDER|wx.TAB_TRAVERSAL)
+        self.list_box_1 = wx.ListBox(self.window_1_pane_1, -1, choices=[])
+        self.html_window = wx.html.HtmlWindow(self.window_2_pane_1, -1)
+        self.text_ctrl_function_contents = wx.TextCtrl(self.window_2_pane_2, -1, "", style=wx.TE_MULTILINE|wx.TE_READONLY)
 
         self.__set_properties()
         self.__do_layout()
@@ -35,40 +35,40 @@ class MyDialog(wxDialog):
 
     def __do_layout(self):
         # begin wxGlade: MyDialog.__do_layout
-        sizer_1 = wxBoxSizer(wxHORIZONTAL)
-        sizer_3 = wxBoxSizer(wxHORIZONTAL)
-        sizer_5 = wxStaticBoxSizer(wxStaticBox(self.window_2_pane_2, -1, "Function Contents:"), wxHORIZONTAL)
-        sizer_4 = wxStaticBoxSizer(wxStaticBox(self.window_2_pane_1, -1, "Help:"), wxHORIZONTAL)
-        sizer_2 = wxStaticBoxSizer(wxStaticBox(self.window_1_pane_1, -1, "Portage Functions:"), wxHORIZONTAL)
-        sizer_2.Add(self.list_box_1, 1, wxALL|wxEXPAND, 4)
+        sizer_1 = wx.BoxSizer(wx.HORIZONTAL)
+        sizer_3 = wx.BoxSizer(wx.HORIZONTAL)
+        sizer_5 = wx.StaticBoxSizer(wx.StaticBox(self.window_2_pane_2, -1, "Function Contents:"), wx.HORIZONTAL)
+        sizer_4 = wx.StaticBoxSizer(wx.StaticBox(self.window_2_pane_1, -1, "Help:"), wx.HORIZONTAL)
+        sizer_2 = wx.StaticBoxSizer(wx.StaticBox(self.window_1_pane_1, -1, "Portage Functions:"), wx.HORIZONTAL)
+        sizer_2.Add(self.list_box_1, 1, wx.ALL|wx.EXPAND, 4)
         self.window_1_pane_1.SetAutoLayout(1)
         self.window_1_pane_1.SetSizer(sizer_2)
         sizer_2.Fit(self.window_1_pane_1)
         sizer_2.SetSizeHints(self.window_1_pane_1)
-        sizer_4.Add(self.wxhtml_window, 1, wxEXPAND, 0)
+        sizer_4.Add(self.html_window, 1, wx.EXPAND, 0)
         self.window_2_pane_1.SetAutoLayout(1)
         self.window_2_pane_1.SetSizer(sizer_4)
         sizer_4.Fit(self.window_2_pane_1)
         sizer_4.SetSizeHints(self.window_2_pane_1)
-        sizer_5.Add(self.text_ctrl_function_contents, 1, wxALL|wxEXPAND, 6)
+        sizer_5.Add(self.text_ctrl_function_contents, 1, wx.ALL|wx.EXPAND, 6)
         self.window_2_pane_2.SetAutoLayout(1)
         self.window_2_pane_2.SetSizer(sizer_5)
         sizer_5.Fit(self.window_2_pane_2)
         sizer_5.SetSizeHints(self.window_2_pane_2)
         self.window_2.SplitHorizontally(self.window_2_pane_1, self.window_2_pane_2, 239)
-        sizer_3.Add(self.window_2, 1, wxEXPAND, 0)
+        sizer_3.Add(self.window_2, 1, wx.EXPAND, 0)
         self.window_1_pane_2.SetAutoLayout(1)
         self.window_1_pane_2.SetSizer(sizer_3)
         sizer_3.Fit(self.window_1_pane_2)
         sizer_3.SetSizeHints(self.window_1_pane_2)
         self.window_1.SplitVertically(self.window_1_pane_1, self.window_1_pane_2, 173)
-        sizer_1.Add(self.window_1, 1, wxALL|wxEXPAND, 6)
+        sizer_1.Add(self.window_1, 1, wx.ALL|wx.EXPAND, 6)
         self.SetAutoLayout(1)
         self.SetSizer(sizer_1)
         self.Layout()
         # end wxGlade
 
-        EVT_LISTBOX(self, self.list_box_1.GetId(), self.OnListbox)
+        wx.EVT_LISTBOX(self, self.list_box_1.GetId(), self.OnListbox)
         t = 'dobin doconfd dodir dodoc doenvd doexe dohard dohtml doinfo doinitd doins dojar dolib dolib.a dolib.so doman domo donewins dopython dosbin dosed dosym ebuild.sh emake fowners fperms newbin newconfd newdoc newenvd newexe newinitd newins newlib.a newlib.so newman newsbin pmake prepall prepalldocs prepalldocs.new prepallinfo prepallman prepallstrip prepinfo preplib preplib.so prepman prepstrip quickpkg xpak'
 
         funcs = t.split(" ")
@@ -89,10 +89,10 @@ class MyDialog(wxDialog):
         file = "%s/%s" % (d, func)
         if os.path.exists(file):
             msg = open(file, "r").read()
-            self.wxhtml_window.SetPage(msg)
+            self.html_window.SetPage(msg)
             #self.text_ctrl_help.SetValue(msg)
         else:
-            self.wxhtml_window.SetPage('<br>No help available on this function.<br><br>Feel free to submit some.<br>Email pythonhead@gentoo.org')
+            self.html_window.SetPage('<br>No help available on this function.<br><br>Feel free to submit some.<br>Email pythonhead@gentoo.org')
             #self.text_ctrl_help.SetValue('\nNo help available on this function.\n\nFeel free to submit some.\nEmail pythonhead@gentoo.org')
  
 # end of class MyDialog

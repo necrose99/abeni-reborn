@@ -5,8 +5,8 @@ import re
 import popen2
 import shutil
 
-from wxPython.wx import *
-from wxPython.lib.dialogs import wxScrolledMessageDialog, wxMultipleChoiceDialog
+import wx
+from wx.lib.dialogs import MultipleChoiceDialog
 from portage import config, portdb, db, pkgsplit, catpkgsplit, settings
 sys.path.insert(0, "/usr/lib/gentoolkit/pym")
 import gentoolkit
@@ -104,14 +104,14 @@ def smart_pkgsplit(query):
 def MyMessage(parent, msg, title, type="info", cancel=0):
     """Simple informational dialog"""
     if type == "info":
-        icon = wxICON_INFORMATION
+        icon = wx.ICON_INFORMATION
     elif type == "error":
-        icon = wxICON_ERROR
+        icon = wx.ICON_ERROR
     if cancel:
-        dlg = wxMessageDialog(parent, msg, title, wxOK | wxCANCEL | icon)
+        dlg = wx.MessageDialog(parent, msg, title, wx.OK | wx.CANCEL | icon)
     else:
-        dlg = wxMessageDialog(parent, msg, title, wxOK | icon)
-    if (dlg.ShowModal() == wxID_OK):
+        dlg = wx.MessageDialog(parent, msg, title, wx.OK | icon)
+    if (dlg.ShowModal() == wx.ID_OK):
         return 1
     else:
         dlg.Destroy()
@@ -133,7 +133,7 @@ def LogBottom(parent, log):
     parent.menu_options.Check(parent.mnuLogBottomID, 1)
     parent.text_ctrl_log = log
     parent.text_ctrl_log.Reparent(parent.splitter)
-    wxLog_SetActiveTarget(MyLog(parent.text_ctrl_log))
+    wx.Log_SetActiveTarget(MyLog(parent.text_ctrl_log))
     parent.splitter.SplitHorizontally(parent.nb, parent.text_ctrl_log, 400)
     parent.splitter.SetMinimumPaneSize(20)
     parent.text_ctrl_log.Show(True)
@@ -176,19 +176,19 @@ def WriteText(parent, text):
     if pref == ">>>" or pref == "<<<" or pref == "---" \
          or pref == ")))" or  pref == " * ":
         log_color(parent, "BLUE")
-        wxLogMessage(text)
+        wx.LogMessage(text)
         log_color(parent, "BLACK")
     elif pref == "!!!":
         log_color(parent, "RED")
-        wxLogMessage(text)
+        wx.LogMessage(text)
         log_color(parent, "BLACK")
     else:
-        wxLogMessage(text)
+        wx.LogMessage(text)
 
 
 def log_color(parent, color):
     """Set color of text sent to log window"""
-    parent.text_ctrl_log.SetDefaultStyle(wxTextAttr(wxNamedColour(color)))
+    parent.text_ctrl_log.SetDefaultStyle(wx.TextAttr(wx.NamedColour(color)))
 
 def write(parent, txt):
     """Send text to log window"""
@@ -216,10 +216,6 @@ def PostAction(parent, action):
         parent.RefreshExplorer()
     if action:
         parent.statusbar.SetStatusText("%s done." % action, 0)
-    #this may cause -gtk2 to segfault. If I don't have it, the log
-    #window won't scroll properly after wxExecuteInLog ends with gtk2
-    #if parent.pref['gtk'] == 2:
-    wxYield()
 
 def ExportEbuild(parent):
     """Export ebuild directory to tar file"""
@@ -244,9 +240,9 @@ def ExportEbuild(parent):
                 auxfilelist.remove(f)
         if len(auxfilelist) > 0:
             msg = "Select the files you want to include in the tarball.\n(don't worry about the digest,\nit will be included automatically)"
-            fileselectdlg = wxMultipleChoiceDialog(parent, msg, "Auxiliary file selection",
+            fileselectdlg = MultipleChoiceDialog(parent, msg, "Auxiliary file selection",
                                                    auxfilelist, size=(300,min([500,150+len(auxfilelist)*20])))
-            if fileselectdlg.ShowModal() == wxID_OK:
+            if fileselectdlg.ShowModal() == wx.ID_OK:
                 auxfilelist = [fdir +"/"+f for f in list(fileselectdlg.GetValueString())]
             else:
                 return 0
@@ -256,8 +252,8 @@ def ExportEbuild(parent):
 
         tarballname = getP(parent)+".tar.bz2"
         filemask = "BZipped tarball (*.tar.bz2)|*.tar.bz2|GZipped tarball (*.tar.gz)|*.tar.gz|Uncompressed tarball (*.tar)|*.tar|All files|*"
-        filedlg = wxFileDialog(parent, "Export ebuild to tarball", "", tarballname, filemask, wxSAVE|wxOVERWRITE_PROMPT)
-        if filedlg.ShowModal() == wxID_OK:
+        filedlg = wx.FileDialog(parent, "Export ebuild to tarball", "", tarballname, filemask, wx.SAVE|wx.OVERWRITE_PROMPT)
+        if filedlg.ShowModal() == wx.ID_OK:
             tarballname = filedlg.GetPath()
             filedlg.Destroy()
         else:
@@ -333,13 +329,13 @@ def ExecuteInLog(parent, cmd, logMsg=''):
         write(parent, logMsg)
     parent.running = cmd
     parent.toolbar.EnableTool(parent.StopID, True)
-    parent.process = wxProcess(parent)
+    parent.process = wx.Process(parent)
     parent.process.Redirect();
     pyCmd = "python -u %s/doCmd.py %s" % (modulePath, cmd)
-    parent.pid = wxExecute(pyCmd, wxEXEC_ASYNC, parent.process)
-    ID_Timer = wxNewId()
-    parent.timer = wxTimer(parent, ID_Timer)
-    EVT_TIMER(parent,  ID_Timer, parent.OnTimer)
+    parent.pid = wx.Execute(pyCmd, wx.EXEC_ASYNC, parent.process)
+    ID_Timer = wx.NewId()
+    parent.timer = wx.Timer(parent, ID_Timer)
+    wx.EVT_TIMER(parent,  ID_Timer, parent.OnTimer)
     parent.timer.Start(10)
 
 def Reset(parent):
@@ -360,10 +356,10 @@ def VerifySaved(parent):
     status = 0
 
     if parent.STCeditor.GetModify() or not parent.saved:
-        dlg = wxMessageDialog(parent, 'Save modified ebuild?\n' + parent.filename,
-                'Save ebuild?', wxYES_NO | wxCANCEL | wxICON_INFORMATION)
+        dlg = wx.MessageDialog(parent, 'Save modified ebuild?\n' + parent.filename,
+                'Save ebuild?', wx.YES_NO | wx.CANCEL | wx.ICON_INFORMATION)
         val = dlg.ShowModal()
-        if val == wxID_YES:
+        if val == wx.ID_YES:
             msg = checkEntries(parent)
             if msg:
                 status = 1
@@ -374,9 +370,9 @@ def VerifySaved(parent):
             WriteEbuild(parent)
             parent.saved = 1
             status = 0
-        if val == wxID_NO:
+        if val == wx.ID_NO:
             status = 0
-        if val == wxID_CANCEL:
+        if val == wx.ID_CANCEL:
             status = 1
         dlg.Destroy()
     return status
@@ -541,9 +537,9 @@ def LoadByPackage(parent, query):
             pkgs.append (ver + " (" + slot + ")" + overlay)
 
  
-        dlg = wxSingleChoiceDialog(parent, cat + "/" + package, 'Ebuilds Available',
-                    pkgs, wxOK|wxCANCEL)
-        if dlg.ShowModal() == wxID_OK:
+        dlg = wx.SingleChoiceDialog(parent, cat + "/" + package, 'Ebuilds Available',
+                    pkgs, wx.OK|wx.CANCEL)
+        if dlg.ShowModal() == wx.ID_OK:
             s = dlg.GetStringSelection().split(' ')
             version = s[0] 
             
@@ -690,22 +686,22 @@ def LoadEbuild(parent, filename):
     filename = string.strip(filename)
     if not os.path.exists(filename):
         write(parent, "File not found: " + filename)
-        dlg = wxMessageDialog(parent, "The file " + filename + " does not exist",
-                              "File not found", wxOK | wxICON_ERROR)
+        dlg = wx.MessageDialog(parent, "The file " + filename + " does not exist",
+                              "File not found", wx.OK | wx.ICON_ERROR)
         dlg.ShowModal()
         return
 
     if filename[-7:] != ".ebuild":
         msg = "This file does not end in .ebuild"
-        dlg = wxMessageDialog(parent, msg,
-                'File Error', wxOK | wxICON_ERROR)
+        dlg = wx.MessageDialog(parent, msg,
+                'File Error', wx.OK | wx.ICON_ERROR)
         dlg.ShowModal()
         return
 
     #Check if ebuild has syntax errors before loading.
     #If there are errors ask if they want to edit it in external editor.
     #Try to load again after exiting external editor.
-    #busy = wxBusyInfo("Checking syntax...")
+    #busy = wx.BusyInfo("Checking syntax...")
     os.system("chmod +x %s" % filename)
     cmd = "/bin/bash -n %s" % filename
     r, out = RunExtProgram(cmd)
@@ -716,8 +712,8 @@ def LoadEbuild(parent, filename):
         for l in out:
             write(parent, l)
         msg = "The ebuild has a syntax error."
-        dlg = wxMessageDialog(parent, msg,
-                'Syntax Error', wxOK | wxICON_ERROR)
+        dlg = wx.MessageDialog(parent, msg,
+                'Syntax Error', wx.OK | wx.ICON_ERROR)
         dlg.ShowModal()
 
     s = string.split(filename, "/")
@@ -758,15 +754,15 @@ def isValidP(parent, filename):
 	#cat,pkg,ver,rev = gentoolkit.split_package_name(p)
     if not pkg:
         msg = "$PN is not valid. Check the package name."
-        dlg = wxMessageDialog(parent, msg,
-                '$PN Error', wxOK | wxICON_ERROR)
+        dlg = wx.MessageDialog(parent, msg,
+                '$PN Error', wx.OK | wx.ICON_ERROR)
         dlg.ShowModal()
         return
 
     if not ver:
         msg = "$PV is not valid. Check the package version."
-        dlg = wxMessageDialog(parent, msg,
-                '$PV Error', wxOK | wxICON_ERROR)
+        dlg = wx.MessageDialog(parent, msg,
+                '$PV Error', wx.OK | wx.ICON_ERROR)
         dlg.ShowModal()
         return
 

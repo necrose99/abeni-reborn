@@ -6,10 +6,9 @@ import string
 import shutil
 import sys
 
-from wxPython.lib.dialogs import wxMultipleChoiceDialog
-from wxPython.lib.dialogs import wxScrolledMessageDialog
-from wxPython.wx import *
-from wxPython.stc import *
+import wx
+import wx.stc
+from wx.lib.dialogs import MultipleChoiceDialog, ScrolledMessageDialog
 from portage import config, settings, pkgsplit
 
 import utils
@@ -34,190 +33,190 @@ if portdir_overlay[-1] == "/":
 portdir = env['PORTDIR']
 portage_tmpdir = env['PORTAGE_TMPDIR']
 
-class MyFrame(wxFrame):
+class MyFrame(wx.Frame):
     def __init__(self, *args, **kwds):
 
         # begin wxGlade: MyFrame.__init__
-        kwds["style"] = wxCAPTION|wxMINIMIZE_BOX|wxMAXIMIZE_BOX|wxSYSTEM_MENU|wxRESIZE_BORDER
-        wxFrame.__init__(self, *args, **kwds)
-        self.panel_1 = wxPanel(self, -1)
-        self.splitter = wxSplitterWindow(self.panel_1, -1, style=wxSP_3D|wxSP_BORDER)
-        self.notebook_1 = wxNotebook(self.splitter, -1, style=wxNB_BOTTOM)
-        self.panel_environment = wxPanel(self.notebook_1, -1)
-        self.panel_explorer = wxPanel(self.notebook_1, -1)
-        self.window_1 = wxSplitterWindow(self.panel_explorer, -1, style=wxSP_3D|wxSP_BORDER)
-        self.window_1_pane_2 = wxPanel(self.window_1, -1)
-        self.window_1_pane_1 = wxPanel(self.window_1, -1)
-        self.panel_log = wxPanel(self.notebook_1, -1)
-        self.panel_1_copy = wxPanel(self.panel_1, -1)
+        kwds["style"] = wx.CAPTION|wx.MINIMIZE_BOX|wx.MAXIMIZE_BOX|wx.SYSTEM_MENU|wx.RESIZE_BORDER
+        wx.Frame.__init__(self, *args, **kwds)
+        self.panel_1 = wx.Panel(self, -1)
+        self.splitter = wx.SplitterWindow(self.panel_1, -1, style=wx.SP_3D|wx.SP_BORDER)
+        self.notebook_1 = wx.Notebook(self.splitter, -1, style=wx.NB_BOTTOM)
+        self.panel_environment = wx.Panel(self.notebook_1, -1)
+        self.panel_explorer = wx.Panel(self.notebook_1, -1)
+        self.window_1 = wx.SplitterWindow(self.panel_explorer, -1, style=wx.SP_3D|wx.SP_BORDER)
+        self.window_1_pane_2 = wx.Panel(self.window_1, -1)
+        self.window_1_pane_1 = wx.Panel(self.window_1, -1)
+        self.panel_log = wx.Panel(self.notebook_1, -1)
+        self.panel_1_copy = wx.Panel(self.panel_1, -1)
         
         # Menu Bar
-        self.menubar = wxMenuBar()
+        self.menubar = wx.MenuBar()
         self.SetMenuBar(self.menubar)
-        global mnuNewID; mnuNewID = wxNewId()
-        global mnuLoadOverlayID; mnuLoadOverlayID = wxNewId()
-        global mnuLoadID; mnuLoadID = wxNewId()
-        global mnuSaveID; mnuSaveID = wxNewId()
-        global mnuDelID; mnuDelID = wxNewId()
-        global mnuExportID; mnuExportID = wxNewId()
-        global exitID; exitID = wxNewId()
-        global mnuFindID; mnuFindID = wxNewId()
-        global mnuFindAgainID; mnuFindAgainID = wxNewId()
-        global mnuAddFuncID; mnuAddFuncID = wxNewId()
-        global mnuLicenseID; mnuLicenseID = wxNewId()
-        global mnuCleanID; mnuCleanID = wxNewId()
-        global mnuDigestID; mnuDigestID = wxNewId()
-        global mnuUnpackID; mnuUnpackID = wxNewId()
-        global mnuCompileID; mnuCompileID = wxNewId()
-        global mnuInstallID; mnuInstallID = wxNewId()
-        global mnuEbuildID; mnuEbuildID = wxNewId()
-        global mnuEmergeID; mnuEmergeID = wxNewId()
-        global mnuRepoScanID; mnuRepoScanID = wxNewId()
-        global mnuPatchID; mnuPatchID = wxNewId()
-        global mnuImportID; mnuImportID = wxNewId()
-        global mnuDiffID; mnuDiffID = wxNewId()
-        global mnuRepoFullID; mnuRepoFullID = wxNewId()
-        global mnuFileCopyID; mnuFileCopyID = wxNewId()
-        global mnuXtermSID; mnuXtermSID = wxNewId()
-        global mnuXtermDID; mnuXtermDID = wxNewId()
-        global mnuXtermCVSID; mnuXtermCVSID = wxNewId()
-        self.mnuFullCommitID = wxNewId()
-        global mnuEditID; mnuEditID = wxNewId()
-        global mnuViewMetadataID; mnuViewMetadataID = wxNewId()
-        global mnuViewChangeLogID; mnuViewChangeLogID = wxNewId()
-        global mnuClearLogID; mnuClearLogID = wxNewId()
-        global mnuPrefID; mnuPrefID = wxNewId()
-        global mnuHelpID; mnuHelpID = wxNewId()
-        global mnuHelpRefID; mnuHelpRefID = wxNewId()
-        global mnuEclassID; mnuEclassID = wxNewId()
-        global mnuPrivID; mnuPrivID = wxNewId()
-        global mnuUseID; mnuUseID = wxNewId()
-        global mnulocalUseID; mnulocalUseID = wxNewId()
-        global mnuFKEYS_ID; mnuFKEYS_ID = wxNewId()
-        global mnuCVS_ID; mnuCVS_ID = wxNewId()
-        global mnuAboutID; mnuAboutID = wxNewId()
-        self.fileMenu = wxMenu()
-        self.fileMenu.Append(mnuNewID, "&New ebuild", "", wxITEM_NORMAL)
-        self.fileMenu.Append(mnuLoadOverlayID, "L&oad ebuild from PORTDIR_OVERLAY", "", wxITEM_NORMAL)
-        self.fileMenu.Append(mnuLoadID, "&Load ebuild from PORTDIR", "", wxITEM_NORMAL)
-        self.fileMenu.Append(mnuSaveID, "&Save ebuild\tCtrl-S", "", wxITEM_NORMAL)
-        self.fileMenu.Append(mnuDelID, "&Delete this ebuild", "", wxITEM_NORMAL)
-        self.fileMenu.Append(mnuExportID, "&Export ebuild and aux files to tar", "", wxITEM_NORMAL)
-        self.fileMenu.Append(exitID, "E&xit\tAlt-X", "", wxITEM_NORMAL)
+        global mnuNewID; mnuNewID = wx.NewId()
+        global mnuLoadOverlayID; mnuLoadOverlayID = wx.NewId()
+        global mnuLoadID; mnuLoadID = wx.NewId()
+        global mnuSaveID; mnuSaveID = wx.NewId()
+        global mnuDelID; mnuDelID = wx.NewId()
+        global mnuExportID; mnuExportID = wx.NewId()
+        global exitID; exitID = wx.NewId()
+        global mnuFindID; mnuFindID = wx.NewId()
+        global mnuFindAgainID; mnuFindAgainID = wx.NewId()
+        global mnuAddFuncID; mnuAddFuncID = wx.NewId()
+        global mnuLicenseID; mnuLicenseID = wx.NewId()
+        global mnuCleanID; mnuCleanID = wx.NewId()
+        global mnuDigestID; mnuDigestID = wx.NewId()
+        global mnuUnpackID; mnuUnpackID = wx.NewId()
+        global mnuCompileID; mnuCompileID = wx.NewId()
+        global mnuInstallID; mnuInstallID = wx.NewId()
+        global mnuEbuildID; mnuEbuildID = wx.NewId()
+        global mnuEmergeID; mnuEmergeID = wx.NewId()
+        global mnuRepoScanID; mnuRepoScanID = wx.NewId()
+        global mnuPatchID; mnuPatchID = wx.NewId()
+        global mnuImportID; mnuImportID = wx.NewId()
+        global mnuDiffID; mnuDiffID = wx.NewId()
+        global mnuRepoFullID; mnuRepoFullID = wx.NewId()
+        global mnuFileCopyID; mnuFileCopyID = wx.NewId()
+        global mnuXtermSID; mnuXtermSID = wx.NewId()
+        global mnuXtermDID; mnuXtermDID = wx.NewId()
+        global mnuXtermCVSID; mnuXtermCVSID = wx.NewId()
+        self.mnuFullCommitID = wx.NewId()
+        global mnuEditID; mnuEditID = wx.NewId()
+        global mnuViewMetadataID; mnuViewMetadataID = wx.NewId()
+        global mnuViewChangeLogID; mnuViewChangeLogID = wx.NewId()
+        global mnuClearLogID; mnuClearLogID = wx.NewId()
+        global mnuPrefID; mnuPrefID = wx.NewId()
+        global mnuHelpID; mnuHelpID = wx.NewId()
+        global mnuHelpRefID; mnuHelpRefID = wx.NewId()
+        global mnuEclassID; mnuEclassID = wx.NewId()
+        global mnuPrivID; mnuPrivID = wx.NewId()
+        global mnuUseID; mnuUseID = wx.NewId()
+        global mnulocalUseID; mnulocalUseID = wx.NewId()
+        global mnuFKEYS_ID; mnuFKEYS_ID = wx.NewId()
+        global mnuCVS_ID; mnuCVS_ID = wx.NewId()
+        global mnuAboutID; mnuAboutID = wx.NewId()
+        self.fileMenu = wx.Menu()
+        self.fileMenu.Append(mnuNewID, "&New ebuild", "", wx.ITEM_NORMAL)
+        self.fileMenu.Append(mnuLoadOverlayID, "L&oad ebuild from PORTDIR_OVERLAY", "", wx.ITEM_NORMAL)
+        self.fileMenu.Append(mnuLoadID, "&Load ebuild from PORTDIR", "", wx.ITEM_NORMAL)
+        self.fileMenu.Append(mnuSaveID, "&Save ebuild\tCtrl-S", "", wx.ITEM_NORMAL)
+        self.fileMenu.Append(mnuDelID, "&Delete this ebuild", "", wx.ITEM_NORMAL)
+        self.fileMenu.Append(mnuExportID, "&Export ebuild and aux files to tar", "", wx.ITEM_NORMAL)
+        self.fileMenu.Append(exitID, "E&xit\tAlt-X", "", wx.ITEM_NORMAL)
         self.menubar.Append(self.fileMenu, "&File")
-        wxglade_tmp_menu = wxMenu()
-        wxglade_tmp_menu.Append(mnuFindID, "&Find\tCtrl-F", "", wxITEM_NORMAL)
-        wxglade_tmp_menu.Append(mnuFindAgainID, "Find a&gain\tCtrl-g", "", wxITEM_NORMAL)
-        self.menubar.Append(wxglade_tmp_menu, "&Edit")
-        wxglade_tmp_menu = wxMenu()
-        wxglade_tmp_menu.Append(mnuAddFuncID, "&Function\tF6", "", wxITEM_NORMAL)
-        wxglade_tmp_menu.Append(mnuLicenseID, "&License", "", wxITEM_NORMAL)
-        self.menubar.Append(wxglade_tmp_menu, "&Insert")
-        wxglade_tmp_menu = wxMenu()
-        wxglade_tmp_menu.Append(mnuCleanID, "&Clean\tShift-F1", "", wxITEM_NORMAL)
-        wxglade_tmp_menu.Append(mnuDigestID, "&Digest\tF1", "", wxITEM_NORMAL)
-        wxglade_tmp_menu.Append(mnuUnpackID, "&Unpack\tF2", "", wxITEM_NORMAL)
-        wxglade_tmp_menu.Append(mnuCompileID, "C&ompile\tF3", "", wxITEM_NORMAL)
-        wxglade_tmp_menu.Append(mnuInstallID, "&Install\tF4", "", wxITEM_NORMAL)
-        wxglade_tmp_menu.Append(wxNewId(), "&Qmerge\tF5", "", wxITEM_NORMAL)
-        wxglade_tmp_menu.Append(mnuEbuildID, "&ebuild <this ebuild> command\tF9", "", wxITEM_NORMAL)
-        wxglade_tmp_menu.Append(mnuEmergeID, "e&merge <opts><this ebuild>\tF10", "", wxITEM_NORMAL)
-        wxglade_tmp_menu.Append(mnuRepoScanID, "&Repoman scan", "", wxITEM_NORMAL)
-        wxglade_tmp_menu.Append(mnuPatchID, "Create patch from source in ${S}", "", wxITEM_NORMAL)
-        wxglade_tmp_menu.Append(mnuImportID, "&Import existing patch", "", wxITEM_NORMAL)
-        wxglade_tmp_menu.Append(mnuDiffID, "diff of this ebuild against PORTDIR version", "", wxITEM_NORMAL)
-        wxglade_tmp_menu.Append(mnuRepoFullID, "repoman full", "", wxITEM_NORMAL)
-        wxglade_tmp_menu.Append(mnuFileCopyID, "${FILESDIR} copy/diff/edit/del\tF8", "", wxITEM_NORMAL)
-        wxglade_tmp_menu.Append(mnuXtermSID, "xterm in ${S}\tF12", "", wxITEM_NORMAL)
-        wxglade_tmp_menu.Append(mnuXtermDID, "xterm in ${D}", "", wxITEM_NORMAL)
-        wxglade_tmp_menu.Append(mnuXtermCVSID, "xterm in CVS dir\tShift-F12", "", wxITEM_NORMAL)
-        self.menubar.Append(wxglade_tmp_menu, "&Tools")
-        wxglade_tmp_menu = wxMenu()
-        wxglade_tmp_menu.Append(self.mnuFullCommitID, "repoman cvs commit", "", wxITEM_NORMAL)
-        self.menubar.Append(wxglade_tmp_menu, "&CVS")
-        wxglade_tmp_menu = wxMenu()
-        wxglade_tmp_menu.Append(mnuEditID, "&ebuild in external editor\tF7", "", wxITEM_NORMAL)
-        wxglade_tmp_menu.Append(mnuViewMetadataID, "metadata.&xml", "", wxITEM_NORMAL)
-        wxglade_tmp_menu.Append(mnuViewChangeLogID, "Change&Log", "", wxITEM_NORMAL)
-        self.menubar.Append(wxglade_tmp_menu, "&View")
-        self.menu_options = wxMenu()
-        self.menu_options.Append(mnuClearLogID, "&Clear log window\tF11", "", wxITEM_NORMAL)
+        wx.glade_tmp_menu = wx.Menu()
+        wx.glade_tmp_menu.Append(mnuFindID, "&Find\tCtrl-F", "", wx.ITEM_NORMAL)
+        wx.glade_tmp_menu.Append(mnuFindAgainID, "Find a&gain\tCtrl-g", "", wx.ITEM_NORMAL)
+        self.menubar.Append(wx.glade_tmp_menu, "&Edit")
+        wx.glade_tmp_menu = wx.Menu()
+        wx.glade_tmp_menu.Append(mnuAddFuncID, "&Function\tF6", "", wx.ITEM_NORMAL)
+        wx.glade_tmp_menu.Append(mnuLicenseID, "&License", "", wx.ITEM_NORMAL)
+        self.menubar.Append(wx.glade_tmp_menu, "&Insert")
+        wx.glade_tmp_menu = wx.Menu()
+        wx.glade_tmp_menu.Append(mnuCleanID, "&Clean\tShift-F1", "", wx.ITEM_NORMAL)
+        wx.glade_tmp_menu.Append(mnuDigestID, "&Digest\tF1", "", wx.ITEM_NORMAL)
+        wx.glade_tmp_menu.Append(mnuUnpackID, "&Unpack\tF2", "", wx.ITEM_NORMAL)
+        wx.glade_tmp_menu.Append(mnuCompileID, "C&ompile\tF3", "", wx.ITEM_NORMAL)
+        wx.glade_tmp_menu.Append(mnuInstallID, "&Install\tF4", "", wx.ITEM_NORMAL)
+        wx.glade_tmp_menu.Append(wx.NewId(), "&Qmerge\tF5", "", wx.ITEM_NORMAL)
+        wx.glade_tmp_menu.Append(mnuEbuildID, "&ebuild <this ebuild> command\tF9", "", wx.ITEM_NORMAL)
+        wx.glade_tmp_menu.Append(mnuEmergeID, "e&merge <opts><this ebuild>\tF10", "", wx.ITEM_NORMAL)
+        wx.glade_tmp_menu.Append(mnuRepoScanID, "&Repoman scan", "", wx.ITEM_NORMAL)
+        wx.glade_tmp_menu.Append(mnuPatchID, "Create patch from source in ${S}", "", wx.ITEM_NORMAL)
+        wx.glade_tmp_menu.Append(mnuImportID, "&Import existing patch", "", wx.ITEM_NORMAL)
+        wx.glade_tmp_menu.Append(mnuDiffID, "diff of this ebuild against PORTDIR version", "", wx.ITEM_NORMAL)
+        wx.glade_tmp_menu.Append(mnuRepoFullID, "repoman full", "", wx.ITEM_NORMAL)
+        wx.glade_tmp_menu.Append(mnuFileCopyID, "${FILESDIR} copy/diff/edit/del\tF8", "", wx.ITEM_NORMAL)
+        wx.glade_tmp_menu.Append(mnuXtermSID, "xterm in ${S}\tF12", "", wx.ITEM_NORMAL)
+        wx.glade_tmp_menu.Append(mnuXtermDID, "xterm in ${D}", "", wx.ITEM_NORMAL)
+        wx.glade_tmp_menu.Append(mnuXtermCVSID, "xterm in CVS dir\tShift-F12", "", wx.ITEM_NORMAL)
+        self.menubar.Append(wx.glade_tmp_menu, "&Tools")
+        wx.glade_tmp_menu = wx.Menu()
+        wx.glade_tmp_menu.Append(self.mnuFullCommitID, "repoman cvs commit", "", wx.ITEM_NORMAL)
+        self.menubar.Append(wx.glade_tmp_menu, "&CVS")
+        wx.glade_tmp_menu = wx.Menu()
+        wx.glade_tmp_menu.Append(mnuEditID, "&ebuild in external editor\tF7", "", wx.ITEM_NORMAL)
+        wx.glade_tmp_menu.Append(mnuViewMetadataID, "metadata.&xml", "", wx.ITEM_NORMAL)
+        wx.glade_tmp_menu.Append(mnuViewChangeLogID, "Change&Log", "", wx.ITEM_NORMAL)
+        self.menubar.Append(wx.glade_tmp_menu, "&View")
+        self.menu_options = wx.Menu()
+        self.menu_options.Append(mnuClearLogID, "&Clear log window\tF11", "", wx.ITEM_NORMAL)
         self.menubar.Append(self.menu_options, "Lo&g")
-        wxglade_tmp_menu = wxMenu()
-        wxglade_tmp_menu.Append(mnuPrefID, "&Preferences", "", wxITEM_NORMAL)
-        self.menubar.Append(wxglade_tmp_menu, "&Options")
-        wxglade_tmp_menu = wxMenu()
-        wxglade_tmp_menu.Append(mnuHelpID, "&Contents", "", wxITEM_NORMAL)
-        wxglade_tmp_menu.Append(mnuHelpRefID, "Ebuild &Quick Reference", "", wxITEM_NORMAL)
-        wxglade_tmp_menu.Append(mnuEclassID, "&eclasses", "", wxITEM_NORMAL)
-        wxglade_tmp_menu.Append(mnuPrivID, "&Portage private functions", "", wxITEM_NORMAL)
-        wxglade_tmp_menu.Append(mnuUseID, "USE variables", "", wxITEM_NORMAL)
-        wxglade_tmp_menu.Append(mnulocalUseID, "&local USE variables", "", wxITEM_NORMAL)
-        wxglade_tmp_menu.Append(mnuFKEYS_ID, "List &Fkeys", "", wxITEM_NORMAL)
-        wxglade_tmp_menu.Append(mnuCVS_ID, "Gentoo repoman &CVS help", "", wxITEM_NORMAL)
-        wxglade_tmp_menu.Append(mnuAboutID, "&About Abeni", "", wxITEM_NORMAL)
-        self.menubar.Append(wxglade_tmp_menu, "&Help")
+        wx.glade_tmp_menu = wx.Menu()
+        wx.glade_tmp_menu.Append(mnuPrefID, "&Preferences", "", wx.ITEM_NORMAL)
+        self.menubar.Append(wx.glade_tmp_menu, "&Options")
+        wx.glade_tmp_menu = wx.Menu()
+        wx.glade_tmp_menu.Append(mnuHelpID, "&Contents", "", wx.ITEM_NORMAL)
+        wx.glade_tmp_menu.Append(mnuHelpRefID, "Ebuild &Quick Reference", "", wx.ITEM_NORMAL)
+        wx.glade_tmp_menu.Append(mnuEclassID, "&eclasses", "", wx.ITEM_NORMAL)
+        wx.glade_tmp_menu.Append(mnuPrivID, "&Portage private functions", "", wx.ITEM_NORMAL)
+        wx.glade_tmp_menu.Append(mnuUseID, "USE variables", "", wx.ITEM_NORMAL)
+        wx.glade_tmp_menu.Append(mnulocalUseID, "&local USE variables", "", wx.ITEM_NORMAL)
+        wx.glade_tmp_menu.Append(mnuFKEYS_ID, "List &Fkeys", "", wx.ITEM_NORMAL)
+        wx.glade_tmp_menu.Append(mnuCVS_ID, "Gentoo repoman &CVS help", "", wx.ITEM_NORMAL)
+        wx.glade_tmp_menu.Append(mnuAboutID, "&About Abeni", "", wx.ITEM_NORMAL)
+        self.menubar.Append(wx.glade_tmp_menu, "&Help")
         # Menu Bar end
         self.statusbar = self.CreateStatusBar(2, 0)
         
         # Tool Bar
-        self.toolbar = wxToolBar(self, -1, style=wxTB_HORIZONTAL|wxTB_FLAT)
+        self.toolbar = wx.ToolBar(self, -1, style=wx.TB_HORIZONTAL|wx.TB_FLAT)
         self.SetToolBar(self.toolbar)
-        global newID; newID = wxNewId()
-        global openID; openID = wxNewId()
-        global openOvlID; openOvlID = wxNewId()
-        global saveID; saveID = wxNewId()
-        global editID; editID = wxNewId()
-        global newFuncID; newFuncID = wxNewId()
-        global toolCleanID; toolCleanID = wxNewId()
-        global digestID; digestID = wxNewId()
-        global unpackID; unpackID = wxNewId()
-        global compileID; compileID = wxNewId()
-        global installID; installID = wxNewId()
-        global qmergeID; qmergeID = wxNewId()
-        global ebuildID; ebuildID = wxNewId()
-        global emergeID; emergeID = wxNewId()
-        global xtermID; xtermID = wxNewId()
-        self.StopID = wxNewId()
-        self.toolbar.AddLabelTool(newID, "new", wxBitmap("/usr/share/pixmaps/abeni/new.png", wxBITMAP_TYPE_ANY), wxNullBitmap, wxITEM_NORMAL, "New ebuild", "")
-        self.toolbar.AddLabelTool(openID, "open", wxBitmap("/usr/share/pixmaps/abeni/open.png", wxBITMAP_TYPE_ANY), wxNullBitmap, wxITEM_NORMAL, "Open ebuild in PORTDIR", "")
-        self.toolbar.AddLabelTool(openOvlID, "openOvl", wxBitmap("/usr/share/pixmaps/abeni/open_ovl.png", wxBITMAP_TYPE_ANY), wxNullBitmap, wxITEM_NORMAL, "Open ebuild in PORTDIR_OVERLAY", "")
-        self.toolbar.AddLabelTool(saveID, "save", wxBitmap("/usr/share/pixmaps/abeni/save.png", wxBITMAP_TYPE_ANY), wxNullBitmap, wxITEM_NORMAL, "Save ebuild Ctrl-S", "")
-        self.toolbar.AddLabelTool(editID, "edit", wxBitmap("/usr/share/pixmaps/abeni/edit.png", wxBITMAP_TYPE_ANY), wxNullBitmap, wxITEM_NORMAL, "Edit ebuild in external editor F7", "")
+        global newID; newID = wx.NewId()
+        global openID; openID = wx.NewId()
+        global openOvlID; openOvlID = wx.NewId()
+        global saveID; saveID = wx.NewId()
+        global editID; editID = wx.NewId()
+        global newFuncID; newFuncID = wx.NewId()
+        global toolCleanID; toolCleanID = wx.NewId()
+        global digestID; digestID = wx.NewId()
+        global unpackID; unpackID = wx.NewId()
+        global compileID; compileID = wx.NewId()
+        global installID; installID = wx.NewId()
+        global qmergeID; qmergeID = wx.NewId()
+        global ebuildID; ebuildID = wx.NewId()
+        global emergeID; emergeID = wx.NewId()
+        global xtermID; xtermID = wx.NewId()
+        self.StopID = wx.NewId()
+        self.toolbar.AddLabelTool(newID, "new", wx.Bitmap("/usr/share/pixmaps/abeni/new.png", wx.BITMAP_TYPE_ANY), wx.NullBitmap, wx.ITEM_NORMAL, "New ebuild", "")
+        self.toolbar.AddLabelTool(openID, "open", wx.Bitmap("/usr/share/pixmaps/abeni/open.png", wx.BITMAP_TYPE_ANY), wx.NullBitmap, wx.ITEM_NORMAL, "Open ebuild in PORTDIR", "")
+        self.toolbar.AddLabelTool(openOvlID, "openOvl", wx.Bitmap("/usr/share/pixmaps/abeni/open_ovl.png", wx.BITMAP_TYPE_ANY), wx.NullBitmap, wx.ITEM_NORMAL, "Open ebuild in PORTDIR_OVERLAY", "")
+        self.toolbar.AddLabelTool(saveID, "save", wx.Bitmap("/usr/share/pixmaps/abeni/save.png", wx.BITMAP_TYPE_ANY), wx.NullBitmap, wx.ITEM_NORMAL, "Save ebuild Ctrl-S", "")
+        self.toolbar.AddLabelTool(editID, "edit", wx.Bitmap("/usr/share/pixmaps/abeni/edit.png", wx.BITMAP_TYPE_ANY), wx.NullBitmap, wx.ITEM_NORMAL, "Edit ebuild in external editor F7", "")
         self.toolbar.AddSeparator()
-        self.toolbar.AddLabelTool(newFuncID, "newFunc", wxBitmap("/usr/share/pixmaps/abeni/fx.png", wxBITMAP_TYPE_ANY), wxNullBitmap, wxITEM_NORMAL, "New Function F6", "")
-        self.toolbar.AddLabelTool(toolCleanID, "clean", wxBitmap("/usr/share/pixmaps/abeni/clean.png", wxBITMAP_TYPE_ANY), wxNullBitmap, wxITEM_NORMAL, "Clean Shift-F1", "")
-        self.toolbar.AddLabelTool(digestID, "digest", wxBitmap("/usr/share/pixmaps/abeni/digest.png", wxBITMAP_TYPE_ANY), wxNullBitmap, wxITEM_NORMAL, "Digest F1", "")
-        self.toolbar.AddLabelTool(unpackID, "unpack", wxBitmap("/usr/share/pixmaps/abeni/unpack.png", wxBITMAP_TYPE_ANY), wxNullBitmap, wxITEM_NORMAL, "Unpack F2", "")
-        self.toolbar.AddLabelTool(compileID, "compile", wxBitmap("/usr/share/pixmaps/abeni/compile.png", wxBITMAP_TYPE_ANY), wxNullBitmap, wxITEM_NORMAL, "Compile F3", "")
-        self.toolbar.AddLabelTool(installID, "install", wxBitmap("/usr/share/pixmaps/abeni/install.png", wxBITMAP_TYPE_ANY), wxNullBitmap, wxITEM_NORMAL, "Install F4", "")
-        self.toolbar.AddLabelTool(qmergeID, "qmerge", wxBitmap("/usr/share/pixmaps/abeni/qmerge.png", wxBITMAP_TYPE_ANY), wxNullBitmap, wxITEM_NORMAL, "Qmerge F5", "")
-        self.toolbar.AddLabelTool(ebuildID, "ebuild", wxBitmap("/usr/share/pixmaps/abeni/ebuild.png", wxBITMAP_TYPE_ANY), wxNullBitmap, wxITEM_NORMAL, "ebuild <this ebuild> command F9", "")
-        self.toolbar.AddLabelTool(emergeID, "emerge", wxBitmap("/usr/share/pixmaps/abeni/emerge.png", wxBITMAP_TYPE_ANY), wxNullBitmap, wxITEM_NORMAL, "emerge <options><this ebuild> F10", "")
-        self.toolbar.AddLabelTool(xtermID, "xterm", wxBitmap("/usr/share/pixmaps/abeni/xterm.png", wxBITMAP_TYPE_ANY), wxNullBitmap, wxITEM_NORMAL, "Launch xterm in $S F12", "")
+        self.toolbar.AddLabelTool(newFuncID, "newFunc", wx.Bitmap("/usr/share/pixmaps/abeni/fx.png", wx.BITMAP_TYPE_ANY), wx.NullBitmap, wx.ITEM_NORMAL, "New Function F6", "")
+        self.toolbar.AddLabelTool(toolCleanID, "clean", wx.Bitmap("/usr/share/pixmaps/abeni/clean.png", wx.BITMAP_TYPE_ANY), wx.NullBitmap, wx.ITEM_NORMAL, "Clean Shift-F1", "")
+        self.toolbar.AddLabelTool(digestID, "digest", wx.Bitmap("/usr/share/pixmaps/abeni/digest.png", wx.BITMAP_TYPE_ANY), wx.NullBitmap, wx.ITEM_NORMAL, "Digest F1", "")
+        self.toolbar.AddLabelTool(unpackID, "unpack", wx.Bitmap("/usr/share/pixmaps/abeni/unpack.png", wx.BITMAP_TYPE_ANY), wx.NullBitmap, wx.ITEM_NORMAL, "Unpack F2", "")
+        self.toolbar.AddLabelTool(compileID, "compile", wx.Bitmap("/usr/share/pixmaps/abeni/compile.png", wx.BITMAP_TYPE_ANY), wx.NullBitmap, wx.ITEM_NORMAL, "Compile F3", "")
+        self.toolbar.AddLabelTool(installID, "install", wx.Bitmap("/usr/share/pixmaps/abeni/install.png", wx.BITMAP_TYPE_ANY), wx.NullBitmap, wx.ITEM_NORMAL, "Install F4", "")
+        self.toolbar.AddLabelTool(qmergeID, "qmerge", wx.Bitmap("/usr/share/pixmaps/abeni/qmerge.png", wx.BITMAP_TYPE_ANY), wx.NullBitmap, wx.ITEM_NORMAL, "Qmerge F5", "")
+        self.toolbar.AddLabelTool(ebuildID, "ebuild", wx.Bitmap("/usr/share/pixmaps/abeni/ebuild.png", wx.BITMAP_TYPE_ANY), wx.NullBitmap, wx.ITEM_NORMAL, "ebuild <this ebuild> command F9", "")
+        self.toolbar.AddLabelTool(emergeID, "emerge", wx.Bitmap("/usr/share/pixmaps/abeni/emerge.png", wx.BITMAP_TYPE_ANY), wx.NullBitmap, wx.ITEM_NORMAL, "emerge <options><this ebuild> F10", "")
+        self.toolbar.AddLabelTool(xtermID, "xterm", wx.Bitmap("/usr/share/pixmaps/abeni/xterm.png", wx.BITMAP_TYPE_ANY), wx.NullBitmap, wx.ITEM_NORMAL, "Launch xterm in $S F12", "")
         self.toolbar.AddSeparator()
-        self.toolbar.AddLabelTool(self.StopID, "stop", wxBitmap("/usr/share/pixmaps/abeni/stop.png", wxBITMAP_TYPE_ANY), wxNullBitmap, wxITEM_NORMAL, "Interrupt process running in log window", "")
+        self.toolbar.AddLabelTool(self.StopID, "stop", wx.Bitmap("/usr/share/pixmaps/abeni/stop.png", wx.BITMAP_TYPE_ANY), wx.NullBitmap, wx.ITEM_NORMAL, "Interrupt process running in log window", "")
         # Tool Bar end
-        self.static_line_2 = wxStaticLine(self, -1)
-        self.button_Category = wxButton(self.panel_1_copy, -1, "Category")
-        self.text_ctrl_Category = wxTextCtrl(self.panel_1_copy, -1, "", style=wxTE_PROCESS_ENTER|wxTE_PROCESS_TAB)
-        self.label_PN = wxStaticText(self.panel_1_copy, -1, "$PN")
-        self.text_ctrl_PN = wxTextCtrl(self.panel_1_copy, -1, "", style=wxTE_PROCESS_ENTER|wxTE_PROCESS_TAB)
-        self.label_PVR = wxStaticText(self.panel_1_copy, -1, "$PVR")
-        self.text_ctrl_PVR = wxTextCtrl(self.panel_1_copy, -1, "", style=wxTE_PROCESS_ENTER|wxTE_PROCESS_TAB)
-        self.static_line_3 = wxStaticLine(self.panel_1, -1)
+        self.static_line_2 = wx.StaticLine(self, -1)
+        self.button_Category = wx.Button(self.panel_1_copy, -1, "Category")
+        self.text_ctrl_Category = wx.TextCtrl(self.panel_1_copy, -1, "", style=wx.TE_PROCESS_ENTER|wx.TE_PROCESS_TAB)
+        self.label_PN = wx.StaticText(self.panel_1_copy, -1, "$PN")
+        self.text_ctrl_PN = wx.TextCtrl(self.panel_1_copy, -1, "", style=wx.TE_PROCESS_ENTER|wx.TE_PROCESS_TAB)
+        self.label_PVR = wx.StaticText(self.panel_1_copy, -1, "$PVR")
+        self.text_ctrl_PVR = wx.TextCtrl(self.panel_1_copy, -1, "", style=wx.TE_PROCESS_ENTER|wx.TE_PROCESS_TAB)
+        self.static_line_3 = wx.StaticLine(self.panel_1, -1)
         self.STCeditor = GentooSTC(self.splitter, -1)
-        self.text_ctrl_log = wxTextCtrl(self.panel_log, -1, "", style=wxTE_MULTILINE|wxTE_READONLY)
-        global treeID; treeID = wxNewId()
-        self.tree_ctrl_1 = wxTreeCtrl(self.window_1_pane_1, treeID, style=wxSUNKEN_BORDER)
-        self.explorer = wxGenericDirCtrl(self.window_1_pane_2, -1, filter="All files|*")
-        self.button_view = wxButton(self.window_1_pane_2, -1, "View")
-        self.button_edit = wxButton(self.window_1_pane_2, -1, "Edit")
-        self.button_patch = wxButton(self.window_1_pane_2, -1, "Create patch")
-        self.button_delete = wxButton(self.window_1_pane_2, -1, "Delete")
-        self.text_ctrl_environment = wxTextCtrl(self.panel_environment, -1, "", style=wxTE_MULTILINE|wxTE_READONLY)
-        self.button_env_refresh = wxButton(self.panel_environment, -1, "Refresh")
-        self.radio_box_env = wxRadioBox(self.panel_environment, -1, "View", choices=["Brief", "Full"], majorDimension=1, style=wxRA_SPECIFY_ROWS)
+        self.text_ctrl_log = wx.TextCtrl(self.panel_log, -1, "", style=wx.TE_MULTILINE|wx.TE_READONLY)
+        global treeID; treeID = wx.NewId()
+        self.tree_ctrl_1 = wx.TreeCtrl(self.window_1_pane_1, treeID, style=wx.SUNKEN_BORDER)
+        self.explorer = wx.GenericDirCtrl(self.window_1_pane_2, -1, filter="All files|*")
+        self.button_view = wx.Button(self.window_1_pane_2, -1, "View")
+        self.button_edit = wx.Button(self.window_1_pane_2, -1, "Edit")
+        self.button_patch = wx.Button(self.window_1_pane_2, -1, "Create patch")
+        self.button_delete = wx.Button(self.window_1_pane_2, -1, "Delete")
+        self.text_ctrl_environment = wx.TextCtrl(self.panel_environment, -1, "", style=wx.TE_MULTILINE|wx.TE_READONLY)
+        self.button_env_refresh = wx.Button(self.panel_environment, -1, "Refresh")
+        self.radio_box_env = wx.RadioBox(self.panel_environment, -1, "View", choices=["Brief", "Full"], majorDimension=1, style=wx.RA_SPECIFY_ROWS)
 
         self.__set_properties()
         self.__do_layout()
@@ -226,8 +225,8 @@ class MyFrame(wxFrame):
     def __set_properties(self):
         # begin wxGlade: MyFrame.__set_properties
         self.SetTitle("Abeni")
-        _icon = wxEmptyIcon()
-        _icon.CopyFromBitmap(wxBitmap("/usr/share/pixmaps/abeni/abeni_logo16.png", wxBITMAP_TYPE_ANY))
+        _icon = wx.EmptyIcon()
+        _icon.CopyFromBitmap(wx.Bitmap("/usr/share/pixmaps/abeni/abeni_logo16.png", wx.BITMAP_TYPE_ANY))
         self.SetIcon(_icon)
         self.SetSize((882, 696))
         self.statusbar.SetStatusWidths([-1, 400])
@@ -247,67 +246,67 @@ class MyFrame(wxFrame):
 
     def __do_layout(self):
         # begin wxGlade: MyFrame.__do_layout
-        sizer_1 = wxBoxSizer(wxVERTICAL)
-        sizer_2 = wxBoxSizer(wxVERTICAL)
-        sizer_13 = wxBoxSizer(wxVERTICAL)
-        sizer_14 = wxBoxSizer(wxHORIZONTAL)
-        sizer_9 = wxBoxSizer(wxHORIZONTAL)
-        sizer_11 = wxBoxSizer(wxVERTICAL)
-        sizer_12 = wxBoxSizer(wxHORIZONTAL)
-        sizer_10 = wxBoxSizer(wxHORIZONTAL)
-        sizer_4 = wxBoxSizer(wxVERTICAL)
-        sizer_3 = wxBoxSizer(wxHORIZONTAL)
-        sizer_5 = wxBoxSizer(wxHORIZONTAL)
-        sizer_7 = wxBoxSizer(wxHORIZONTAL)
-        sizer_6 = wxBoxSizer(wxHORIZONTAL)
-        sizer_8 = wxBoxSizer(wxHORIZONTAL)
-        sizer_1.Add(self.static_line_2, 0, wxEXPAND, 0)
-        sizer_8.Add(self.button_Category, 0, wxRIGHT, 10)
+        sizer_1 = wx.BoxSizer(wx.VERTICAL)
+        sizer_2 = wx.BoxSizer(wx.VERTICAL)
+        sizer_13 = wx.BoxSizer(wx.VERTICAL)
+        sizer_14 = wx.BoxSizer(wx.HORIZONTAL)
+        sizer_9 = wx.BoxSizer(wx.HORIZONTAL)
+        sizer_11 = wx.BoxSizer(wx.VERTICAL)
+        sizer_12 = wx.BoxSizer(wx.HORIZONTAL)
+        sizer_10 = wx.BoxSizer(wx.HORIZONTAL)
+        sizer_4 = wx.BoxSizer(wx.VERTICAL)
+        sizer_3 = wx.BoxSizer(wx.HORIZONTAL)
+        sizer_5 = wx.BoxSizer(wx.HORIZONTAL)
+        sizer_7 = wx.BoxSizer(wx.HORIZONTAL)
+        sizer_6 = wx.BoxSizer(wx.HORIZONTAL)
+        sizer_8 = wx.BoxSizer(wx.HORIZONTAL)
+        sizer_1.Add(self.static_line_2, 0, wx.EXPAND, 0)
+        sizer_8.Add(self.button_Category, 0, wx.RIGHT, 10)
         sizer_8.Add(self.text_ctrl_Category, 0, 0, 0)
-        sizer_5.Add(sizer_8, 1, wxEXPAND, 0)
-        sizer_6.Add(self.label_PN, 0, wxRIGHT|wxALIGN_CENTER_VERTICAL, 10)
+        sizer_5.Add(sizer_8, 1, wx.EXPAND, 0)
+        sizer_6.Add(self.label_PN, 0, wx.RIGHT|wx.ALIGN_CENTER_VERTICAL, 10)
         sizer_6.Add(self.text_ctrl_PN, 0, 0, 0)
-        sizer_5.Add(sizer_6, 1, wxEXPAND, 0)
-        sizer_7.Add(self.label_PVR, 0, wxRIGHT|wxALIGN_CENTER_VERTICAL, 10)
+        sizer_5.Add(sizer_6, 1, wx.EXPAND, 0)
+        sizer_7.Add(self.label_PVR, 0, wx.RIGHT|wx.ALIGN_CENTER_VERTICAL, 10)
         sizer_7.Add(self.text_ctrl_PVR, 0, 0, 0)
-        sizer_5.Add(sizer_7, 1, wxEXPAND, 0)
-        sizer_3.Add(sizer_5, 1, wxALL, 6)
+        sizer_5.Add(sizer_7, 1, wx.EXPAND, 0)
+        sizer_3.Add(sizer_5, 1, wx.ALL, 6)
         self.panel_1_copy.SetAutoLayout(True)
         self.panel_1_copy.SetSizer(sizer_3)
         sizer_3.Fit(self.panel_1_copy)
         sizer_3.SetSizeHints(self.panel_1_copy)
-        sizer_2.Add(self.panel_1_copy, 0, wxEXPAND, 0)
-        sizer_2.Add(self.static_line_3, 0, wxEXPAND, 0)
-        sizer_4.Add(self.text_ctrl_log, 1, wxEXPAND, 0)
+        sizer_2.Add(self.panel_1_copy, 0, wx.EXPAND, 0)
+        sizer_2.Add(self.static_line_3, 0, wx.EXPAND, 0)
+        sizer_4.Add(self.text_ctrl_log, 1, wx.EXPAND, 0)
         self.panel_log.SetAutoLayout(True)
         self.panel_log.SetSizer(sizer_4)
         sizer_4.Fit(self.panel_log)
         sizer_4.SetSizeHints(self.panel_log)
-        sizer_10.Add(self.tree_ctrl_1, 1, wxEXPAND, 0)
+        sizer_10.Add(self.tree_ctrl_1, 1, wx.EXPAND, 0)
         self.window_1_pane_1.SetAutoLayout(True)
         self.window_1_pane_1.SetSizer(sizer_10)
         sizer_10.Fit(self.window_1_pane_1)
         sizer_10.SetSizeHints(self.window_1_pane_1)
-        sizer_11.Add(self.explorer, 1, wxEXPAND, 0)
-        sizer_12.Add(self.button_view, 0, wxLEFT, 8)
-        sizer_12.Add(self.button_edit, 0, wxLEFT, 8)
-        sizer_12.Add(self.button_patch, 0, wxLEFT, 8)
-        sizer_12.Add(self.button_delete, 0, wxLEFT, 8)
-        sizer_11.Add(sizer_12, 0, wxEXPAND, 0)
+        sizer_11.Add(self.explorer, 1, wx.EXPAND, 0)
+        sizer_12.Add(self.button_view, 0, wx.LEFT, 8)
+        sizer_12.Add(self.button_edit, 0, wx.LEFT, 8)
+        sizer_12.Add(self.button_patch, 0, wx.LEFT, 8)
+        sizer_12.Add(self.button_delete, 0, wx.LEFT, 8)
+        sizer_11.Add(sizer_12, 0, wx.EXPAND, 0)
         self.window_1_pane_2.SetAutoLayout(True)
         self.window_1_pane_2.SetSizer(sizer_11)
         sizer_11.Fit(self.window_1_pane_2)
         sizer_11.SetSizeHints(self.window_1_pane_2)
         self.window_1.SplitVertically(self.window_1_pane_1, self.window_1_pane_2, 300)
-        sizer_9.Add(self.window_1, 1, wxEXPAND, 0)
+        sizer_9.Add(self.window_1, 1, wx.EXPAND, 0)
         self.panel_explorer.SetAutoLayout(True)
         self.panel_explorer.SetSizer(sizer_9)
         sizer_9.Fit(self.panel_explorer)
         sizer_9.SetSizeHints(self.panel_explorer)
-        sizer_13.Add(self.text_ctrl_environment, 1, wxEXPAND, 0)
-        sizer_14.Add(self.button_env_refresh, 0, wxALL, 10)
-        sizer_14.Add(self.radio_box_env, 0, wxBOTTOM, 12)
-        sizer_13.Add(sizer_14, 0, wxEXPAND, 0)
+        sizer_13.Add(self.text_ctrl_environment, 1, wx.EXPAND, 0)
+        sizer_14.Add(self.button_env_refresh, 0, wx.ALL, 10)
+        sizer_14.Add(self.radio_box_env, 0, wx.BOTTOM, 12)
+        sizer_13.Add(sizer_14, 0, wx.EXPAND, 0)
         self.panel_environment.SetAutoLayout(True)
         self.panel_environment.SetSizer(sizer_13)
         sizer_13.Fit(self.panel_environment)
@@ -316,12 +315,12 @@ class MyFrame(wxFrame):
         self.notebook_1.AddPage(self.panel_explorer, "Explorer")
         self.notebook_1.AddPage(self.panel_environment, "Environment")
         self.splitter.SplitHorizontally(self.STCeditor, self.notebook_1, 311)
-        sizer_2.Add(self.splitter, 1, wxEXPAND, 0)
+        sizer_2.Add(self.splitter, 1, wx.EXPAND, 0)
         self.panel_1.SetAutoLayout(True)
         self.panel_1.SetSizer(sizer_2)
         sizer_2.Fit(self.panel_1)
         sizer_2.SetSizeHints(self.panel_1)
-        sizer_1.Add(self.panel_1, 1, wxEXPAND, 0)
+        sizer_1.Add(self.panel_1, 1, wx.EXPAND, 0)
         self.SetAutoLayout(True)
         self.SetSizer(sizer_1)
         self.Layout()
@@ -333,102 +332,102 @@ class MyFrame(wxFrame):
                            "You must be root.", "error")
             sys.exit(1)
 
-        EVT_TREE_SEL_CHANGED(self, treeID, self.OnTreeActivate)
-        EVT_TREE_SEL_CHANGED(self, self.explorer.GetTreeCtrl().GetId(), self.OnFileSelect)
+        wx.EVT_TREE_SEL_CHANGED(self, treeID, self.OnTreeActivate)
+        wx.EVT_TREE_SEL_CHANGED(self, self.explorer.GetTreeCtrl().GetId(), self.OnFileSelect)
 
-        EVT_BUTTON(self, self.button_env_refresh.GetId(), self.ViewEnvironment)
-        EVT_BUTTON(self, self.button_view.GetId(), self.OnViewButton)
-        EVT_BUTTON(self, self.button_edit.GetId(), self.OnEditButton)
-        EVT_BUTTON(self, self.button_patch.GetId(), self.OnPatchButton)
-        EVT_BUTTON(self, self.button_delete.GetId(), self.OnDeleteButton)
-        EVT_BUTTON(self, self.button_Category.GetId(), self.OnCatButton)
-        EVT_TOOL(self, newID, self.OnMnuNew)
-        EVT_TOOL(self, openID, self.OnMnuLoad)
-        EVT_TOOL(self, openOvlID, self.OnMnuLoadFromOverlay)
-        EVT_TOOL(self, saveID, self.OnMnuSave)
-        EVT_TOOL(self, editID, self.OnMnuEdit)
+        wx.EVT_BUTTON(self, self.button_env_refresh.GetId(), self.ViewEnvironment)
+        wx.EVT_BUTTON(self, self.button_view.GetId(), self.OnViewButton)
+        wx.EVT_BUTTON(self, self.button_edit.GetId(), self.OnEditButton)
+        wx.EVT_BUTTON(self, self.button_patch.GetId(), self.OnPatchButton)
+        wx.EVT_BUTTON(self, self.button_delete.GetId(), self.OnDeleteButton)
+        wx.EVT_BUTTON(self, self.button_Category.GetId(), self.OnCatButton)
+        wx.EVT_TOOL(self, newID, self.OnMnuNew)
+        wx.EVT_TOOL(self, openID, self.OnMnuLoad)
+        wx.EVT_TOOL(self, openOvlID, self.OnMnuLoadFromOverlay)
+        wx.EVT_TOOL(self, saveID, self.OnMnuSave)
+        wx.EVT_TOOL(self, editID, self.OnMnuEdit)
 
         #Insert
-        EVT_TOOL(self, newFuncID, self.OnMnuNewFunction)
-        EVT_TOOL(self, mnuLicenseID, self.InsertLicense)
+        wx.EVT_TOOL(self, newFuncID, self.OnMnuNewFunction)
+        wx.EVT_TOOL(self, mnuLicenseID, self.InsertLicense)
 
         #Tools
 
-        EVT_TOOL(self, toolCleanID, self.OnMnuClean)
-        EVT_TOOL(self, digestID, self.OnMnuCreateDigest)
-        EVT_TOOL(self, unpackID, self.OnToolbarUnpack)
-        EVT_TOOL(self, compileID, self.OnToolbarCompile)
-        EVT_TOOL(self, installID, self.OnToolbarInstall)
-        EVT_TOOL(self, qmergeID, self.OnToolbarQmerge)
-        EVT_TOOL(self, ebuildID, self.OnMnuEbuild)
-        EVT_TOOL(self, emergeID, self.OnMnuEmerge)
-        EVT_TOOL(self, xtermID, self.OnXtermInS)
-        EVT_TOOL(self, self.StopID, self.KillProc)
-        EVT_TOOL(self, mnuAddFuncID, self.OnMnuNewFunction)
+        wx.EVT_TOOL(self, toolCleanID, self.OnMnuClean)
+        wx.EVT_TOOL(self, digestID, self.OnMnuCreateDigest)
+        wx.EVT_TOOL(self, unpackID, self.OnToolbarUnpack)
+        wx.EVT_TOOL(self, compileID, self.OnToolbarCompile)
+        wx.EVT_TOOL(self, installID, self.OnToolbarInstall)
+        wx.EVT_TOOL(self, qmergeID, self.OnToolbarQmerge)
+        wx.EVT_TOOL(self, ebuildID, self.OnMnuEbuild)
+        wx.EVT_TOOL(self, emergeID, self.OnMnuEmerge)
+        wx.EVT_TOOL(self, xtermID, self.OnXtermInS)
+        wx.EVT_TOOL(self, self.StopID, self.KillProc)
+        wx.EVT_TOOL(self, mnuAddFuncID, self.OnMnuNewFunction)
 
         # File
 
-        EVT_MENU_RANGE(self, wxID_FILE1, wxID_FILE9, self.OnFileHistory)
-        EVT_MENU(self, mnuNewID, self.OnMnuNew)
-        EVT_MENU(self, mnuLoadID, self.OnMnuLoad)
-        EVT_MENU(self, mnuLoadOverlayID, self.OnMnuLoadFromOverlay)
-        EVT_MENU(self, mnuSaveID, self.OnMnuSave)
-        EVT_MENU(self, mnuDelID, self.OnMnuDeleteEbuild)
-        EVT_MENU(self, mnuExportID, self.OnMnuExportEbuild)
-        EVT_MENU(self, exitID, self.OnMnuExit)
-        EVT_MENU(self, mnuFindID, self.OnHelpFind)
-        EVT_MENU(self, mnuFindAgainID, self.OnFindNext)
-        EVT_COMMAND_FIND(self, -1, self.OnFind)
-        EVT_COMMAND_FIND_NEXT(self, -1, self.OnFind)
-        EVT_COMMAND_FIND_CLOSE(self, -1, self.OnFindClose)
+        wx.EVT_MENU_RANGE(self, wx.ID_FILE1, wx.ID_FILE9, self.OnFileHistory)
+        wx.EVT_MENU(self, mnuNewID, self.OnMnuNew)
+        wx.EVT_MENU(self, mnuLoadID, self.OnMnuLoad)
+        wx.EVT_MENU(self, mnuLoadOverlayID, self.OnMnuLoadFromOverlay)
+        wx.EVT_MENU(self, mnuSaveID, self.OnMnuSave)
+        wx.EVT_MENU(self, mnuDelID, self.OnMnuDeleteEbuild)
+        wx.EVT_MENU(self, mnuExportID, self.OnMnuExportEbuild)
+        wx.EVT_MENU(self, exitID, self.OnMnuExit)
+        wx.EVT_MENU(self, mnuFindID, self.OnHelpFind)
+        wx.EVT_MENU(self, mnuFindAgainID, self.OnFindNext)
+        wx.EVT_COMMAND_FIND(self, -1, self.OnFind)
+        wx.EVT_COMMAND_FIND_NEXT(self, -1, self.OnFind)
+        wx.EVT_COMMAND_FIND_CLOSE(self, -1, self.OnFindClose)
 
         #Tools:
 
-        EVT_MENU(self, mnuCleanID, self.OnMnuClean)
-        EVT_MENU(self, mnuDigestID, self.OnMnuCreateDigest)
-        EVT_MENU(self, mnuUnpackID, self.OnToolbarUnpack)
-        EVT_MENU(self, mnuCompileID, self.OnToolbarCompile)
-        EVT_MENU(self, mnuInstallID, self.OnToolbarInstall)
-        EVT_MENU(self, mnuEbuildID, self.OnMnuEbuild)
-        EVT_MENU(self, mnuEmergeID, self.OnMnuEmerge)
-        EVT_MENU(self, mnuRepoScanID, self.OnMnuRepomanScan)
-        EVT_MENU(self, mnuPatchID, self.OnMnuMakePatch)
-        EVT_MENU(self, mnuImportID, self.OnMnuImportPatch)
-        EVT_MENU(self, mnuDiffID, self.OnMnuDiff)
-        EVT_MENU(self, mnuRepoFullID, self.OnMnuRepomanFull)
-        EVT_MENU(self, mnuFileCopyID, self.OnMnuFileCopy)
-        EVT_MENU(self, mnuXtermSID, self.OnXtermInS)
-        EVT_MENU(self, mnuXtermDID, self.OnXtermInD)
-        EVT_MENU(self, mnuXtermCVSID, self.OnXtermInCVS)
-        EVT_MENU(self, mnuViewMetadataID, self.OnMnuViewMetadata)
-        EVT_MENU(self, mnuViewChangeLogID, self.OnMnuViewChangeLog)
-        EVT_MENU(self, mnuEditID, self.OnMnuEdit)
+        wx.EVT_MENU(self, mnuCleanID, self.OnMnuClean)
+        wx.EVT_MENU(self, mnuDigestID, self.OnMnuCreateDigest)
+        wx.EVT_MENU(self, mnuUnpackID, self.OnToolbarUnpack)
+        wx.EVT_MENU(self, mnuCompileID, self.OnToolbarCompile)
+        wx.EVT_MENU(self, mnuInstallID, self.OnToolbarInstall)
+        wx.EVT_MENU(self, mnuEbuildID, self.OnMnuEbuild)
+        wx.EVT_MENU(self, mnuEmergeID, self.OnMnuEmerge)
+        wx.EVT_MENU(self, mnuRepoScanID, self.OnMnuRepomanScan)
+        wx.EVT_MENU(self, mnuPatchID, self.OnMnuMakePatch)
+        wx.EVT_MENU(self, mnuImportID, self.OnMnuImportPatch)
+        wx.EVT_MENU(self, mnuDiffID, self.OnMnuDiff)
+        wx.EVT_MENU(self, mnuRepoFullID, self.OnMnuRepomanFull)
+        wx.EVT_MENU(self, mnuFileCopyID, self.OnMnuFileCopy)
+        wx.EVT_MENU(self, mnuXtermSID, self.OnXtermInS)
+        wx.EVT_MENU(self, mnuXtermDID, self.OnXtermInD)
+        wx.EVT_MENU(self, mnuXtermCVSID, self.OnXtermInCVS)
+        wx.EVT_MENU(self, mnuViewMetadataID, self.OnMnuViewMetadata)
+        wx.EVT_MENU(self, mnuViewChangeLogID, self.OnMnuViewChangeLog)
+        wx.EVT_MENU(self, mnuEditID, self.OnMnuEdit)
 
         # repoman CVS commit
-        EVT_MENU(self, self.mnuFullCommitID, self.OnMnuFullCommit)
+        wx.EVT_MENU(self, self.mnuFullCommitID, self.OnMnuFullCommit)
 
         # Log:
-        EVT_MENU(self, mnuClearLogID, self.OnMnuClearLog)
+        wx.EVT_MENU(self, mnuClearLogID, self.OnMnuClearLog)
 
         # Options:
-        EVT_MENU(self, mnuPrefID, self.OnMnuPref)
+        wx.EVT_MENU(self, mnuPrefID, self.OnMnuPref)
 
         # Help:
-        EVT_MENU(self, mnuHelpID, self.OnMnuHelp)
-        EVT_MENU(self, mnuHelpRefID, self.OnMnuHelpRef)
-        EVT_MENU(self, mnuEclassID, self.OnMnuEclassHelp)
-        EVT_MENU(self, mnuPrivID, self.OnMnuPrivHelp)
-        EVT_MENU(self, mnuUseID, self.OnMnuUseHelp)
-        EVT_MENU(self, mnulocalUseID, self.OnMnuLocalUseHelp)
-        EVT_MENU(self, mnuFKEYS_ID, self.OnMnuHelpFkeys)
-        EVT_MENU(self, mnuCVS_ID, self.OnMnuHelpCVS)
-        EVT_MENU(self, mnuAboutID, self.OnMnuAbout)
+        wx.EVT_MENU(self, mnuHelpID, self.OnMnuHelp)
+        wx.EVT_MENU(self, mnuHelpRefID, self.OnMnuHelpRef)
+        wx.EVT_MENU(self, mnuEclassID, self.OnMnuEclassHelp)
+        wx.EVT_MENU(self, mnuPrivID, self.OnMnuPrivHelp)
+        wx.EVT_MENU(self, mnuUseID, self.OnMnuUseHelp)
+        wx.EVT_MENU(self, mnulocalUseID, self.OnMnuLocalUseHelp)
+        wx.EVT_MENU(self, mnuFKEYS_ID, self.OnMnuHelpFkeys)
+        wx.EVT_MENU(self, mnuCVS_ID, self.OnMnuHelpCVS)
+        wx.EVT_MENU(self, mnuAboutID, self.OnMnuAbout)
 
-        EVT_RADIOBOX(self, self.radio_box_env.GetId(), self.EvtRadioBox)
+        wx.EVT_RADIOBOX(self, self.radio_box_env.GetId(), self.EvtRadioBox)
 
-        EVT_CLOSE(self, self.OnClose)
-        EVT_END_PROCESS(self, -1, self.OnProcessEnded)
-        #EVT_IDLE(self, self.OnIdle)
+        wx.EVT_CLOSE(self, self.OnClose)
+        wx.EVT_END_PROCESS(self, -1, self.OnProcessEnded)
+        #wx.EVT_IDLE(self, self.OnIdle)
         self.process = None
 
     	self.toolbar.EnableTool(self.StopID, False)
@@ -445,8 +444,8 @@ class MyFrame(wxFrame):
         self.window_1_pane_2.Hide()
 
         #TODO: Add option to save current screen size when exiting
-        #screenWidth =  wx.wxSystemSettings_GetSystemMetric(wx.wxSYS_SCREEN_X)
-        #screenHeight = wx.wxSystemSettings_GetSystemMetric(wx.wxSYS_SCREEN_Y)
+        #screenWidth =  wx..wx.SystemSettings_GetSystemMetric(wx..wx.SYS_SCREEN_X)
+        #screenHeight = wx..wx.SystemSettings_GetSystemMetric(wx..wx.SYS_SCREEN_Y)
         #Prevent splitter windows from becoming un-split
         self.splitter.SetMinimumPaneSize(20)
         #SashPosition(230)
@@ -463,7 +462,7 @@ class MyFrame(wxFrame):
             self.recentList = open(bookmarks, 'r').readlines()
         else:
             self.recentList = []
-        self.filehistory = wxFileHistory(9)
+        self.filehistory = wx.FileHistory(9)
         self.filehistory.UseMenu(self.fileMenu)
         self.recentList.sort()
         for ebuild in self.recentList:
@@ -493,15 +492,15 @@ class MyFrame(wxFrame):
         # Action performed during external commands
         self.action = None
         self.STCeditor.Hide()
-        wxLog_SetActiveTarget(MyLog(self.text_ctrl_log))
+        wx.Log_SetActiveTarget(MyLog(self.text_ctrl_log))
         utils.write(self, "))) PORTDIR_OVERLAY=%s\n\n\n" % portdir_overlay)
         if not self.pref['editor']:
             utils.write(self,"!!! Please set your external editor under the Options menu")
             utils.write(self," *  If you use gvim you will need to use '/usr/bin/gvim -f'")
-        #EVT_MENU_RANGE(self, wxID_FILE1, wxID_FILE9, self.OnFileHistory)
+        #wx.EVT_MENU_RANGE(self, wx.ID_FILE1, wx.ID_FILE9, self.OnFileHistory)
 
         self.SetTitle("Abeni - The ebuild Builder " + __version__.version)
-        self.finddata = wxFindReplaceData()
+        self.finddata = wx.FindReplaceData()
         self.ExternalControlListen()
         self.ApplyPrefs()
         self.menubar.Enable(self.mnuFullCommitID, False)
@@ -528,8 +527,8 @@ class MyFrame(wxFrame):
         c = map(strp, c)
         c = filter(None, c)
         c.sort()
-        dlg = wxMultipleChoiceDialog(self, 'Choose one or more:\n(This replaces any existing)', 'License', c)
-        if dlg.ShowModal() == wxID_OK:
+        dlg = MultipleChoiceDialog(self, 'Choose one or more:\n(This replaces any existing)', 'License', c)
+        if dlg.ShowModal() == wx.ID_OK:
             opt = dlg.GetValueString()
             l = ""
             if len(opt) == 1:
@@ -546,7 +545,7 @@ class MyFrame(wxFrame):
         self.statusbar.SetStatusText(t, 0)
 
     def OnHelpFind(self, event):
-        self.finddlg = wxFindReplaceDialog(self, self.finddata, "Find")
+        self.finddlg = wx.FindReplaceDialog(self, self.finddata, "Find")
         self.finddlg.Show(True)
 
     def OnFind(self, event):
@@ -560,9 +559,9 @@ class MyFrame(wxFrame):
             start = 0
             loc = textstring.find(findstring, start)
         if loc == -1:
-            dlg = wxMessageDialog(self, 'Find String Not Found',
+            dlg = wx.MessageDialog(self, 'Find String Not Found',
                           'String Not Found',
-                          wxOK | wxICON_INFORMATION)
+                          wx.OK | wx.ICON_INFORMATION)
             dlg.ShowModal()
             dlg.Destroy()
         if self.finddlg:
@@ -594,10 +593,10 @@ class MyFrame(wxFrame):
         dlg = AddFunctionDialog.AddFunction(self)
         dlg.CenterOnScreen()
         v = dlg.ShowModal()
-        if v == wxID_OK:
+        if v == wx.ID_OK:
             func, val = dlg.GetFunc()
             self.STCeditor.AddText(val)
-        #self.STCeditor.SetCursor(wxSTC_CURSORNORMAL)
+        #self.STCeditor.SetCursor(wx.stc.STC_CURSORNORMAL)
         #self.saved = 0
         dlg.Destroy()
 
@@ -627,10 +626,10 @@ class MyFrame(wxFrame):
         f = self.explorer.GetPath()
         if not os.path.isfile(f):
             return
-        dlg = wxMessageDialog(self, 'DELETE this file?\n' + f,
-                'DELETE file?', wxYES_NO | wxICON_INFORMATION)
+        dlg = wx.MessageDialog(self, 'DELETE this file?\n' + f,
+                'DELETE file?', wx.YES_NO | wx.ICON_INFORMATION)
         val = dlg.ShowModal()
-        if val == wxID_YES:
+        if val == wx.ID_YES:
             os.unlink(f)
         self.SetExplorer(self.branch)
         itemId = self.explorer.GetTreeCtrl().GetSelection()
@@ -715,9 +714,9 @@ class MyFrame(wxFrame):
             d = filter(None, d)
             c += d
         c.sort()
-        dlg = wxSingleChoiceDialog(self, 'Category', 'Category:',
-                                   c, wxOK|wxCANCEL)
-        if dlg.ShowModal() == wxID_OK:
+        dlg = wx.SingleChoiceDialog(self, 'Category', 'Category:',
+                                   c, wx.OK|wx.CANCEL)
+        if dlg.ShowModal() == wx.ID_OK:
             opt = dlg.GetStringSelection()
             #Mark all games stable: Bugzilla #25708
             self.text_ctrl_Category.SetValue(opt)
@@ -743,7 +742,7 @@ class MyFrame(wxFrame):
     def OnFileHistory(self, event):
         """Load ebuild on FileHistory event"""
         # get the file based on the menu ID
-        fileNum = event.GetId() - wxID_FILE1
+        fileNum = event.GetId() - wx.ID_FILE1
         path = self.filehistory.GetHistoryFile(fileNum)
         if not utils.VerifySaved(self):
             utils.Reset(self)
@@ -755,9 +754,9 @@ class MyFrame(wxFrame):
         """Load ebuild file"""
         if not utils.VerifySaved(self):
             wildcard = "ebuild files (*.ebuild)|*.ebuild"
-            dlg = wxFileDialog(self, "Choose a file", portdir, "", \
-                                wildcard, wxOPEN)
-            if dlg.ShowModal() == wxID_OK:
+            dlg = wx.FileDialog(self, "Choose a file", portdir, "", \
+                                wildcard, wx.OPEN)
+            if dlg.ShowModal() == wx.ID_OK:
                 filename = dlg.GetPath()
                 utils.Reset(self)
                 utils.LoadEbuild(self, filename)
@@ -778,7 +777,7 @@ class MyFrame(wxFrame):
         """launch web browser"""
         if self.pref['userName']:
             if self.pref['browser']:
-                os.system("xhost + localhost")
+                #os.system("xhost + localhost")
                 cmd = self.pref['browser'] + " " + url + " &"
                 os.system("su %s %s" % (self.pref['userName'], cmd))
             else:
@@ -802,10 +801,10 @@ class MyFrame(wxFrame):
             utils.MyMessage(self, msg, "Error", "error")
             return
 
-        dlg = wxMessageDialog(self, 'DELETE this ebuild from PORTDIR_OVERLAY?\n' + self.filename,
-                'DELETE ebuild?', wxYES_NO | wxICON_INFORMATION)
+        dlg = wx.MessageDialog(self, 'DELETE this ebuild from PORTDIR_OVERLAY?\n' + self.filename,
+                'DELETE ebuild?', wx.YES_NO | wx.ICON_INFORMATION)
         val = dlg.ShowModal()
-        if val == wxID_YES:
+        if val == wx.ID_YES:
             utils.DeleteEbuild(self)
             utils.Reset(self)
             self.saved = 1
@@ -837,7 +836,7 @@ class MyFrame(wxFrame):
         """Replace line containing text in STCeditor. return length of str replaced if found"""
         #Note: If we replace string with "" this will return 0
         #so don't use the length to determine if we matched anything
-        s = self.STCeditor.FindText(0, self.LastPos(), '^%s' % target, wxSTC_FIND_REGEXP)
+        s = self.STCeditor.FindText(0, self.LastPos(), '^%s' % target, wx.stc.STC_FIND_REGEXP)
         e = self.STCeditor.GetLineEndPosition(self.STCeditor.LineFromPosition(s))
         if s != -1:
             self.STCeditor.SetTargetStart(s)
@@ -850,8 +849,8 @@ class MyFrame(wxFrame):
         """Creates a new ebuild from scratch"""
         if not utils.VerifySaved(self):
             win = GetURIDialog.GetURIDialog(self, -1, "Enter Package URI", \
-                                       size=wxSize(350, 200), \
-                                       style = wxDEFAULT_DIALOG_STYLE \
+                                       size=wx.Size(350, 200), \
+                                       style = wx.DEFAULT_DIALOG_STYLE \
                                        )
             win.CenterOnScreen()
             val = win.ShowModal()
@@ -866,7 +865,7 @@ class MyFrame(wxFrame):
                     #SourceForge homepage:self.panelMain.Homepage.SetValue(
                     #'"http://sourceforge.net/projects/%s"' % \
                     #utils.GetPN(self).lower())
-            if val == wxID_OK and uri:
+            if val == wx.ID_OK and uri:
                 # foo-1.0.tgz
                 p = self.getname(uri)
                 if not p:
@@ -920,21 +919,21 @@ class MyFrame(wxFrame):
     def ViewFile(self, f):
         """View file in dialog"""
         msg = open(f, "r").read()
-        dlg = wxScrolledMessageDialog(self, msg, f)
+        dlg = ScrolledMessageDialog(self, msg, f)
         dlg.Show(True)
 
     def OnMnuUseHelp(self, event):
         """View PORTDIR/profiles/use.desc file"""
         f = "%s/profiles/use.desc" % portdir
         msg = open(f, "r").read()
-        dlg = wxScrolledMessageDialog(self, msg, "USE descriptions")
+        dlg = ScrolledMessageDialog(self, msg, "USE descriptions")
         dlg.Show(True)
 
     def OnMnuLocalUseHelp(self, event):
         """View PORTDIR/profiles/use.local.desc file"""
         f = "%s/profiles/use.local.desc" % portdir
         msg = open(f, "r").read()
-        dlg = wxScrolledMessageDialog(self, msg, "local USE descriptions")
+        dlg = ScrolledMessageDialog(self, msg, "local USE descriptions")
         dlg.Show(True)
 
     def OnMnuCreateDigest(self, event):
@@ -1032,9 +1031,9 @@ class MyFrame(wxFrame):
             return 0
 
         f = utils.GetFilesDir(self)
-        dlg = wxFileDialog(self, "Choose a file", "/var/tmp/abeni/", "", "*", wxOPEN)
+        dlg = wx.FileDialog(self, "Choose a file", "/var/tmp/abeni/", "", "*", wx.OPEN)
 
-        if dlg.ShowModal() == wxID_OK:
+        if dlg.ShowModal() == wx.ID_OK:
             orig = dlg.GetPaths()
         else:
             return
@@ -1071,10 +1070,9 @@ class MyFrame(wxFrame):
 
         if not orig:
             s = utils.GetS(self)
-            #wxYield()
-            dlg = wxFileDialog(self, "Choose a file", s, "", "*", wxOPEN)
+            dlg = wx.FileDialog(self, "Choose a file", s, "", "*", wx.OPEN)
 
-            if dlg.ShowModal() == wxID_OK:
+            if dlg.ShowModal() == wx.ID_OK:
                 orig = dlg.GetPaths()
             else:
                 return
@@ -1090,10 +1088,10 @@ class MyFrame(wxFrame):
         os.system('%s %s' % (self.pref['editor'], out))
         os.system("diff -u %s %s > %s" % (orig[0], out, tmp_patch))
 
-        dlg = wxTextEntryDialog(self, 'Choose name for your patch:',
+        dlg = wx.TextEntryDialog(self, 'Choose name for your patch:',
                             'Choose patch name', '')
         dlg.SetValue('choose_a_name.patch')
-        if dlg.ShowModal() == wxID_OK:
+        if dlg.ShowModal() == wx.ID_OK:
             pname = dlg.GetValue()
         else:
             return
@@ -1102,10 +1100,10 @@ class MyFrame(wxFrame):
         shutil.copy(tmp_patch, dest)
 
         #insert inheirt eutils:
-        p = self.STCeditor.FindText(0, self.LastPos(), "^inherit", wxSTC_FIND_REGEXP)
+        p = self.STCeditor.FindText(0, self.LastPos(), "^inherit", wx.stc.STC_FIND_REGEXP)
         if p != -1:
             #already have inherit line, check if has eutils 
-            pe = self.STCeditor.FindText(p, p+80, "eutils", wxSTC_FIND_REGEXP)
+            pe = self.STCeditor.FindText(p, p+80, "eutils", wx.stc.STC_FIND_REGEXP)
             if pe == -1:
                 #already have eutils inheritted
                 self.STCeditor.InsertText(p + 8, "eutils ")
@@ -1133,7 +1131,7 @@ class MyFrame(wxFrame):
             #TODO: use regex
             #TODO: Make function to return first and last pos of given function
             p = self.STCeditor.FindText(0, self.LastPos(), "src_unpack")
-            lp = self.STCeditor.FindText(p, self.LastPos(), "^}", wxSTC_FIND_REGEXP)
+            lp = self.STCeditor.FindText(p, self.LastPos(), "^}", wx.stc.STC_FIND_REGEXP)
             if lp != -1:
                 self.STCeditor.InsertText(lp, "\n\t%s\n" % epatch)
                 utils.write(self, "))) Inserted 'epatch' line in src_unpack()")
@@ -1257,7 +1255,7 @@ class MyFrame(wxFrame):
             dlg = MetadataDialog.MetadataDialog(self)
             dlg.CenterOnScreen()
             v = dlg.ShowModal()
-            if v == wxID_OK:
+            if v == wx.ID_OK:
                 t = dlg.styledTextCtrl1.GetText()
                 f = open(("%s/metadata.xml" % \
                   os.path.dirname(self.filename)), "w")
@@ -1280,7 +1278,7 @@ class MyFrame(wxFrame):
             f = '%s/metadata.xml' % p
             if os.path.exists(f):
                 c = open(f, 'r').read()
-                dlg = wxScrolledMessageDialog(self, c, "metadata.xml")
+                dlg = ScrolledMessageDialog(self, c, "metadata.xml")
                 dlg.Show(True)
             else:
                 utils.MyMessage(self, "No metadata.xml exists in PORTDIR", "Error", "error")
@@ -1291,14 +1289,14 @@ class MyFrame(wxFrame):
         """View ChangeLog in dialog window"""
         if not self.editing:
             return
-
         p = utils.GetPortdirPathVersion(self)
         if p:
             f = '%s/ChangeLog' % p
             if os.path.exists(f):
                 c = open(f, 'r').read()
-                dlg = wxScrolledMessageDialog(self, c, "ChangeLog")
-                dlg.Show(True)
+                #TODO: CRITICAL segfaults here... hmmm
+                dlg = ScrolledMessageDialog(self, c, "ChangeLog")
+                dlg.ShowModal()
             else:
                 utils.MyMessage(self, "No ChangeLog exists in PORTDIR", "Error", "error")
         else:
@@ -1313,9 +1311,9 @@ class MyFrame(wxFrame):
             out = []
             for l in choices:
                 out.append(l.replace(('%s/' % portdir_overlay), ''))
-            dlg = wxSingleChoiceDialog(self, 'Load overlay ebuild:', \
-                                      'Load overlay ebuild', out, wxOK|wxCANCEL)
-            if dlg.ShowModal() == wxID_OK:
+            dlg = wx.SingleChoiceDialog(self, 'Load overlay ebuild:', \
+                                      'Load overlay ebuild', out, wx.OK|wx.CANCEL)
+            if dlg.ShowModal() == wx.ID_OK:
                 e = dlg.GetStringSelection()
                 utils.Reset(self)
                 filename = "%s/%s" % (portdir_overlay, e)
@@ -1327,11 +1325,11 @@ class MyFrame(wxFrame):
     def OnMnuPrivHelp(self, event):
         """View private portage fnunctions"""
         #win = PortageFuncsDialog.MyDialog(self, -1, "Preferences", \
-        #                          size=wxSize(350, 200), \
-        #                          style = wxDEFAULT_DIALOG_STYLE \
+        #                          size=wx.Size(350, 200), \
+        #                          style = wx.DEFAULT_DIALOG_STYLE \
         #                          )
         win = PortageFuncsDialog.MyDialog(self, -1, "Portage Private Functions",
-                                  style = wxDEFAULT_DIALOG_STYLE)
+                                  style = wx.DEFAULT_DIALOG_STYLE)
         win.CenterOnScreen()
         win.ShowModal()
 
@@ -1340,14 +1338,14 @@ class MyFrame(wxFrame):
         d = "%s/eclass/" % portdir
         c = os.listdir(d)
         c.sort()
-        dlg = wxSingleChoiceDialog(self, 'View an Eclass', 'Eclass',
-                                   c, wxOK|wxCANCEL)
-        if dlg.ShowModal() == wxID_OK:
+        dlg = wx.SingleChoiceDialog(self, 'View an Eclass', 'Eclass',
+                                   c, wx.OK|wx.CANCEL)
+        if dlg.ShowModal() == wx.ID_OK:
             opt = dlg.GetStringSelection()
             file = "%s/%s" % (d, opt)
             msg = open(file, "r").read()
             dlg.Destroy()
-            dlg = wxScrolledMessageDialog(self, msg, opt)
+            dlg = ScrolledMessageDialog(self, msg, opt)
             dlg.Show(True)
         else:
             dlg.Destroy()
@@ -1392,26 +1390,26 @@ class MyFrame(wxFrame):
         fdir = "%s/files" % fdir_overlay
 
         if not os.path.exists(fdir):
-            dlg = wxMessageDialog(self, "${FILESDIR} does not exist.\n\nNo digest yet?", "Error", wxOK)
+            dlg = wx.MessageDialog(self, "${FILESDIR} does not exist.\n\nNo digest yet?", "Error", wx.OK)
             dlg.ShowModal()
             dlg.Destroy()
             return
 
         if not os.path.exists(fdir_port):
             fdir_port = ""
-        win = FileCopyDialog.wxFrame1(self, fdir_port, fdir_overlay)
+        win = FileCopyDialog.wx.Frame1(self, fdir_port, fdir_overlay)
         win.CenterOnScreen()
         win.Show(True)
 
     def OnMnuPref(self, event):
         """Modify preferences"""
         win = PrefsDialog.MyDialog(self, -1, "Preferences", \
-                                  size=wxSize(350, 200), \
-                                  style = wxDEFAULT_DIALOG_STYLE \
+                                  size=wx.Size(350, 200), \
+                                  style = wx.DEFAULT_DIALOG_STYLE \
                                   )
         win.CenterOnScreen()
         val = win.ShowModal()
-        if val == wxID_OK:
+        if val == wx.ID_OK:
             self.pref['browser'] = win.text_ctrl_browser.GetValue()
             self.pref['xterm'] = win.text_ctrl_xterm.GetValue()
             self.pref['diff'] = win.text_ctrl_diff.GetValue()
@@ -1468,9 +1466,9 @@ class MyFrame(wxFrame):
 
     def ExternalControlListen(self):
         """Start timer to call ipc to get external vim commands"""
-        ID_Timer = wxNewId()
-        self.extTimer = wxTimer(self, ID_Timer)
-        EVT_TIMER(self,  ID_Timer, self.OnExtTimer)
+        ID_Timer = wx.NewId()
+        self.extTimer = wx.Timer(self, ID_Timer)
+        wx.EVT_TIMER(self,  ID_Timer, self.OnExtTimer)
         self.extTimer.Start(2000)
 
     def OnExtTimer(self, evt):
@@ -1524,7 +1522,7 @@ class MyFrame(wxFrame):
         dlg = BugzillaDialog.BugzillaDialog(self)
         dlg.CenterOnScreen()
         v = dlg.ShowModal()
-        if v == wxID_OK:
+        if v == wx.ID_OK:
             r = dlg.SaveInfo()
             dlg.Destroy()
         event.Skip()
@@ -1664,7 +1662,6 @@ class MyFrame(wxFrame):
                 except:
                     pass
             xterm = self.pref['xterm']
-            print xterm
             if xterm:
                 #If using konsole, open a new instance if root isn't running one
                 #If root is running one, open new tab (session) in it
@@ -1712,7 +1709,6 @@ class MyFrame(wxFrame):
             if save:
                 if utils.SaveEbuild(self):
                     #utils.Reset(self)
-                    wxSafeYield()
                     if not filename:
                         f = self.filename
                     else:
@@ -1742,12 +1738,12 @@ class MyFrame(wxFrame):
             return
         if not utils.VerifySaved(self):
             win = EmergeDialog.EmergeDialog(self, -1, "Enter emerge options", \
-                                size=wxSize(350, 350), \
-                                style = wxDEFAULT_DIALOG_STYLE \
+                                size=wx.Size(350, 350), \
+                                style = wx.DEFAULT_DIALOG_STYLE \
                                 )
             win.CenterOnScreen()
             val = win.ShowModal()
-            if val == wxID_OK:
+            if val == wx.ID_OK:
                 #cmd = "ACCEPT_KEYWORDS='%s' FEATURES='%s' USE='%s' emerge --nospinner =%s" \
                 cmd = "ACCEPT_KEYWORDS='%s' FEATURES='%s' USE='%s' %s" \
                       % (win.kw.GetValue(), win.features.GetValue(), win.use.GetValue(),\
@@ -1764,9 +1760,9 @@ class MyFrame(wxFrame):
              'preinst', 'postinst', 'config', 'touch', 'clean',
              'fetch', 'digest', 'install', 'unmerge']
         c.sort()
-        dlg = wxSingleChoiceDialog(self, 'Command:', 'ebuild command',
-                                   c, wxOK|wxCANCEL)
-        if dlg.ShowModal() == wxID_OK:
+        dlg = wx.SingleChoiceDialog(self, 'Command:', 'ebuild command',
+                                   c, wx.OK|wx.CANCEL)
+        if dlg.ShowModal() == wx.ID_OK:
             opt = dlg.GetStringSelection()
             dlg.Destroy()
         else:
@@ -1786,9 +1782,9 @@ class MyFrame(wxFrame):
 
 # end of class MyFrame
 
-class MyLog(wxPyLog):
+class MyLog(wx.PyLog):
     def __init__(self, textCtrl, logTime=0):
-        wxPyLog.__init__(self)
+        wx.PyLog.__init__(self)
         self.tc = textCtrl
         self.logTime = logTime
 
@@ -1800,25 +1796,25 @@ class MyLog(wxPyLog):
             self.tc.AppendText(message + '\n')
 
 
-class GentooSTC(wxStyledTextCtrl):
+class GentooSTC(wx.stc.StyledTextCtrl):
 
     """Main editor widget"""
 
     def __init__(self, parent, ID):
-        wxStyledTextCtrl.__init__(self, parent, ID,
-                                  style = wxNO_FULL_REPAINT_ON_RESIZE)
+        wx.stc.StyledTextCtrl.__init__(self, parent, ID,
+                                  style = wx.NO_FULL_REPAINT_ON_RESIZE)
         self.parent = parent
         #Increase text size
-        self.CmdKeyAssign(ord('B'), wxSTC_SCMOD_CTRL, wxSTC_CMD_ZOOMIN)
+        self.CmdKeyAssign(ord('B'), wx.stc.STC_SCMOD_CTRL, wx.stc.STC_CMD_ZOOMIN)
         #Decrease text size
-        self.CmdKeyAssign(ord('N'), wxSTC_SCMOD_CTRL, wxSTC_CMD_ZOOMOUT)
+        self.CmdKeyAssign(ord('N'), wx.stc.STC_SCMOD_CTRL, wx.stc.STC_CMD_ZOOMOUT)
         self.Colourise(0, -1)
         # line numbers in the margin
-        self.SetMarginType(1, wxSTC_MARGIN_NUMBER)
+        self.SetMarginType(1, wx.stc.STC_MARGIN_NUMBER)
         self.SetMarginWidth(1, 25)
         # No bash lexer. Maybe there is a better than Python?
-        self.SetLexer(wxSTC_LEX_PYTHON)
-        #self.SetLexer(wxSTC_LEX_AUTOMATIC)
+        self.SetLexer(wx.stc.STC_LEX_PYTHON)
+        #self.SetLexer(wx.stc.STC_LEX_AUTOMATIC)
 
         gentooKeywords = 'FILESDIR WORKDIR PV P PN PVR D S DESCRIPTION HOMEPAGE SRC_URI LICENSE SLOT KEYWORDS IUSE DEPEND RDEPEND insinto docinto glibc_version ewarn replace-flags env-update filter-flags inherit pkg_postinst pkg_postrm pkg_preinst pkg_setup src_unpack src_install pkg_prerm pkg_nofetch pkg_config unpack src_compile dodir pkg_mv_plugins src_mv_plugins einfo epatch use has_version best_version use_with use_enable doexe exeinto econf emake dodoc dohtml dobin dosym einstall check_KV keepdir die einfo eerror into dohard doinfo doins dolib dolib.a dolib.so doman domo donewins dosbin dosed fowners fperms newbin newdoc newexe newins newlib.a newlib.so newman newsbin pmake prepalldocs prepallinfo prepallman prepall addwrite replace-sparc64-flags edit_makefiles'
         self.SetKeyWords(0, gentooKeywords)
@@ -1829,15 +1825,15 @@ class GentooSTC(wxStyledTextCtrl):
         self.SetUseTabs(1)
         self.SetBufferedDraw(False)
 
-        self.SetEdgeMode(wxSTC_EDGE_BACKGROUND)
+        self.SetEdgeMode(wx.stc.STC_EDGE_BACKGROUND)
         self.SetEdgeColumn(80)
 
         self.SetMarginWidth(2, 12)
 
         self.SetCaretForeground("BLUE")
         self.SetMyStyle()
-        EVT_STC_SAVEPOINTLEFT(self, -1, self.UnsavedTitle)
-        EVT_STC_SAVEPOINTREACHED(self, -1, self.SavedTitle)
+        wx.stc.EVT_STC_SAVEPOINTLEFT(self, -1, self.UnsavedTitle)
+        wx.stc.EVT_STC_SAVEPOINTREACHED(self, -1, self.SavedTitle)
 
     def SetMyStyle(self):
         try:
@@ -1855,27 +1851,27 @@ class GentooSTC(wxStyledTextCtrl):
         self.SetTabWidth(int(options.Options().Prefs()['tabsize']))
         self.StyleClearAll()
 
-        self.StyleSetSpec(wxSTC_STYLE_DEFAULT,     "face:%(mono)s,size:%(size)d" % faces)
-        #self.StyleSetSpec(wxSTC_STYLE_DEFAULT, 'fore:#000000,back:#FFFFFF,face:Courier,size:12')
+        self.StyleSetSpec(wx.stc.STC_STYLE_DEFAULT,     "face:%(mono)s,size:%(size)d" % faces)
+        #self.StyleSetSpec(wx.stc.STC_STYLE_DEFAULT, 'fore:#000000,back:#FFFFFF,face:Courier,size:12')
     
-        self.StyleSetSpec(wxSTC_STYLE_LINENUMBER,  "back:#C0C0C0,face:%(mono)s,size:%(size2)d" % faces)
-        self.StyleSetSpec(wxSTC_STYLE_CONTROLCHAR, "face:%(mono)s" % faces)
-        self.StyleSetSpec(wxSTC_STYLE_BRACELIGHT,  "fore:#FFFFFF,back:#0000FF,bold")
-        self.StyleSetSpec(wxSTC_STYLE_BRACEBAD,    "fore:#000000,back:#FF0000,bold")
-        self.StyleSetSpec(wxSTC_P_DEFAULT, "fore:#808080,face:%(mono)s,size:%(size)d" % faces)
-        self.StyleSetSpec(wxSTC_P_COMMENTLINE, "fore:#007F00,face:%(mono)s,size:%(size)d" % faces)
-        self.StyleSetSpec(wxSTC_P_NUMBER, "fore:#007F7F,size:%(size)d" % faces)
-        self.StyleSetSpec(wxSTC_P_STRING, "fore:#7F007F,bold,face:%(mono)s,size:%(size)d" % faces)
-        self.StyleSetSpec(wxSTC_P_CHARACTER, "fore:#7F007F,bold,face:%(mono)s,size:%(size)d" % faces)
-        self.StyleSetSpec(wxSTC_P_WORD, "fore:#00007F,bold,size:%(size)d" % faces)
-        self.StyleSetSpec(wxSTC_P_TRIPLE, "fore:#7F0000,size:%(size)d" % faces)
-        self.StyleSetSpec(wxSTC_P_TRIPLEDOUBLE, "fore:#7F0000,size:%(size)d" % faces)
-        self.StyleSetSpec(wxSTC_P_CLASSNAME, "fore:#0000FF,bold,underline,size:%(size)d" % faces)
-        self.StyleSetSpec(wxSTC_P_DEFNAME, "fore:#007F7F,bold,size:%(size)d" % faces)
-        self.StyleSetSpec(wxSTC_P_OPERATOR, "bold,size:%(size)d" % faces)
-        self.StyleSetSpec(wxSTC_P_IDENTIFIER,"face:%(mono)s,size:%(size)d" % faces) 
-        self.StyleSetSpec(wxSTC_P_COMMENTBLOCK, "fore:#7F7F7F,size:%(size)d" % faces)
-        self.StyleSetSpec(wxSTC_P_STRINGEOL, "fore:#000000,face:%(mono)s,eol,size:%(size)d" % faces)
+        self.StyleSetSpec(wx.stc.STC_STYLE_LINENUMBER,  "back:#C0C0C0,face:%(mono)s,size:%(size2)d" % faces)
+        self.StyleSetSpec(wx.stc.STC_STYLE_CONTROLCHAR, "face:%(mono)s" % faces)
+        self.StyleSetSpec(wx.stc.STC_STYLE_BRACELIGHT,  "fore:#FFFFFF,back:#0000FF,bold")
+        self.StyleSetSpec(wx.stc.STC_STYLE_BRACEBAD,    "fore:#000000,back:#FF0000,bold")
+        self.StyleSetSpec(wx.stc.STC_P_DEFAULT, "fore:#808080,face:%(mono)s,size:%(size)d" % faces)
+        self.StyleSetSpec(wx.stc.STC_P_COMMENTLINE, "fore:#007F00,face:%(mono)s,size:%(size)d" % faces)
+        self.StyleSetSpec(wx.stc.STC_P_NUMBER, "fore:#007F7F,size:%(size)d" % faces)
+        self.StyleSetSpec(wx.stc.STC_P_STRING, "fore:#7F007F,bold,face:%(mono)s,size:%(size)d" % faces)
+        self.StyleSetSpec(wx.stc.STC_P_CHARACTER, "fore:#7F007F,bold,face:%(mono)s,size:%(size)d" % faces)
+        self.StyleSetSpec(wx.stc.STC_P_WORD, "fore:#00007F,bold,size:%(size)d" % faces)
+        self.StyleSetSpec(wx.stc.STC_P_TRIPLE, "fore:#7F0000,size:%(size)d" % faces)
+        self.StyleSetSpec(wx.stc.STC_P_TRIPLEDOUBLE, "fore:#7F0000,size:%(size)d" % faces)
+        self.StyleSetSpec(wx.stc.STC_P_CLASSNAME, "fore:#0000FF,bold,underline,size:%(size)d" % faces)
+        self.StyleSetSpec(wx.stc.STC_P_DEFNAME, "fore:#007F7F,bold,size:%(size)d" % faces)
+        self.StyleSetSpec(wx.stc.STC_P_OPERATOR, "bold,size:%(size)d" % faces)
+        self.StyleSetSpec(wx.stc.STC_P_IDENTIFIER,"face:%(mono)s,size:%(size)d" % faces) 
+        self.StyleSetSpec(wx.stc.STC_P_COMMENTBLOCK, "fore:#7F7F7F,size:%(size)d" % faces)
+        self.StyleSetSpec(wx.stc.STC_P_STRINGEOL, "fore:#000000,face:%(mono)s,eol,size:%(size)d" % faces)
 
 
     

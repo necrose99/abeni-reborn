@@ -3,7 +3,7 @@
 import os
 import shutil
 
-from wxPython.wx import *
+import wx
 
 import options
 
@@ -14,67 +14,67 @@ def create(parent):
  wxID_WXFRAME1BUTTON3, wxID_WXFRAME1BUTTON4, wxID_WXFRAME1BUTTON5, 
  wxID_WXFRAME1LISTBOX1, wxID_WXFRAME1LISTBOX2, wxID_WXFRAME1PANEL1, 
  wxID_WXFRAME1STATICBOX1, wxID_WXFRAME1STATICBOX2, wxID_WXFRAME1STATICTEXT1, 
-] = map(lambda _init_ctrls: wxNewId(), range(12))
+] = map(lambda _init_ctrls: wx.NewId(), range(12))
 
-class wxFrame1(wxFrame):
+class wxFrame1(wx.Frame):
     def _init_ctrls(self, prnt):
         # generated method, don't edit
-        wxFrame.__init__(self, id=wxID_WXFRAME1, name='', parent=prnt,
-              pos=wxPoint(100, 96), size=wxSize(754, 439),
-              style=wxDEFAULT_FRAME_STYLE, title='Copy/Diff/Edit in ${FILESDIR}')
-        self.SetClientSize(wxSize(754, 439))
+        wx.Frame.__init__(self, id=wxID_WXFRAME1, name='', parent=prnt,
+              pos=wx.Point(100, 96), size=wx.Size(754, 439),
+              style=wx.DEFAULT_FRAME_STYLE, title='Copy/Diff/Edit in ${FILESDIR}')
+        self.SetClientSize(wx.Size(754, 439))
 
-        self.panel1 = wxPanel(id=wxID_WXFRAME1PANEL1, name='panel1',
-              parent=self, pos=wxPoint(0, 0), size=wxSize(754, 439),
-              style=wxTAB_TRAVERSAL)
+        self.panel1 = wx.Panel(id=wxID_WXFRAME1PANEL1, name='panel1',
+              parent=self, pos=wx.Point(0, 0), size=wx.Size(754, 439),
+              style=wx.TAB_TRAVERSAL)
         self.panel1.SetAutoLayout(True)
 
-        self.staticBox1 = wxStaticBox(id=wxID_WXFRAME1STATICBOX1,
+        self.staticBox1 = wx.StaticBox(id=wxID_WXFRAME1STATICBOX1,
               label='${FILESDIR} PORTDIR', name='staticBox1',
-              parent=self.panel1, pos=wxPoint(16, 16), size=wxSize(288, 408),
+              parent=self.panel1, pos=wx.Point(16, 16), size=wx.Size(288, 408),
               style=0)
 
-        self.staticBox2 = wxStaticBox(id=wxID_WXFRAME1STATICBOX2,
+        self.staticBox2 = wx.StaticBox(id=wxID_WXFRAME1STATICBOX2,
               label='${FILESDIR} PORTDIR_OVERLAY', name='staticBox2',
-              parent=self.panel1, pos=wxPoint(376, 16), size=wxSize(360, 408),
+              parent=self.panel1, pos=wx.Point(376, 16), size=wx.Size(360, 408),
               style=0)
 
-        self.button1 = wxButton(id=wxID_WXFRAME1BUTTON1, label='Copy',
-              name='button1', parent=self.panel1, pos=wxPoint(312, 100),
-              size=wxSize(56, 24), style=0)
-        EVT_BUTTON(self.button1, wxID_WXFRAME1BUTTON1, self.OnButton1Button)
+        self.button1 = wx.Button(id=wxID_WXFRAME1BUTTON1, label='Copy',
+              name='button1', parent=self.panel1, pos=wx.Point(312, 100),
+              size=wx.Size(56, 24), style=0)
+        wx.EVT_BUTTON(self.button1, wxID_WXFRAME1BUTTON1, self.OnButton1Button)
 
-        self.staticText1 = wxStaticText(id=wxID_WXFRAME1STATICTEXT1,
+        self.staticText1 = wx.StaticText(id=wxID_WXFRAME1STATICTEXT1,
               label='--->', name='staticText1', parent=self.panel1,
-              pos=wxPoint(328, 80), size=wxSize(23, 14), style=0)
+              pos=wx.Point(328, 80), size=wx.Size(23, 14), style=0)
 
-        self.button2 = wxButton(id=wxID_WXFRAME1BUTTON2, label='Delete',
-              name='button2', parent=self.panel1, pos=wxPoint(672, 192),
-              size=wxSize(56, 24), style=0)
-        EVT_BUTTON(self.button2, wxID_WXFRAME1BUTTON2, self.OnButton2Button)
+        self.button2 = wx.Button(id=wxID_WXFRAME1BUTTON2, label='Delete',
+              name='button2', parent=self.panel1, pos=wx.Point(672, 192),
+              size=wx.Size(56, 24), style=0)
+        wx.EVT_BUTTON(self.button2, wxID_WXFRAME1BUTTON2, self.OnButton2Button)
 
-        self.button5 = wxButton(id=wxID_WXFRAME1BUTTON5, label='Done',
-              name='button5', parent=self.panel1, pos=wxPoint(312, 392),
-              size=wxSize(56, 24), style=0)
-        EVT_BUTTON(self.button5, wxID_WXFRAME1BUTTON5, self.OnButton5Button)
+        self.button5 = wx.Button(id=wxID_WXFRAME1BUTTON5, label='Done',
+              name='button5', parent=self.panel1, pos=wx.Point(312, 392),
+              size=wx.Size(56, 24), style=0)
+        wx.EVT_BUTTON(self.button5, wxID_WXFRAME1BUTTON5, self.OnButton5Button)
 
-        self.listBox1 = wxListBox(choices=[], id=wxID_WXFRAME1LISTBOX1,
-              name='listBox1', parent=self.panel1, pos=wxPoint(24, 40),
-              size=wxSize(272, 376), style=wxLB_SINGLE)
+        self.listBox1 = wx.ListBox(choices=[], id=wxID_WXFRAME1LISTBOX1,
+              name='listBox1', parent=self.panel1, pos=wx.Point(24, 40),
+              size=wx.Size(272, 376), style=wx.LB_SINGLE)
 
-        self.listBox2 = wxListBox(choices=[], id=wxID_WXFRAME1LISTBOX2,
-              name='listBox2', parent=self.panel1, pos=wxPoint(384, 40),
-              size=wxSize(280, 376), style=wxLB_SINGLE)
+        self.listBox2 = wx.ListBox(choices=[], id=wxID_WXFRAME1LISTBOX2,
+              name='listBox2', parent=self.panel1, pos=wx.Point(384, 40),
+              size=wx.Size(280, 376), style=wx.LB_SINGLE)
 
-        self.button3 = wxButton(id=wxID_WXFRAME1BUTTON3, label='Edit',
-              name='button3', parent=self.panel1, pos=wxPoint(672, 240),
-              size=wxSize(56, 24), style=0)
-        EVT_BUTTON(self.button3, wxID_WXFRAME1BUTTON3, self.OnButton3Button)
+        self.button3 = wx.Button(id=wxID_WXFRAME1BUTTON3, label='Edit',
+              name='button3', parent=self.panel1, pos=wx.Point(672, 240),
+              size=wx.Size(56, 24), style=0)
+        wx.EVT_BUTTON(self.button3, wxID_WXFRAME1BUTTON3, self.OnButton3Button)
 
-        self.button4 = wxButton(id=wxID_WXFRAME1BUTTON4, label='Diff',
-              name='button4', parent=self.panel1, pos=wxPoint(312, 144),
-              size=wxSize(56, 24), style=0)
-        EVT_BUTTON(self.button4, wxID_WXFRAME1BUTTON4, self.OnButton4Button)
+        self.button4 = wx.Button(id=wxID_WXFRAME1BUTTON4, label='Diff',
+              name='button4', parent=self.panel1, pos=wx.Point(312, 144),
+              size=wx.Size(56, 24), style=0)
+        wx.EVT_BUTTON(self.button4, wxID_WXFRAME1BUTTON4, self.OnButton4Button)
 
     def __init__(self, parent, fdir, fdir_olay):
         self._init_ctrls(parent)
@@ -105,9 +105,9 @@ class wxFrame1(wxFrame):
         dest = "%s/%s" % (self.fdir_olay, f)
         if os.path.exists(src):
             if os.path.exists(dest):
-                dlg = wxMessageDialog(self, "File already exists in OVERLAY.\n\nOverwrite?", "Error", wxYES_NO)
+                dlg = wx.MessageDialog(self, "File already exists in OVERLAY.\n\nOverwrite?", "Error", wx.YES_NO)
                 v = dlg.ShowModal()
-                if v == wxID_YES:
+                if v == wx.ID_YES:
                     shutil.copy(src, dest)
                     return
                 else:
@@ -126,9 +126,9 @@ class wxFrame1(wxFrame):
                 return 
             else:
                 msg = "Delete this file?\n\n%s" % victim
-                dlg = wxMessageDialog(self, msg, "Delete file?", wxYES_NO)
+                dlg = wx.MessageDialog(self, msg, "Delete file?", wx.YES_NO)
                 v = dlg.ShowModal()
-                if v == wxID_YES:
+                if v == wx.ID_YES:
                     os.remove(victim)
                     self.listBox2.Delete(pos)
                     self.listBox2.SetSelection(pos-1)

@@ -1,6 +1,6 @@
 import sys
 
-import wx   # uses the new wx namespace
+import wx
 import wx.html
 import wx.lib.wxpTag
 
