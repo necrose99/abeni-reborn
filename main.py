@@ -64,16 +64,6 @@ def gentoo_sanity_check():
         print "ERROR: Create the directory PORTDIR_OVERLAY in /etc/make.conf"
         sys.exit(1)
 
-def rc_setup():
-    """Copy skeleton rcfile into abeni dir if needed"""
-    abeniDir = os.path.expanduser('~/.abeni')
-    if not os.path.exists(abeniDir):
-        os.mkdir(abeniDir)
-
-    rcfile = '%s/abenirc' % abeniDir
-    if not os.path.exists(rcfile):
-        shutil.copy("/usr/share/abeni/abenirc", rcfile)
-
 
 class MyApp(wx.App):
 
@@ -90,12 +80,6 @@ class MyApp(wx.App):
         self.SetTopWindow(self.frame)
         return True
 
-def main():
-    """Display GUI"""
-    gentoo_sanity_check()
-    rc_setup()
-    app=MyApp(0)
-    app.MainLoop()
-
-if __name__ == "__main__":
-    main()
+gentoo_sanity_check()
+app=MyApp(0)
+app.MainLoop()
