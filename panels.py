@@ -225,6 +225,7 @@ class changelog(wxPanel):
 
     """This class is for viewing the Changelog file"""
 
+    #TODO: Switch to generic Editor class
     def __init__(self, parent, statusbar, pref):
         wxPanel.__init__(self, parent, -1)
         self.statusbar = statusbar
@@ -265,7 +266,30 @@ class NewFunction(wxPanel):
         # line numbers in the margin
         self.edNewFun.SetMarginType(1, wxSTC_MARGIN_NUMBER)
         self.edNewFun.SetMarginWidth(1, 25)
+        self.edNewFun.SetLexer(wxSTC_LEX_PYTHON)
 
+
+
+class Editor(wxPanel):
+
+    """Add notebook page for editor"""
+
+    def __init__(self, parent, statusbar, pref):
+        wxPanel.__init__(self, parent, -1)
+        self.statusbar = statusbar
+        self.pref = pref
+        self.parent=parent
+        self.editorCtrl = PythonSTC(self, -1)
+        s = wxBoxSizer(wxHORIZONTAL)
+        s.Add(self.editorCtrl, 1, wxEXPAND)
+        self.SetSizer(s)
+        self.SetAutoLayout(True)
+        self.editorCtrl.EmptyUndoBuffer()
+        self.editorCtrl.Colourise(0, -1)
+        # line numbers in the margin
+        self.editorCtrl.SetMarginType(1, wxSTC_MARGIN_NUMBER)
+        self.editorCtrl.SetMarginWidth(1, 25)
+        self.editorCtrl.SetLexer(wxSTC_LEX_MAKEFILE)
 
 #wxStyledTextCtrl::SetLexer
 #void SetLexer(wxSTC_LEX lexer)
@@ -284,18 +308,19 @@ class PythonSTC(wxStyledTextCtrl):
         self.CmdKeyAssign(ord('B'), wxSTC_SCMOD_CTRL, wxSTC_CMD_ZOOMIN)
         self.CmdKeyAssign(ord('N'), wxSTC_SCMOD_CTRL, wxSTC_CMD_ZOOMOUT)
 
-        self.SetLexer(wxSTC_LEX_PROPERTIES)
-        self.SetKeyWords(0, " ".join(keyword.kwlist))
-
-        self.SetProperty("fold", "1")
-        self.SetProperty("tab.timmy.whinge.level", "1")
+        gentooKeywords = 'inherit pkg_preinst src_install src_compile dodir pkg_mv_plugins src_mv_plugins einfo epatch \
+            dobin dosym'
+        #self.SetKeyWords(0, " ".join(keyword.kwlist))
+        self.SetKeyWords(0, gentooKeywords)
+        self.SetProperty("fold", "0")
+        self.SetProperty("tab.timmy.whinge.level", "3") # Spaces are bad in Gentoo ebuilds!
         self.SetMargins(0,0)
 
         self.SetViewWhiteSpace(False)
         #self.SetBufferedDraw(False)
 
         self.SetEdgeMode(wxSTC_EDGE_BACKGROUND)
-        self.SetEdgeColumn(78)
+        self.SetEdgeColumn(132)
 
         # Setup a margin to hold fold markers
         #self.SetFoldFlags(16)  ###  WHAT IS THIS VALUE?  WHAT ARE THE OTHER FLAGS?  DOES IT MATTER?
@@ -348,9 +373,9 @@ class PythonSTC(wxStyledTextCtrl):
         # Number
         self.StyleSetSpec(wxSTC_P_NUMBER, "fore:#007F7F,size:%(size)d" % faces)
         # String
-        self.StyleSetSpec(wxSTC_P_STRING, "fore:#7F007F,italic,face:%(times)s,size:%(size)d" % faces)
+        self.StyleSetSpec(wxSTC_P_STRING, "fore:#7F007F,bold,face:%(mono)s,size:%(size)d" % faces)
         # Single quoted string
-        self.StyleSetSpec(wxSTC_P_CHARACTER, "fore:#7F007F,italic,face:%(times)s,size:%(size)d" % faces)
+        self.StyleSetSpec(wxSTC_P_CHARACTER, "fore:#7F007F,bold,face:%(times)s,size:%(size)d" % faces)
         # Keyword
         self.StyleSetSpec(wxSTC_P_WORD, "fore:#00007F,bold,size:%(size)d" % faces)
         # Triple quotes
@@ -364,12 +389,13 @@ class PythonSTC(wxStyledTextCtrl):
         # Operators
         self.StyleSetSpec(wxSTC_P_OPERATOR, "bold,size:%(size)d" % faces)
         # Identifiers
-        self.StyleSetSpec(wxSTC_P_IDENTIFIER, "fore:#808080,face:%(helv)s,size:%(size)d" % faces)
+        # This is actually what most words will use, since we're faking Python mode (ebuild):
+        self.StyleSetSpec(wxSTC_P_IDENTIFIER, "fore:#000000,face:%(mono)s,size:%(size)d" % faces)
+        #self.StyleSetSpec(wxSTC_P_IDENTIFIER, "fore:#808080,face:%(helv)s,size:%(size)d" % faces)
         # Comment-blocks
         self.StyleSetSpec(wxSTC_P_COMMENTBLOCK, "fore:#7F7F7F,size:%(size)d" % faces)
         # End of line where string is not closed
         self.StyleSetSpec(wxSTC_P_STRINGEOL, "fore:#000000,face:%(mono)s,back:#E0C0E0,eol,size:%(size)d" % faces)
-
 
         self.SetCaretForeground("BLUE")
 

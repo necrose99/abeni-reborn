@@ -8,6 +8,7 @@ __author__ = 'Rob Cakebread'
 __version__ = '0.0.1'
 from wxPython.wx import *
 from wxPython.help import *
+from wxPython.lib.dialogs import wxScrolledMessageDialog
 import os, os.path, string, sys, re, urlparse
 import panels, options
 
@@ -27,6 +28,8 @@ class MyFrame(wxFrame):
         self.GetOptions()
         # Custom functions added
         self.funcList = []
+        #Misc editor tabs
+        self.editorList = []
         #application icon
         iconFile = ('/usr/share/bitmaps/abeni/mocha.png')
         icon = wxIcon(iconFile, wxBITMAP_TYPE_PNG)
@@ -71,6 +74,12 @@ class MyFrame(wxFrame):
         EVT_MENU(self, mnuNewVariableID, self.OnMnuNewVariable)
         EVT_MENU(self, mnuNewFunctionID, self.OnMnuNewFunction)
         EVT_MENU(self, mnuDelFunctionID, self.OnMnuDelFunction)
+        # Tools
+        menu_tools = wxMenu()
+        mnuLintoolID = wxNewId()
+        menu_tools.Append(mnuLintoolID, "&lintool")
+        menubar.Append(menu_tools, "&Tools")
+        EVT_MENU(self, mnuLintoolID, self.OnMnuLintool)
         # Options
         menu_options = wxMenu()
         mnuPrefID = wxNewId()
@@ -133,6 +142,16 @@ class MyFrame(wxFrame):
         EVT_TIMER(self, -1, self.OnClearSB)
         self.timer = None
 
+    def OnMnuLintool(self, event):
+        """Run 'lintool' on this ebuild"""
+        tmp = '/tmp/lintool.txt'
+        os.system('lintool ' + self.filename + ' > ' + tmp)
+        l = open(tmp, 'r').read()
+        self.AddEditor('Lintool', l)
+        #Can show in a dialog, but it might be annoying:
+        #dlg = wxScrolledMessageDialog(self, l, "Lintool Results:")
+        #dlg.ShowModal()
+
     def OnMnuDelFunction(self, event):
         """Remove current function page"""
         self.nb.RemovePage(self.nb.GetSelection())
@@ -142,10 +161,17 @@ class MyFrame(wxFrame):
         self.nb.DeleteAllPages()
         self.funcList=[]
 
+    def SetFilename(self, filename):
+        """Set the ebuild full path and filename"""
+        self.filename = filename
+
+    def GetFilename(self):
+        """Get the full path and filename of ebuild"""
+        return self.filename
+
     def OnMnuLoad(self, event):
         """Load ebuild file"""
         #TODO: Add an "Are you sure?" dialog
-        # Multi-line variables now work, so DEPEND/RDEPEND can be done now.
         # Commands/statements section
         # Comments: This is going to need a lot of work. I'll need to break up the
         #   ebuild into a tree, by vars, statements and functions, so I can put the
@@ -157,6 +183,7 @@ class MyFrame(wxFrame):
                             wildcard, wxOPEN)
         if dlg.ShowModal() == wxID_OK:
             filename = dlg.GetPath()
+            self.SetFilename(filename)
             vars = {}
             funcs = {}
             commands = []
@@ -212,8 +239,7 @@ class MyFrame(wxFrame):
                     commands.append(l)
             f.close()
             #DEBUG
-            print "COMMANDS:\n"
-            print commands
+            print "COMMANDS: ", commands
             s = string.split(filename, "/")
             ebuild_file = s[len(s)-1]
             ebuild = s[len(s)-2]
@@ -236,7 +262,7 @@ class MyFrame(wxFrame):
             for fname in funcs:
                 self.AddFunc(fname, funcs[fname])
             # Add original ebuild file:
-            self.AddFunc('Original File', open(filename, 'r').read())
+            self.AddEditor('Original File', open(filename, 'r').read())
             self.nb.SetSelection(0)
             # Set titlebar of app to ebuild name
             self.SetTitle('Abeni: ' + ebuild_file)
@@ -332,6 +358,14 @@ class MyFrame(wxFrame):
             self.funcList.append(n)
         self.nb.AddPage(n, newFunction)
         n.edNewFun.SetText(val)
+        self.nb.SetSelection(self.nb.GetPageCount() -1)
+
+    def AddEditor(self, name, val):
+        """Add page in notebook for an editor"""
+        n = panels.Editor(self.nb, self.sb, self.pref)
+        self.editorList.append(n)
+        self.nb.AddPage(n, name)
+        n.editorCtrl.SetText(val)
         self.nb.SetSelection(self.nb.GetPageCount() -1)
 
     def OnMnuHelp(self, event):
@@ -475,8 +509,9 @@ class MyFrame(wxFrame):
         ebuildDir = os.path.join (categoryDir, self.panelMain.Ebuild.GetValue())
         if not os.path.exists(ebuildDir):
             os.mkdir(ebuildDir)
-        ebuildFile = os.path.join(ebuildDir, self.panelMain.EbuildFile.GetValue())
-        f = open(ebuildFile, 'w')
+        filename = os.path.join(ebuildDir, self.panelMain.EbuildFile.GetValue())
+        self.SetFilename(filename)
+        f = open(filename, 'w')
 
         textList, varList = self.panelMain.GetVars()
         for i in range(0, len(varList)):
@@ -515,7 +550,8 @@ class MyFrame(wxFrame):
         for fun in self.funcList:
             ftext = fun.edNewFun.GetText()
             f.write(ftext + '\n')
-
+        f.close()
+        self.AddEditor('Saved File', open(self.filename, 'r').read())
         #CHANGELOG.write(self.panelChangelog.ed.GetText())
 
 
