@@ -3,7 +3,26 @@ Abeni ChangeLog
 
 0.0.7 -------------
 
+Aug 11, 2003 Made generic MyMessage dialog
+
+Implemented dependency finder. Put DEPEND="wxpython" in your ebuild and use Abeni's dependency finder to yield DEPEND="dev-python/wxPython-2.4.1.2"
+
+Icons on generic message dialogs show info or error icons
+
+Only launch xterm if package has been unpacked
+
+Aug 9, 2003 Much improved finding of Makefile and configure. Show them if they exist after unpacking or upon loading. 
+
+We now find S in PORTAGE_TMPDIR/portage/package/temp/environment
+
+Gives error message and halts load if first line of file isn't a valid
+header.
+
 Aug 8, 2003 Added more sanity checking for PORTDIR_OVERLAY if it is defined in /etc/make.conf but doesn't actually exist.
+
+remove S=${WORKDIR}/${P} from ebuilds when writing. Bugzilla #25708
+
+On Main tab don't let sash rise above 400.
 
 Aug 7, 2003 Mark ebuild stable if category app-games. Bugzilla #25708
 

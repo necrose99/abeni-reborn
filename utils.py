@@ -18,10 +18,13 @@ def LoadEbuild(parent, filename, portdir):
                     'KEYWORDS', 'IUSE', 'DEPEND', 'S']
     f = open(filename, 'r')
     # Read in header, then discard it. We always write clean header.
-    # This may change for developer version in future.
-    # TODO:
-    # If someone doesn't have a header, they lose first 3 lines.
-    f.readline()
+    header1 = f.readline()
+    # First line should read:
+    # Copyright 1999-200n Gentoo Technologies, Inc.
+    if header1.find("Gentoo Technologies") == -1:
+        parent.write("ERROR: Ebuild has no valid header. See %s/skel.ebuild for a good header." % portdir)
+        return
+
     f.readline()
     f.readline()
 
@@ -144,7 +147,7 @@ def LoadEbuild(parent, filename, portdir):
     if parent.CheckUnpacked():
         parent.ViewConfigure()
         parent.ViewMakefile()
-        parent.ViewSetuppy()
+    #TODO: This is dumb. Put them in logical order: pkg_setup, src_unpack, src_compile etc.
     #Add functions in order they were in in ebuild:
     for n in range(len(parent.funcOrder)):
         parent.AddFunc(parent.funcOrder[n], funcs[parent.funcOrder[n]])
@@ -193,7 +196,10 @@ def WriteEbuild(parent, temp=0):
     #        f.write(parent.varOrder[n] + '=' + varList[parent.varOrder[n]].GetValue() + '\n')
 
     #Default variables
-    f.write('S=' + parent.panelMain.S.GetValue() + '\n')
+    my_s = parent.panelMain.S.GetValue().strip()
+    # Never write S= ${WORKDIR}/${P} because its the default. Bugzilla #25708
+    if my_s != "${WORKDIR}/${P}" and my_s != '"${WORKDIR}/${P}"' and my_s != "'${WORKDIR}/${P}'":
+        f.write('S=' + parent.panelMain.S.GetValue() + '\n')
     f.write('DESCRIPTION=' + parent.panelMain.Desc.GetValue() + '\n')
     f.write('HOMEPAGE=' + parent.panelMain.Homepage.GetValue() + '\n')
     f.write('SRC_URI=' + parent.panelMain.URI.GetValue() + '\n')
@@ -272,7 +278,6 @@ def WriteEbuild(parent, temp=0):
     except:
         pass
 
-
 def getDefaultVars(parent):
     """Gather default variables from Main form"""
     defaultVars = {}
@@ -307,7 +312,8 @@ def EclassGames(parent):
     parent.AddFunc("src_compile", (src_compile))
 
     src_install = "src_install() {\n" + \
-    "\tmake DESTDIR=${D} install || die\n" + \
+    "\t#make DESTDIR=${D} install || die\n" + \
+    "\tegamesinstall || die\n" + \
     "\tprepgamesdirs\n" + \
     "}"
     parent.AddFunc("src_install", (src_install))

@@ -1,8 +1,14 @@
 Abeni 0.0.5
 
-remove "${WORKDIR}/${P}" from ebuilds when writing
+Check syntax of ebuild before loading. A badly formed ebuild can cause Abeni's parser to loop forever. Example: SRC_URI="unlosed
+
+Don't run pkg_setup when opening an ebuild if the function exists.
+We run pkg_setup to get the environment
+
 Make New Function descripts more clear i.e. 
  src_compile ./configure && make
+ Also make user supported templates
+
 
 ---------
 
@@ -20,15 +26,6 @@ Bugs:
 
     MISC:
 
-    Get Stop button to cancel running commands in log window.
-    Should be fixed, need testing to make sure it cancels wget when creating digest etc.
-
-    Need to check if people have saved/changed ebuilds before loading/creating new one
-       Only thing not checked is when a variable or statement changes.
-       Make a copy of all variables and check against that? Feh.
-       Catch the event when they enter a text control and check when leaving if changed?
-
-    Need to create dictionary to keep better track of which pages in the notebook are funcs, environment etc.
 
     If opening ${PORTDIR} ebuild, copy files in ${FILESDIR} to PORTDIR_OVERLAY/${FILESDIR}
 
@@ -39,15 +36,9 @@ Bugs:
     http://bugs.gentoo.org/show_bug.cgi?id=23072
     http://forums.gentoo.org/viewtopic.php?t=59389
 
-    Filter out escape codes for color/bold in repoman
-    repoman has color hard-coded in. I'm using custom options.py called nulloptions.py
     Although I always set FEATURES='notitles', some escape codes are still sent in emerge:
      http://bugs.gentoo.org/show_bug.cgi?id=21430
 
-
-    Editors (wxStyledTextCtrl) needs work on syntax and keyword highlighting.
-        * Syntax highlighting is buggy for multi-line variables, see RDEPENDS/DEPENDS
-        * UPDATE: Got rid of purple line but first and last variable's font are too small.
 
     Order of funtions should be logical no matter the sequence created:
         src_unpack, src_compile, src_install etc.
@@ -59,9 +50,6 @@ Bugs:
 
 
 Add Features:
-
-    After unpacking a file with a new ebuild, determine if its a kde, python,
-    etc. package and add eclass and corresponding functions automatically, optionally.
 
     Add command line options:
         * As of 0.0.5 you can abeni <filename> to load an ebuild.
@@ -116,36 +104,3 @@ Add Features:
         * Done: distutils, CVS eclasses
         * Show help dialog for more difficult, such as CVS
 
-    Download, unpack and view Makefile/configure from source tarball
-    Hmmm. Why not open by default when unpacking package?
-    ** Run file browser in ${WORKDIR} and let them open files with editor?
-        Doesn't work with sudo for kfmclient.
-
-Documentation:
-
-    Tutorials:
-        * Show how to make ebuild for:
-            + Basic C - configure && make
-
-            + Eclasses:
-                - Python with distutils
-                - KDE
-
-    Explain about sudo usage
-
-    Explain FEATURES defaults
-
-    Convert online help to Gentoo documentation XML templates
-
-    Show actual ebuilds in portage that are good examples for specific scenarios
-
-    Link to Daniel Robbins Bash/ebuild tutorial
-    	* http://www-106.ibm.com/developerworks/library/bash3.html
-
-    Show which FEATURES are best for user-submitted ebuilds.
-
-    FAQ:
-    What is this I keep seeing?
-    ]1;]2;xterm
-    Bug in emerge:
-    http://bugs.gentoo.org/show_bug.cgi?id=21430
