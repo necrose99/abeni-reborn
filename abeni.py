@@ -1,8 +1,7 @@
  #!/usr/bin/env python
 
 """Abeni - Gentoo Linux Ebuild Editor/Syntax Checker
-Released under the terms of the GNU Public License v2
-"""
+Released under the terms of the GNU Public License v2"""
 
 __author__ = 'Rob Cakebread'
 __version__ = '0.0.2'
@@ -63,7 +62,7 @@ class MyFrame(wxFrame):
         EVT_NOTEBOOK_PAGE_CHANGED(self.nb, self.nb.GetId(), self.OnPageChanged)
         #Create menus, setup keyboard accelerators
         # File
-        menu_file = wxMenu()
+        self.menu = menu_file = wxMenu()
         mnuNewID=wxNewId()
         menu_file.Append(mnuNewID, "&New ebuild")
         mnuLoadID=wxNewId()
@@ -78,6 +77,11 @@ class MyFrame(wxFrame):
         menubar = wxMenuBar()
         menubar.Append(menu_file, "&File")
         EVT_MENU(self, mnuNewID, self.OnMnuNew)
+        EVT_MENU_RANGE(self, wxID_FILE1, wxID_FILE9, self.OnFileHistory)
+        self.filehistory = wxFileHistory()
+        self.filehistory.UseMenu(self.menu)
+        EVT_WINDOW_DESTROY(self, self.Cleanup)
+
         # Edit
         menu_edit = wxMenu()
         mnuNewVariableID = wxNewId()
@@ -101,12 +105,9 @@ class MyFrame(wxFrame):
         mnuDigestID = wxNewId()
         menu_tools.Append(mnuDigestID, "&Create Digest")
         EVT_MENU(self, mnuDigestID, self.OnMnuCreateDigest)
-
         mnuDiffID = wxNewId()
         menu_tools.Append(mnuDiffID, "Observe &diff")
         EVT_MENU(self, mnuDiffID, self.OnMnuDiff)
-
-
         menubar.Append(menu_tools, "&Tools")
         # Options
         menu_options = wxMenu()
@@ -182,31 +183,19 @@ class MyFrame(wxFrame):
         self.tb.AddSimpleTool(helpID, wxBitmap(helpBmp, wxBITMAP_TYPE_BMP ), \
                                 "Help", "Abeni Help")
         EVT_TOOL(self, helpID, self.OnMnuHelp)
-        self.tb.AddSeparator()
-        cbID = wxNewId()
-        self.tb.AddControl(wxStaticText(self.tb, -1, " Recent Ebuilds:"))
-        self.tb.AddSeparator()
-        self.cb = wxComboBox(self.tb, cbID, "", size=(350,-1), style=wxCB_DROPDOWN|wxCB_READONLY)
-        self.tb.AddControl(self.cb)
+        #Load recent ebuilds to File menu
         for ebuild in self.recentList:
             if ebuild != '\n':
-                self.cb.Append(string.strip(ebuild))
-        self.cb.Append('')
-        self.cb.SetSelection(self.cb.Number() -1)
-        #self.cb.SetValue("")
-        EVT_COMBOBOX(self, cbID, self.OnCombo)
+                self.filehistory.AddFileToHistory(ebuild.strip())
+
         self.tb.Realize()
         EVT_TOOL_ENTER(self, -1, self.OnToolZone)
         EVT_TIMER(self, -1, self.OnClearSB)
         self.timer = None
 
-    def OnCombo(self, event):
-        filename = event.GetString()
-        if filename:
-            if os.path.exists(filename):
-                if self.editing:
-                    self.ClearNotebook()
-                self.LoadEbuild(filename)
+    def Cleanup(self, *args):
+        """Cleanup for filehistory"""
+        del self.filehistory
 
     def OnMnuDelVariable(self, event):
         """Delete custom variable"""
@@ -278,6 +267,7 @@ class MyFrame(wxFrame):
 
     def OnMnuDelFunction(self, event):
         """Remove current function page"""
+        #TODO: This removes any page
         self.nb.RemovePage(self.nb.GetSelection())
 
     def ClearNotebook(self):
@@ -298,15 +288,7 @@ class MyFrame(wxFrame):
     def LoadEbuild(self, filename):
         filename = string.strip(filename)
         self.SetFilename(filename)
-
-        # Add to recent list
-        if self.cb.FindString(filename) == -1:
-            self.cb.Append(filename)
-            #TODO: Add max nbr of recent to config file
-            if self.cb.Number() > 13:
-                self.cb.Delete(0)
-            self.recentList.append(filename)
-
+        self.recentList.append(filename)
         vars = {}
         funcs = {}
         statements = []
@@ -394,6 +376,17 @@ class MyFrame(wxFrame):
         # Set titlebar of app to ebuild name
         self.SetTitle('Abeni ' + __version__ + ': ' + ebuild_file)
 
+    def OnFileHistory(self, evt):
+        # get the file based on the menu ID
+        fileNum = evt.GetId() - wxID_FILE1
+        path = self.filehistory.GetHistoryFile(fileNum)
+        if os.path.exists(path):
+            if self.editing:
+                self.ClearNotebook()
+            self.LoadEbuild(path)
+            # add it back to the history so it will be moved up the list
+            self.filehistory.AddFileToHistory(path)
+
     def OnMnuLoad(self, event):
         """Load ebuild file"""
         #TODO: Add an "Are you sure?" dialog
@@ -406,10 +399,11 @@ class MyFrame(wxFrame):
                             wildcard, wxOPEN)
         if dlg.ShowModal() == wxID_OK:
             filename = dlg.GetPath()
-            if self.editing:
-                self.ClearNotebook()
             if os.path.exists(filename):
-                self.LoadEbuild(filename)
+               if self.editing:
+                    self.ClearNotebook()
+            self.LoadEbuild(filename)
+            self.filehistory.AddFileToHistory(filename)
         dlg.Destroy()
 
     def PopulateForms(self, myData):
@@ -455,7 +449,7 @@ class MyFrame(wxFrame):
         """Global options from apprc file"""
         myOptions = options.Options()
         self.pref = myOptions.Prefs()
-        self.debug = self.pref['debug']
+        #self.debug = self.pref['debug']
 
     def OnToolZone(self, event):
         """Clear statusbar 3 seconds after mouse moves over toolbar icon"""
@@ -527,6 +521,7 @@ class MyFrame(wxFrame):
         #TODO: Fix index. Doesn't die when you exit.
         #Add: /usr/portage/profiles/use.desc
         #os.system("netscape '/usr/share/abeni/ebuild-quick-reference.html' &")
+
         os.system("netscape 'http://abeni.sf.net/docs/ebuild-quick-reference.html' &")
 
     def OnMnuHelp(self, event):
@@ -551,26 +546,6 @@ class MyFrame(wxFrame):
         # launch helpviewer
         #helpviewer.main(args)
 
-
-    def OLD__OnMnuLoad(self, event):
-        """Load raw data from pickled file"""
-        # This will probably be removed, unless someone can think of a good reason to pickle everything
-        # as well as save it in native ebuild files.
-        wildcard = "Abeni files (*.abeni)|*.abeni"
-        dlg = wxFileDialog(self, "Choose a file", "", "", wildcard, wxOPEN|wxMULTIPLE)
-        if dlg.ShowModal() == wxID_OK:
-            paths = dlg.GetPaths()
-            for path in paths:
-                print path
-        dlg.Destroy()
-        file = open(path, 'r')
-        myData = pickle.load(file)
-        for myKeys in myData.keys():
-            print myData[myKeys]
-        self.URI = myData['SRC_URI']
-        self.AddPages()
-        self.PopulateForms(myData)
-        self.editing = 1
 
     def OnMnuSave(self, event):
         """Save ebuild file to disk"""
@@ -688,7 +663,8 @@ class MyFrame(wxFrame):
 
         f.write('# Copyright 1999-2003 Gentoo Technologies, Inc.\n')
         f.write('# Distributed under the terms of the GNU General Public License v2\n')
-        f.write('# $Header: /cvsroot/abeni/abeni/Attic/abeni.py,v 1.24 2003/06/08 01:19:30 robc Exp $\n')
+        f.write('# ' + '$' + 'Header:' + '$\n')
+        # Heh. CVS fills this in, have to trick it with above. '# \$\Header: \$
 
         f.write(self.panelMain.stext.GetValue() + '\n')
         varList = self.panelMain.GetVars()
@@ -800,7 +776,6 @@ class GetURIDialog(wxDialog):
         self.SetAutoLayout(True)
         sizer.Fit(self)
 
-#)wxApp)
 class MyApp(wxPySimpleApp):
 
     """ Main wxPython app class """
