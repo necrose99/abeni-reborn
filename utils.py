@@ -843,7 +843,7 @@ def WriteEbuild(parent, temp=0):
     SetFilename(parent, filename)
     parent.filehistory.AddFileToHistory(filename.strip())
     if parent.pref['stripHeader'] == 1:
-        parent.FindReplace("# $Header", '# $Header: /cvsroot/abeni/abeni/utils.py,v 1.31 2004/08/16 23:45:36 robc Exp $')
+        parent.FindReplace("# $Header", '# $Header: /cvsroot/abeni/abeni/utils.py,v 1.32 2004/08/18 06:43:53 robc Exp $')
     txt = parent.STCeditor.GetText()
     # strip trailing whitespace
     out = '\n'.join([t.rstrip() for t in txt.splitlines() if t != '\n'])
@@ -863,7 +863,8 @@ def WriteEbuild(parent, temp=0):
 
 def GetGtkVersion(self):
     """Find if wxPython was compiled with gtk or gtk2:"""
-    print wxVERSION
+    #NOTE: I think this funcionality is included in wxPython 2.5+
+    #print wxVERSION
     wx_ver = '.'.join([str(x)for x in wxVERSION])[:-1]
     basedir ='/var/db/pkg/dev-python'
     files = os.listdir('/var/db/pkg/dev-python/')

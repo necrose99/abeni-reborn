@@ -6,7 +6,6 @@ import string
 import shutil
 import sys
 
-#from wx.lib.evtmgr import eventManager
 from wxPython.lib.dialogs import wxMultipleChoiceDialog
 from wxPython.lib.dialogs import wxScrolledMessageDialog
 from wxPython.wx import *
@@ -38,7 +37,12 @@ class MyFrame(wxFrame):
     def __init__(self, *args, **kwds):
 
         # begin wxGlade: MyFrame.__init__
-        kwds["style"] = wxCAPTION|wxMAXIMIZE_BOX|wxSYSTEM_MENU|wxRESIZE_BORDER
+        #wxPython 2.4
+        if wxVERSION[1] == 4:
+            kwds["style"] = wxCAPTION|wxMAXIMIZE_BOX|wxSYSTEM_MENU|wxRESIZE_BORDER
+        #wxPython 2.5
+        else:
+            kwds["style"] = wxCAPTION|wxCLOSE_BOX|wxMAXIMIZE_BOX|wxSYSTEM_MENU|wxRESIZE_BORDER
         wxFrame.__init__(self, *args, **kwds)
         self.panel_1 = wxPanel(self, -1)
         self.splitter = wxSplitterWindow(self.panel_1, -1, style=wxSP_3D|wxSP_BORDER)
@@ -1838,7 +1842,9 @@ class GentooSTC(wxStyledTextCtrl):
             'size2': 10,
             }
         self.parent = parent
+        #Increase text size
         self.CmdKeyAssign(ord('B'), wxSTC_SCMOD_CTRL, wxSTC_CMD_ZOOMIN)
+        #Decrease text size
         self.CmdKeyAssign(ord('N'), wxSTC_SCMOD_CTRL, wxSTC_CMD_ZOOMOUT)
         self.Colourise(0, -1)
         # line numbers in the margin
@@ -1854,8 +1860,8 @@ class GentooSTC(wxStyledTextCtrl):
         # Leading spaces are bad in Gentoo ebuilds!
         self.SetProperty("tab.timmy.whinge.level", "3") 
         self.SetMargins(0,0)
-
-        self.SetViewWhiteSpace(False)
+        self.SetUseTabs(1)
+        self.SetViewWhiteSpace(True)
         self.SetBufferedDraw(False)
 
         self.SetEdgeMode(wxSTC_EDGE_BACKGROUND)
@@ -1865,53 +1871,31 @@ class GentooSTC(wxStyledTextCtrl):
 
         self.StyleClearAll()
 
-        # Global default styles for all languages
-        #self.StyleSetSpec(wxSTC_STYLE_DEFAULT,     "face:%(mono)s,size:%(size)d" % faces)
-        self.StyleSetSpec(wxSTC_STYLE_DEFAULT, 'fore:#000000,back:#FFFFFF,face:Courier,size:12')
+        self.StyleSetSpec(wxSTC_STYLE_DEFAULT,     "face:%(mono)s,size:%(size)d" % faces)
+        #self.StyleSetSpec(wxSTC_STYLE_DEFAULT, 'fore:#000000,back:#FFFFFF,face:Courier,size:12')
     
         self.StyleSetSpec(wxSTC_STYLE_LINENUMBER,  "back:#C0C0C0,face:%(mono)s,size:%(size2)d" % faces)
         self.StyleSetSpec(wxSTC_STYLE_CONTROLCHAR, "face:%(mono)s" % faces)
         self.StyleSetSpec(wxSTC_STYLE_BRACELIGHT,  "fore:#FFFFFF,back:#0000FF,bold")
         self.StyleSetSpec(wxSTC_STYLE_BRACEBAD,    "fore:#000000,back:#FF0000,bold")
-
-        # White space
         self.StyleSetSpec(wxSTC_P_DEFAULT, "fore:#808080,face:%(mono)s,size:%(size)d" % faces)
-        # Comment
         self.StyleSetSpec(wxSTC_P_COMMENTLINE, "fore:#007F00,face:%(mono)s,size:%(size)d" % faces)
-        # Number
         self.StyleSetSpec(wxSTC_P_NUMBER, "fore:#007F7F,size:%(size)d" % faces)
-        # String
         self.StyleSetSpec(wxSTC_P_STRING, "fore:#7F007F,bold,face:%(mono)s,size:%(size)d" % faces)
-        # Single quoted string
         self.StyleSetSpec(wxSTC_P_CHARACTER, "fore:#7F007F,bold,face:%(mono)s,size:%(size)d" % faces)
-        # Keyword
         self.StyleSetSpec(wxSTC_P_WORD, "fore:#00007F,bold,size:%(size)d" % faces)
-        # Triple quotes
         self.StyleSetSpec(wxSTC_P_TRIPLE, "fore:#7F0000,size:%(size)d" % faces)
-        # Triple double quotes
         self.StyleSetSpec(wxSTC_P_TRIPLEDOUBLE, "fore:#7F0000,size:%(size)d" % faces)
-        # Class name definition
         self.StyleSetSpec(wxSTC_P_CLASSNAME, "fore:#0000FF,bold,underline,size:%(size)d" % faces)
-        # Function or method name definition
         self.StyleSetSpec(wxSTC_P_DEFNAME, "fore:#007F7F,bold,size:%(size)d" % faces)
-        # Operators
         self.StyleSetSpec(wxSTC_P_OPERATOR, "bold,size:%(size)d" % faces)
-        # Identifiers
-        # This is actually what most words will use, since we're faking Python mode (ebuild):
-        #self.StyleSetSpec(wxSTC_P_IDENTIFIER, "fore:#000000,face:%(mono)s,size:%(size)d" % faces)
-         
         self.StyleSetSpec(wxSTC_P_IDENTIFIER,"face:%(mono)s,size:%(size)d" % faces) 
-        #self.StyleSetSpec(wxSTC_P_IDENTIFIER, "fore:#808080,face:%(mono)s,size:%(size)d" % faces)
-        # Comment-blocks
         self.StyleSetSpec(wxSTC_P_COMMENTBLOCK, "fore:#7F7F7F,size:%(size)d" % faces)
 
-        # End of line where string is not closed
-        #Gentoo/bash
-        # This gets rid of purple line with multi line variables, but the font is too small now. Grrr.
-        #self.StyleSetSpec(wxSTC_P_STRINGEOL, "fore:#000000,face:%(mono)s,back:#E0C0E0,eol,size:%(size)d" % faces)
+        self.StyleSetSpec(wxSTC_P_STRINGEOL, "fore:#000000,face:%(mono)s,eol,size:%(size)d" % faces)
 
         self.SetCaretForeground("BLUE")
-
+        self.SetTabWidth(4)
         EVT_STC_SAVEPOINTLEFT(self, -1, self.UnsavedTitle)
         EVT_STC_SAVEPOINTREACHED(self, -1, self.SavedTitle)
 

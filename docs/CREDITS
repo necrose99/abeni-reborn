@@ -1,7 +1,18 @@
 Abeni - by Rob Cakebread <pythonhead@gentoo.org>
+Abeni is Copyright Rob Cakebread 2003, 2004
+
 
 Contributions from:
 Marius Mauch, <genone@genone.de>
 Tim Cera, <timc@earthlink.net>
 
 I snarfed a few functions from liquidx@gentoo.org's excellent etcat
+but should remove it since it can be imported from gentoolkit now.
+
+Abeni includes code from PyIPC which enables Abeni to be controlled 
+from external editors:
+PyIPC:  Python Interface to Inter-Process Communication
+Copyright (C) 2001, Neil Macneale <mac4-pyipc@theory.org>
+http://www.theory.org/~mac4/software/
+
+

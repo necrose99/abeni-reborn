@@ -37,9 +37,9 @@ class Options:
             if string.find(l, '=') != -1:
                 var = string.split(l, '=')[0].strip()
                 val = string.split(l, '=')[1].strip()
-                if val == '1':
+                if val == '1' or val == 'True':
                     val = 1
-                if val == '0':
+                if val == '0' or val == 'False':
                     val = 0
                 self.pref[var] = val
             l = f.readline()

@@ -1,3 +1,18 @@
+
+  17 Aug 2004; Rob Cakebread <pythonhead@gentoo.org>:
+  Changed deprecated AddSizer's to Add
+  Started testing on wxPython 2.5.2.7 and adding necessary checks for 2.4.2.4
+  Fixed ugly font on multi-line variables.
+  options.py: Check for 1 or True, 0 or False due to change in wxPython 2.5*
+
+  22 Jul 2004; Rob Cakebread <pythonhead@gentoo.org>:
+  Added option to log all output to disk
+  Added ability to control abeni via external apps via IPC (vim script included)
+  New private portage functions help screen with html
+  New Preferences dialog
+  Detect if wxpython was compiled with gtk2 or -gtk2
+  If using konsole, open session in a new tab
+
 *abeni-0.0.18 (Jul 22 2004)
   22 Jul 2004; Rob Cakebread <pythonhead@gentoo.org>:
   Version bump

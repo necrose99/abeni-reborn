@@ -3,30 +3,29 @@ This is the TODO file for Abeni.
 If you are interested in working on any of these, please
 email pythonhead AT gentoo DOT org
 
-* Website:
-
-  - Needs make-over
-
 * General:
 
+ - Apply font to wxSTC ons startup, its using courier for non-keywords
+ - Make sure wxGlade adds wxCLOSE_BOX to gui.wxg (wx* 2.5)
  - Option to sort functions: src_unpack then src_compile, src_install etc.
    (See ebuild.py by genone, it can probably do that easily)
  - Need to check if external apps exist every time someone tries to launch
    the external editor, web browser etc.
  - When you inherit an eclass, scan the functions and add them to Scintilla's
    keyword list for highlighting and auto-completion
- - Get dev email from env var ECHANGELOG_USER="Rob Cakebread <pythonhead@gentoo.org>"
+ - Get dev email from env var: ECHANGELOG_USER="Rob Cakebread <pythonhead@gentoo.org>"
    then fill in option in dev prefs.
  - Disable menus when not in edit mode
  - Improve find / search&replace dialog, "whole word", "match case" don't work
  - Lowercase PN when given URI on new ebuilds in GetURIDialog.py
- - Launch browser to HOMEPAGE url (Need function to extract variables from editor)
+ - Launch browser to HOMEPAGE url
+ - Need function to extract variables from editor (see genone's ebuild.py)
  - Don't let user edit current ebuild through Explorer
 
 * Repoman/CVS:
 
- - Check FEATURES for manifest signing (can't get password)
- - Don't allow CVS operations if ssh-agent isn't running  
+ - FEATURES for manifest signing gets password from CLI, find better way
+ - Don't allow CVS operations if ssh-agent isn't running 
  - Option to rm -rf CVS/cat/PN then 'cvs update' in CVS/cat
 
 * Dialogs:
@@ -35,6 +34,10 @@ email pythonhead AT gentoo DOT org
    to CVS we can include bug# automatically.
  - metadata.xml templates to choose from, for all the herds you belong to
  - When deleting ebuild, offer to rm -rf package dir when there are no more ebuilds
+
+* Website:
+
+  - Needs make-over
 
 * Syntax checking/formatting ebuilds:
 
@@ -50,6 +53,7 @@ email pythonhead AT gentoo DOT org
 * Documentation:
 
  - Its out of date, website needs big makeover
+ - Private portage functions needs help in html format
 
 * Command line options:
 
@@ -100,6 +104,6 @@ email pythonhead AT gentoo DOT org
    the other entries contain the full path (seems to be wxPython/wxGTK bug)
 
  - I've had problems with the cursor vanishing in the editor when it
-   loses focus and you focus it again. Seems to only be problem with
-   gtk2?
-
+   loses focus and you focus it again. Author of wxPython says its a known
+   issue and won't be fixed in 2.4*.  Verified fixed in wxPython 2.5*
+   (2.4* used an old version of Scintilla)

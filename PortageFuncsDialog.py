@@ -69,7 +69,7 @@ class MyDialog(wxDialog):
         # end wxGlade
 
         EVT_LISTBOX(self, self.list_box_1.GetId(), self.OnListbox)
-        t = 'dobin doconfd dodir dodoc doenvd doexe dohard dohtml doinfo doinitd doins dojar dolib dolib.a dolib.so doman domo donewins dopython dosbin dosed dosym emake fowners fperms newbin newconfd newdoc newenvd newexe newinitd newins newlib.a newlib.so newman newsbin pmake prepall prepalldocs prepalldocs.new prepallinfo prepallman prepallstrip prepinfo preplib preplib.so prepman prepstrip quickpkg xpak'
+        t = 'dobin doconfd dodir dodoc doenvd doexe dohard dohtml doinfo doinitd doins dojar dolib dolib.a dolib.so doman domo donewins dopython dosbin dosed dosym ebuild.sh emake fowners fperms newbin newconfd newdoc newenvd newexe newinitd newins newlib.a newlib.so newman newsbin pmake prepall prepalldocs prepalldocs.new prepallinfo prepallman prepallstrip prepinfo preplib preplib.so prepman prepstrip quickpkg xpak'
 
         funcs = t.split(" ")
         for f in funcs:
