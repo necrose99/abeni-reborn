@@ -5,7 +5,7 @@ import string
 import os
 
 
-pid_file = '/tmp/abeni_proc.pid'
+pid_file = '/var/run/abeni_proc.pid'
 f = open(pid_file, 'w')
 
 cmd = sys.argv[1:]
