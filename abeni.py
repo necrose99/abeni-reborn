@@ -26,7 +26,7 @@ class MyFrame(wxFrame):
         wxFrame.__init__(self, parent, -1, title, size=wxSize(600,480))
         self.SetAutoLayout(true)
 
-        # Are we in the process of creating an ebuild?
+        # Are we in the process of editing an ebuild?
         self.editing = 0
 
         # Get options from abenirc file
@@ -119,7 +119,6 @@ class MyFrame(wxFrame):
 
     def GetOptions(self):
         """Global options from apprc file"""
-
         myOptions = options.Options()
         self.pref = myOptions.Prefs()
         self.debug = self.pref['debug']
@@ -200,7 +199,6 @@ class MyFrame(wxFrame):
             win.CenterOnScreen()
             val = win.ShowModal()
             self.URI = win.URI.GetValue()
-
             # If they click OK and filled out URI entry, create notebook
             if val == wxID_OK and self.URI:
                 self.AddPages()
@@ -208,11 +206,9 @@ class MyFrame(wxFrame):
                 self.panelMain.SetURI(self.URI)
                 self.panelMain.SetName(self.URI)
                 self.panelMain.SetEbuild()
-
                 #We are in the middle of createing an ebuild. Should probably check for
                 #presence of wxNotebook instead
                 self.editing = 1
-
                 # Set titlebar of app to ebuild name
                 self.SetTitle(self.panelMain.GetEbuildName())
 
@@ -286,13 +282,21 @@ class MyFrame(wxFrame):
         dlist = self.panelDepend.elb1.GetStrings()
         d = 'DEPEND="'
         for ds in dlist:
-            d += ds + " "
+            if d == 'DEPEND="':
+                d += ds + "\n"
+            else:
+                d += '   ' + ds + "\n"
+        d = string.strip(d)
         d += '"'
 
         rdlist = self.panelDepend.elb2.GetStrings()
         rd = 'RDEPEND="'
         for ds in rdlist:
-            rd += ds + " "
+            if rd == 'RDEPEND="':
+                rd += ds + "\n"
+            else:
+                rd += "   " + ds + "\n"
+        rd = string.strip(rd)
         rd += '"'
         f.write("S=${WORKDIR}/${P}\n\n")
         f.write('DESCRIPTION="' + self.panelMain.Desc.GetValue() + '"\n\n')
@@ -324,7 +328,6 @@ class GetURIDialog(wxDialog):
     def __init__(self, parent, ID, title,
                  pos=wxDefaultPosition, size=wxDefaultSize,
                  style=wxDEFAULT_DIALOG_STYLE):
-
         # Instead of calling wxDialog.__init__ we precreate the dialog
         # so we can set an extra style that must be set before
         # creation, and then we create the GUI dialog using the Create
@@ -332,18 +335,16 @@ class GetURIDialog(wxDialog):
         pre = wxPreDialog()
         pre.SetExtraStyle(wxDIALOG_EX_CONTEXTHELP)
         pre.Create(parent, ID, title, pos, size, style)
-
         # This next step is the most important, it turns this Python
         # object into the real wrapper of the dialog (instead of pre)
         # as far as the wxPython extension is concerned.
         self.this = pre.this
-
         sizer = wxBoxSizer(wxVERTICAL)
         box = wxBoxSizer(wxHORIZONTAL)
         label = wxStaticText(self, -1, "Package URI:")
         label.SetHelpText("Enter the URI for the package. This can be a URL like 'http://..' or a path to a file.")
         box.Add(label, 0, wxALIGN_CENTRE|wxALL, 5)
-        self.URI = wxTextCtrl(self, -1, "", size=(280,-1))
+        self.URI = wxTextCtrl(self, -1, "http://", size=(280,-1))
         self.URI.SetHelpText("Enter the URI for the package. This can be a URL like 'http://...' or a path to a file.")
         box.Add(self.URI, 1, wxALIGN_CENTRE|wxALL, 5)
         sizer.AddSizer(box, 0, wxGROW|wxALIGN_CENTER_VERTICAL|wxALL, 5)
