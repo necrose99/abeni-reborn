@@ -374,8 +374,7 @@ def PostUnpack(parent):
             write(parent, " * S=${WORKDIR}/${P}")
             if parent.FindReplace("S=${WORKDIR}/${P}", "") != -1:
                 SetS(parent, p)
-                write(parent, "))) removed S=${WORKDIR}/${P} from ebuild")
-                write(parent, "    (its not necessary)")
+                write(parent, "))) removed S=${WORKDIR}/${P} from ebuild (its not necessary)")
         else:
             ep = GetS(parent)
             if ep == "${WORKDIR}/${P}":
@@ -873,6 +872,8 @@ def WriteEbuild(parent, temp=0):
     if txt != out:
         write(parent, "))) Stripped trailing whitespace.")
         parent.STCeditor.SetText(out)
+    if parent.FindReplace("S=${WORKDIR}/${P}", "") != -1:
+        write(parent, "))) removed S=${WORKDIR}/${P} from ebuild (its not necessary)")
     f_out = open(filename, 'w')
     f_out.write(out)
     f_out.close()
