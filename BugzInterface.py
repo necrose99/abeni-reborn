@@ -22,6 +22,7 @@ NOT bugs.gentoo.org. It hasn't been tested with bugs.gentoo.org
 but should work with very little modification.
 
 Feel free to try it out but know my computer isn't always online.
+http://abeni.kicks-ass.net/
 
 '''
 
@@ -29,21 +30,22 @@ Feel free to try it out but know my computer isn't always online.
 class HandleForm:
     '''Parses bugs.gentoo.org forms, handles cookies and uploads attachments'''
 
-    def __init__(self, filename, summary, desc, uri):
+    def __init__(self, filename, summary, desc, uri, password):
         self.filename = filename
         self.ebuild = os.path.basename(filename)
         self.summary = summary
         self.desc = desc
         self.uri = uri
+        self.password = password
 
-    def Login(self, user="genone@127.0.0.1", password="mauch"):
+    def Login(self, user="genone@127.0.0.1"):
         url = "http://abeni.kicks-ass.net/bugzilla/enter_bug.cgi"
         forms = ParseResponse(ClientCookie.urlopen(url))
         form = forms[0]
         #print forms[0]
         try:
             form["Bugzilla_login"] = "genone@127.0.0.1"
-            form["Bugzilla_password"] = "mauch"
+            form["Bugzilla_password"] = self.password
             response = ClientCookie.urlopen(form.click("GoAheadAndLogIn"))
         except:
             #Already logged in with coookies
@@ -72,7 +74,7 @@ class HandleForm:
         data ={
             "GoAheadAndLogin":"1",
             "Bugzilla_login":"genone@127.0.0.1",
-            "Bugzilla_password":"mauch",
+            "Bugzilla_password":self.password,
             "product":"Abeni",
             "version":"0.0.9",
             "component":"GUI",
@@ -94,7 +96,7 @@ class HandleForm:
         for l in lines:
             if l.find("Submitted") != -1:
                 self.bugNbr = l.split()[1]
-                print "Bug number %s created." % self.bugNbr
+                #print "Bug number %s created." % self.bugNbr
                 break
 
 
@@ -112,7 +114,7 @@ class HandleForm:
         form.add_file(f, "text/plain", self.ebuild)
         request = form.click()
         response2 = ClientCookie.urlopen(request)
-        print "Attachment uploaded."
+        #print "Attachment uploaded."
         #print response2.read()
         #print response2.info()
 

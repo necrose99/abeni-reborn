@@ -61,8 +61,8 @@ class SubmitEbuild(wxDialog):
               label='Cancel', name='Cancelbutton', parent=self, pos=wxPoint(392,
               416), size=wxSize(80, 22), style=0)
 
-    def __init__(self, parent):
-        self._init_ctrls(parent)
+    def __init__(self, prnt, parent):
+        self._init_ctrls(prnt)
         s = "%s (New Package)" % parent.GetP()
         self.SummarytextCtrl.SetValue(s)
         desc = parent.panelMain.Desc.GetValue()
@@ -83,7 +83,7 @@ class SubmitEbuild(wxDialog):
     def SubmitEbuild(self):
         ''' Do the actual bug creation and attachment upload'''
         import BugzInterface
-        a = BugzInterface.HandleForm(self.filename, self.summary, self.desc, self.uri)
+        a = BugzInterface.HandleForm(self.filename, self.summary, self.desc, self.uri, "mauch")
         max = 90
         dlg = wxProgressDialog("Submitting ebuild",
                                "Creating new bug...",
@@ -162,7 +162,6 @@ class BugzQuery(wxDialog):
         self.CancelButton = wxButton(id=wxID_CANCEL,
               label='Cancel', name='CancelButton', parent=self, pos=wxPoint(184,
               232), size=wxSize(104, 22), style=0)
-        #EVT_BUTTON(self.CancelButton, wxID_CANCEL, self.OnCancel)
 
     def __init__(self, parent):
         self._init_ctrls(parent)
@@ -321,10 +320,15 @@ class BugzillaDialog(wxDialog):
         self.NotestextCtrl.SetToolTipString('')
 
         self.OK = wxGenButton(ID=wxID_OK, label='OK', name='OK',
-              parent=self, pos=wxPoint(112, 512), size=wxSize(81, 27), style=0)
+              parent=self, pos=wxPoint(22, 512), size=wxSize(81, 27), style=0)
+
+        SubID = wxNewId()
+        self.Submit = wxGenButton(ID=SubID, label='Submit to Bugzilla', name='Submit',
+              parent=self, pos=wxPoint(112, 512), size=wxSize(180, 27), style=0)
+        EVT_BUTTON(self.Submit, SubID, self.OnSubmitButton)
 
         self.Cancel = wxGenButton(self, ID=wxID_CANCEL, label='Cancel',
-              pos=wxPoint(264, 512), size=wxSize(81, 27))
+              pos=wxPoint(330, 512), size=wxSize(81, 27))
 
         self.BuzillaStaticBox = wxStaticBox(id=wxID_BUGZILLABUZILLASTATICBOX,
               label='Bugzilla Information', name='BuzillaStaticBox',
@@ -335,14 +339,12 @@ class BugzillaDialog(wxDialog):
               name='StatusCombo', parent=self, pos=wxPoint(16, 88),
               size=wxSize(200, 22), style=0, validator=wxDefaultValidator,
               value='')
-        #self.StatusCombo.SetLabel('')
 
         resolutionList = ['', 'FIXED', 'INVALID', 'WONTFIX', 'LATER', 'REMIND', 'DUPLICATE', 'WORKSFORME']
         self.ResolutionCombo = wxComboBox(choices=resolutionList,
               id=wxID_BUGZILLARESOLUTIONCOMBO, name='ResolutionCombo',
               parent=self, pos=wxPoint(224, 88), size=wxSize(224, 22), style=0,
               validator=wxDefaultValidator, value='')
-        #self.ResolutionCombo.SetLabel('')
 
         self.NotesStaticBox = wxStaticBox(id=wxID_BUGZILLANOTESSTATICBOX,
               label='Notes', name='NotesStaticBox', parent=self, pos=wxPoint(8,
@@ -367,6 +369,22 @@ class BugzillaDialog(wxDialog):
               label='Ebuild is Mine', name='checkBox1', parent=self,
               pos=wxPoint(24, 160), size=wxSize(144, 24), style=0)
         self.checkBox1.SetValue(False)
+
+    def OnSubmitButton(self, event):
+            import time
+            win = SubmitEbuild(self, self.parent)
+            win.ShowModal()
+            print "Created bug #" + win.bugNbr
+            win.Destroy()
+            self.BugNbr.SetValue(win.bugNbr)
+            pos = self.AbeniComboBox.FindString("SUBMITTED")
+            self.AbeniComboBox.SetSelection(pos)
+            pos = self.StatusCombo.FindString("NEW")
+            self.StatusCombo.SetSelection(pos)
+            self.checkBox1.SetValue(True)
+            txt = self.NotestextCtrl.GetValue()
+            now = time.asctime(time.localtime())
+            self.NotestextCtrl.SetValue(txt + ("Ebuild submitted %s" % now))
 
     def MyMessage(self, msg, title, type="info"):
         """Simple informational dialog"""

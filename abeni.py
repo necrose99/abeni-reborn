@@ -176,16 +176,6 @@ class MyFrame(wxFrame):
         frame = ProjectManager.MyFrame(self)
         frame.Show(true)
 
-    def OnMnuSubmitEbuild(self, event):
-        """Submit Ebuild to bugs.gentoo.org"""
-        if not self.editing:
-            return
-        if self.SaveEbuild():
-            win = dialogs.SubmitEbuild(self)
-            win.ShowModal()
-            self.write("Created bug #" + win.bugNbr)
-            win.Destroy()
-
     def OnMnuGetDeps(self, event):
         #DEPEND
         l = self.panelDepend.elb1.GetStrings()
@@ -1524,14 +1514,11 @@ class MyFrame(wxFrame):
         # Project
         menu_proj = wxMenu()
         mnuBugID = wxNewId()
-        menu_proj.Append(mnuBugID, "Info for this ebuild")
+        menu_proj.Append(mnuBugID, "Bug&zilla info")
         EVT_MENU(self, mnuBugID, self.OnMnuBugzilla)
         mnuSumID = wxNewId()
-        menu_proj.Append(mnuSumID, "Project Manager")
+        menu_proj.Append(mnuSumID, "&Project Manager")
         EVT_MENU(self, mnuSumID, self.OnMnuProjManager)
-        mnuSubmitID = wxNewId()
-        menu_proj.Append(mnuSubmitID, "Submit ebuild to bugs.gentoo.org")
-        EVT_MENU(self, mnuSubmitID, self.OnMnuSubmitEbuild)
         menubar.Append(menu_proj, "&Project")
 
         # View

@@ -1,5 +1,11 @@
 Abeni ChangeLog
 
+0.0.10 -------------
+
+Aug 30, 2003:
+
+Moved 'submit ebuild to bugzilla' dialog to the Project/Bugzilla info dialog. After you submit an ebuild to bugzilla the Project Manager is updated with the following: Bugzilla status: NEW, Mine <checked>, Abeni Status SUBMITTED, and the notes section is updated with the date submitted.
+
 0.0.9 -------------
 
 Aug 27, 2003:
