@@ -7,6 +7,7 @@ import shutil
 import sys
 import tempfile
 import commands
+import urlparse
 
 import wx
 import wx.stc
@@ -405,6 +406,8 @@ class MyFrame(wx.Frame):
         wx.EVT_BUTTON(self, self.button_env_refresh.GetId(), self.ViewEnvironment)
         wx.EVT_BUTTON(self, self.button_Category.GetId(), self.OnCatButton)
 
+        wx.EVT_BUTTON(self, self.button_filesdir_download.GetId(), self.OnFilesdirDownload)
+        wx.EVT_BUTTON(self, self.button_filesdir_new.GetId(), self.OnFilesdirNew)
         wx.EVT_BUTTON(self, self.button_filesdir_delete.GetId(), self.OnDeleteFilesdirButton)
         wx.EVT_BUTTON(self, self.button_s_patch.GetId(), self.OnPatchButton)
         wx.EVT_BUTTON(self, self.button_filesdir_edit.GetId(), self.OnEditFilesdirButton)
@@ -553,7 +556,7 @@ class MyFrame(wx.Frame):
         self.running = None
         # Action performed during external commands
         self.action = None
-        #self.STCeditor.Hide()
+        self.STCeditor.Hide()
         
         points = self.text_ctrl_log.GetFont().GetPointSize()  # get the current size
         f = wx.Font(points, wx.MODERN, wx.NORMAL, True)
@@ -799,6 +802,60 @@ class MyFrame(wx.Frame):
         if not os.path.isfile(f):
             return
         self.CreatePatch([f])
+
+    def OnFilesdirDownload(self, evt):
+        """Download file with wget to ${FILESDIR}"""
+        dlg = wx.TextEntryDialog(self, 'Enter URI:', 'Enter URI:', '')
+        if dlg.ShowModal() == wx.ID_OK:
+            uri = dlg.GetValue()
+        else:
+            return
+
+        f = os.path.basename(urlparse.urlsplit(uri)[2])
+        outFile = os.path.join(utils.GetFilesDir(self), f)
+
+        #Offer to rename bugs.gentoo.org bugzilla attachments:
+        #TODO: Nifty feature would be to parse the html automagically:
+        #See previous bugzilla tools in abeni's cvs to do this
+        #
+        if f == "attachment.cgi":
+            dlg = wx.TextEntryDialog(self, 'Choose name for your file:',
+                                    'Enter name for new file', f)
+            if dlg.ShowModal() == wx.ID_OK:
+                f = dlg.GetValue()
+                outFile = os.path.join(utils.GetFilesDir(self), f)
+         
+        #If file exists, add  _1, _2 etc. suffix:
+        if os.path.exists(outFile):
+            i = 1
+            newOutFile = ("%s_%s" % (outFile, i))
+            while os.path.exists(newOutFile):
+                i += 1
+            outFile = newOutFile
+
+        cmd = "wget -O %s %s" % (outFile, uri)
+        self.action = "download"
+        self.ExecuteInLog(cmd, "Fetching " + f)
+
+    def OnFilesdirNew(self, evt):
+        """Create new file in ${FILESDIR}"""
+        dlg = wx.TextEntryDialog(self, 'Choose name for your file:',
+                            'Enter name for new file', '')
+        if dlg.ShowModal() == wx.ID_OK:
+            fname = dlg.GetValue()
+        else:
+            return
+
+        d = utils.GetFilesDir(self)
+        p = os.path.join(d, fname)
+
+        if os.path.exists(p):
+            utils.MyMessage(self, "File exists!", \
+                          "Error", "error")
+            return
+         
+        os.system("touch %s" % p)
+        self.filesDir.onRefresh(-1)
 
     def OnDeleteFilesdirButton(self, evt):
         """delete file in explorer"""

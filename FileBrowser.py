@@ -216,7 +216,7 @@ class MyBrowser(AbstractFileWindow):
                         { 'f' : file, 'err' : strerror }
                 continue
 
-            chmod_win = PermsWindow.ChmodWindow(self, file, perm)
+            chmod_win = PermsDialog.ChmodWindow(self, file, perm)
             ret = chmod_win.ShowModal()
             if ret == wx.ID_OK:
                 new_perm = chmod_win.getPermissions()
@@ -249,8 +249,8 @@ class MyBrowser(AbstractFileWindow):
             newpath = os.path.join(self.getDir(), dir)
             if os.path.isdir(newpath):
                 self.setDir(newpath)
-            else:
-                print "Invalid directory: " + newpath
+            #else:
+            #    print "Invalid directory: " + newpath
 
         # Get the new listing
         self.last_listing = self.readDir(self.getDir())

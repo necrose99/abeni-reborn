@@ -1,3 +1,6 @@
+  18 Dec 2004; Rob Cakebread <pythonhead@gentoo.org>:
+  Moved output widget to center, removed old files widget and replaced it with
+  new column list style with separate tabs.
 
   01 Dec 2004; Rob Cakebread <pythonhead@gentoo.org>:
   Put CVS repoman support back in

@@ -131,7 +131,8 @@ def RefreshS(parent):
     print s
     if s:
         if os.path.exists(s):
-            parent.sDir.onRefresh(-1)
+            #parent.sDir.onRefresh(-1)
+            parent.sDir.populate(s)
         else:
             parent.sDir.clearList()
     else:
@@ -139,6 +140,8 @@ def RefreshS(parent):
 
 def PostAction(parent, action):
     """Execute code after asynchronous job done with ExecuteInLog finishes"""
+    if action == "download":
+        parent.filesDir.onRefresh(-1)
     if action == "setup":
         ViewEnvironment(parent)
         parent.filesDir.onRefresh(-1)
