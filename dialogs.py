@@ -379,17 +379,19 @@ class BugzillaDialog(wxDialog):
             import time
             win = SubmitEbuild(self, self.parent)
             win.ShowModal()
-            print "Created bug #" + win.bugNbr
             win.Destroy()
-            self.BugNbr.SetValue(win.bugNbr)
-            pos = self.AbeniComboBox.FindString("SUBMITTED")
-            self.AbeniComboBox.SetSelection(pos)
-            pos = self.StatusCombo.FindString("NEW")
-            self.StatusCombo.SetSelection(pos)
-            self.checkBox1.SetValue(True)
-            txt = self.NotestextCtrl.GetValue()
-            now = time.asctime(time.localtime())
-            self.NotestextCtrl.SetValue(txt + ("Ebuild submitted %s" % now))
+            if win.bugNbr:
+                self.BugNbr.SetValue(win.bugNbr)
+                pos = self.AbeniComboBox.FindString("SUBMITTED")
+                self.AbeniComboBox.SetSelection(pos)
+                pos = self.StatusCombo.FindString("NEW")
+                self.StatusCombo.SetSelection(pos)
+                self.checkBox1.SetValue(True)
+                txt = self.NotestextCtrl.GetValue()
+                now = time.asctime(time.localtime())
+                self.NotestextCtrl.SetValue(txt + ("Ebuild submitted %s" % now))
+            else:
+                self.MyMessage("Failed to create bug.", "Error", "error")
 
     def MyMessage(self, msg, title, type="info"):
         """Simple informational dialog"""
