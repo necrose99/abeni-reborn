@@ -256,9 +256,33 @@ class main(wxPanel):
     def GetPackage(self):
         return self.Package.GetValue()
 
-class LogWindow(wxPanel):
+class LogWindow(wxFrame):
 
-    """Show log window in tab"""
+    def __init__(self, parent):
+        wxFrame.__init__(self, parent, -1, "Log")
+        self.parent=parent
+        self.panel = LogPanel(self, parent.log)
+        EVT_CLOSE(self, self.OnClose)
+
+    def OnClose(self, event):
+        self.parent.LogBottom(self.panel.log)
+        self.Destroy()
+
+class LogPanel(wxPanel):
+
+    def __init__(self, parent, log):
+        wxPanel.__init__(self, parent, -1)
+        self.parent = parent
+        self.log = log
+        self.log.Reparent(self)
+        s = wxBoxSizer(wxHORIZONTAL)
+        s.Add(self.log, 1, wxEXPAND)
+        #s.Fit(self)
+        self.SetSizer(s)
+        self.SetAutoLayout(True)
+
+"""
+class LogWindow(wxPanel):
 
     def __init__(self, parent, log):
         wxPanel.__init__(self, parent, -1)
@@ -266,6 +290,8 @@ class LogWindow(wxPanel):
         s.Add(log, 1, wxEXPAND)
         self.SetSizer(s)
         self.SetAutoLayout(True)
+
+"""
 
 class depend(wxPanel):
 

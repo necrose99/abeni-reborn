@@ -130,22 +130,31 @@ class MyFrame(wxFrame):
         """Switch ouput log to bottom"""
         if not self.editing or self.pref['log'] == 'bottom':
             return
-        self.LogBottom()
-
-    def LogBottom(self):
         self.splitter.SplitHorizontally(self.nb, self.log, 400)
         self.splitter.SetMinimumPaneSize(20)
         self.log.Show(True)
         self.log.ShowPosition(self.log.GetLastPosition())
         self.pref['log'] = 'bottom'
-        self.nb.DeletePage(0)
+
+        #self.LogBottom()
+
+    def LogBottom(self, log):
+        self.log = log
+        self.log.Reparent(self.splitter)
+        wxLog_SetActiveTarget(MyLog(self.log))
+        self.splitter.SplitHorizontally(self.nb, self.log, 400)
+        self.splitter.SetMinimumPaneSize(20)
+        self.log.Show(True)
+        self.log.ShowPosition(self.log.GetLastPosition())
+        self.pref['log'] = 'bottom'
+        #self.nb.DeletePage(0)
 
     def OnMnuLogTab(self, event):
         """Switch ouput log to tab"""
         if not self.editing or self.pref['log'] == 'tab':
             return
         self.LogTab()
-        self.log.ShowPosition(self.log.GetLastPosition())
+        #self.log.ShowPosition(self.log.GetLastPosition())
 
     def OnNoAuto(self, event):
         """Toggle switch for FEATURES='noauto'"""
@@ -170,13 +179,22 @@ class MyFrame(wxFrame):
         self.log.SetValue('')
 
     def LogTab(self):
-        """Show log window in separate tab"""
-        self.logWindow=panels.LogWindow(self.nb, self.log)
-        self.nb.InsertPage(0, self.logWindow, "Log")
+        #Show log window in separate tab
         self.splitter.Unsplit()
-        self.nb.SetSelection(0)
+        self.logWin=panels.LogWindow(self)
+        self.logWin.Show(True)
         self.log.Show(True)
         self.pref['log'] = 'tab'
+
+    """
+    def LogTab(self):
+        #Show log window in separate tab
+        self.splitter.Unsplit()
+        self.logWin=panels.LogWindow(self.nb, self.log)
+        self.logWin.Show(True)
+        self.log.Show(True)
+        self.pref['log'] = 'tab'
+    """
 
     def WriteText(self, text):
         """Send text to log window after colorizing"""
