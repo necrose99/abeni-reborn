@@ -1,3 +1,4 @@
+db = 0
 browser = /usr/bin/firefox
 xterm = xterm
 font = Courier,12

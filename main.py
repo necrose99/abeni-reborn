@@ -30,31 +30,22 @@ import shutil
 import wxversion
 wxversion.select("2.5")
 import wx
-from portage import config, settings
 
 from MyFrame import MyFrame
+import utils
 
 
 def gentoo_sanity_check():
     """Make sure we have a working portage system"""
-    try:
-        env = config(clone=settings).environ()
-    except:
-        print "ERROR: Can't read portage configuration from /etc/make.conf"
-        sys.exit(1)
 
-    distdir = env['DISTDIR']
-    portdir = env['PORTDIR']
+    portdir_overlay = utils.get_portdir_overlay()
+    if portdir_overlay[-1] == "/":
+        portdir_overlay = portdir_overlay[:-1]
 
     #Exit if they don't have PORTDIR_OVERLAY defined in /etc/make.conf
     # or if defined but directory doesn't exist.
     #TODO: Pop up a dialog instead with utils.my_message
-    try:
-        #Users may specify multiple overlay directories, we use the first one:
-        portdir_overlay = env['PORTDIR_OVERLAY'].split(" ")[0]
-        if portdir_overlay[-1] == "/":
-            portdir_overlay = portdir_overlay[:-1]
-    except:
+    if not os.path.exists(portdir_overlay):
         print "ERROR: You must define PORTDIR_OVERLAY in your /etc/make.conf"
         print "You can simply uncomment this line:"
         print "#PORTDIR_OVERLAY='/usr/local/portage'"

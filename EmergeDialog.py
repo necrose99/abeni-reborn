@@ -51,7 +51,7 @@ class EmergeDialog(wx.Dialog):
         pretend_cmd = "emerge --nospinner -pv =%s"  % self.cat_pack_ver
 
         self.emerge = wx.TextCtrl(self, -1, cmd, size=(560,-1))
-        self.emerge.SetHelpText("Enter any options for the emerge command.")
+        self.emerge.Enable(False)
         box.Add(self.emerge, 1, wx.ALIGN_CENTRE|wx.ALL, 5)
         sizer.Add(box, 0, wx.GROW|wx.ALIGN_CENTER_VERTICAL|wx.ALL, 5)
         box = wx.BoxSizer(wx.HORIZONTAL)

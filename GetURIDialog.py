@@ -116,6 +116,9 @@ class GetURIDialog(wx.Dialog):
             if pn and pv:
                 self.text_ctrl_pn.SetValue(pn)
                 self.text_ctrl_pvr.SetValue(pv)
+                self.button_ok.Enable(True)
+            elif self.text_ctrl_pn.GetValue() and self.text_ctrl_pvr.GetValue():
+                self.button_ok.Enable(True)
             else:
                 self.SetWarning("Set PN and PV")
                 return 1

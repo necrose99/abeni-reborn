@@ -24,8 +24,10 @@ cellpadding="0" border="1">
     </td>
 </tr>
 </table>
-CVS repoman commits have been disabled until gpg signing
-of manifests is added in Abeni version ~0.2.0
+Abeni only edits files in PORTDIR_OVERLAY. When you are
+ready to commit to CVS, open the repoman console and 
+use "Copy ebuild from overlay". Then press the digest
+button.
         <p><wxp module="wx" class="Button">
         <param name="label" value="Okay">
         <param name="id"    value="ID_OK">

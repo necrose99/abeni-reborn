@@ -4,12 +4,8 @@
 # Distributed under the terms of the GNU General Public License, v2 or later
 # Author : Eric Olinger <EvvL AT RustedHalo DOT net>
 
-import os
-import sys
 from xml.sax import saxutils, make_parser
 from xml.sax.handler import feature_namespaces
-
-import portage
 
 
 class Metadata_XML(saxutils.DefaultHandler):
@@ -58,7 +54,6 @@ class Metadata_XML(saxutils.DefaultHandler):
 def get_metadata(ebuild_dir):
     """Get dictionary with metadata.xml info"""
     metadata_file= "%s/metadata.xml" % ebuild_dir
-
     parser = make_parser()
     handler = Metadata_XML()
     parser.setContentHandler(handler)
@@ -73,3 +68,5 @@ def get_metadata(ebuild_dir):
         md['names'] = handler._name
     return md
 
+if __name__ == "__main__":
+    print get_metadata("/usr/portage/app-portage/abeni")

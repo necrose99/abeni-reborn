@@ -1,10 +1,12 @@
-#!/usr/bin/env python
+#!/usr/bin/python
 
 from distutils.core import setup, Extension
 from glob import glob
 
+import __version__
+
 setup(name="abeni",
-      version="1.0_pre1",
+      version=__version__.version,
       description="Gentoo Linux ebuild GUI editor",
       author="Rob Cakebread",
       author_email="pythonhead@gentoo.org",

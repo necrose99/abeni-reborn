@@ -16,33 +16,47 @@ import commands
 
 import wx
 from wx.lib.dialogs import MultipleChoiceDialog
-from portage import config, settings
 sys.path.insert(0, "/usr/lib/gentoolkit/pym")
 import gentoolkit
 
-import sudo
 import options
 import ScrolledDialog
 import parse_metadata
 
-try:
-    env = config(clone=settings).environ()
-except:
-    print "ERROR: Can't read portage configuration from /etc/make.conf"
-    sys.exit(1)
 
 
-PORTDIR = env['PORTDIR']
-PORTDIR_OVERLAY = env['PORTDIR_OVERLAY'].split(" ")[0]
+def get_portdir_overlay():
+    """Return PORTDIR_OVERLAY from /etc/make.conf"""
+    cmd = "source /etc/make.conf;echo ${PORTDIR_OVERLAY}"
+    portdir_overlay = commands.getoutput(cmd).split(" ")[0]
+    if portdir_overlay[-1] == "/":
+        portdir_overlay = portdir_overlay[:-1]
+    return portdir_overlay
+
+def get_portage_tmpdir():
+    """Return PORTAGE_TMPDIR from /etc/make.conf"""
+    cmd = "source /etc/make.conf;echo ${PORTAGE_TMPDIR}"
+    return commands.getoutput(cmd)
+
+def get_portdir():
+    """Return PORTDIR from /etc/make.conf"""
+    cmd = "source /etc/make.conf;echo ${PORTDIR}"
+    return commands.getoutput(cmd)
+    
+def get_keywords():
+    """Return PORTDIR from /etc/make.conf"""
+    #Lets choose the first arch they have, in case of multiples.
+    #TODO: Mention in documentation
+    cmd = "source /etc/make.conf;echo ${ACCEPT_KEYWORDS}"
+    all_arches = commands.getoutput(cmd)
+    arch = all_arches.split(' ')[0]
+
+PORTDIR_OVERLAY = get_portdir_overlay()
 if PORTDIR_OVERLAY[-1] == "/":
     PORTDIR_OVERLAY = PORTDIR_OVERLAY[:-1]
-PORTAGE_TMPDIR = env['PORTAGE_TMPDIR']
-
-#Lets choose the first arch they have, in case of multiples.
-#TODO: Mention in documentation
-#arch = '~%s' % env['ACCEPT_KEYWORDS'].split(' ')[0].replace('~', '')
-arch = '%s' % env['ACCEPT_KEYWORDS'].split(' ')[0]
-
+PORTDIR = get_portdir()
+PORTAGE_TMPDIR = get_portage_tmpdir()
+arch = get_keywords()
 
 def get_arch():
     """Returns first arch listed in ACCEPT_KEYWORDS in /etc/make.conf"""
@@ -140,7 +154,6 @@ def post_action(parent, action):
 
     if action == 'install':
         parent.label_d_dir.SetLabel("${D}: %s" % get_d(parent))
-        post_install(parent)
         log_to_output(parent)
         refresh_s(parent)
         refresh_d(parent)
@@ -166,12 +179,8 @@ def post_action(parent, action):
 def log_to_output(parent):
     """Get logfile text and display in output tab"""
     #TODO: Run through WriteText or something to get color/filter esc codes
-    #lines = commands.getoutput("cat /var/tmp/abeni/emerge_log").splitlines()
-    #for l in lines:
-    #    parent.Write(l)
-    #t = commands.getoutput("sudo cat /var/tmp/abeni/emerge_log")
-    txt = commands.getoutput("cat %s" % parent.emerge_log)
-    #status, txt = sudo.cmd("cat /var/tmp/abeni/emerge_log")
+    tmp_log = os.path.expanduser("~/.abeni/tmp_log")
+    txt = open(tmp_log, "r").read()
     parent.text_ctrl_log.AppendText("%s\n" % txt)
 
 def export_ebuild(parent):
@@ -247,18 +256,12 @@ def export_ebuild(parent):
     else:
         return 0
 
-def do_sudo(cmd):
-    """Execute command with sudo"""
-    status, output = sudo.cmd(cmd)
-    return status, output
-    
-def post_install(parent):
-    """Change group perms of files in ${D} so we can read them"""
-    p = get_p(parent)
-    d = '%s/portage/%s/image' % (PORTAGE_TMPDIR, p)
-    do_sudo("chmod +g+r -R %s" %  d)
-    do_sudo("chmod +g+xr %s" %  d)
 
+def exec_sudo(cmd):
+    (status, output) = commands.getstatusoutput("sudo /usr/sbin/abex %s" % cmd)
+    print status, output
+    return (status, output)
+    
 def get_status(parent):
     """Let us know if ebuild has been unpacked, comiled and installed"""
     p = get_p(parent)
@@ -287,10 +290,7 @@ def set_status(parent, page = None):
 
 def fix_unpacked(parent):
     """chmod for portage group read"""
-    p = get_p(parent)
-    d = '%s/portage/%s/work' % (PORTAGE_TMPDIR, p)
-    d1 = '%s/portage/%s' % (PORTAGE_TMPDIR, p)
-    do_sudo("chmod +g+xrw -R %s" % d1)
+    exec_sudo("-u %s" % get_p(parent))
 
 def post_unpack(parent):
     """Report what directories were unpacked, try to set S if necessary"""
@@ -397,35 +397,30 @@ def verify_saved(parent, buffer = None):
 
 def delete_ebuild(parent):
     """Delete ebuild from disk in overlay"""
-    f = parent.filename[parent.ed_shown]
+    filename = parent.filename[parent.ed_shown]
     try:
-        os.unlink(f)
+        os.unlink(filename)
         reset(parent)
     except:
-        msg = "Couldn't delete %s" % f 
+        msg = "Couldn't delete %s" % filename
         my_message(parent, msg, "Error", "error")
-    d = os.path.split(f)[0]
-    if True in [ f[-7:] == '.ebuild' for f in os.listdir(d) ]:
         return
+
+    pkg_dir = os.path.split(filename)[0]
+    #Return if there are still ebuilds for this package:
+    if True in [ my_file[-7:] == '.ebuild' for my_file in os.listdir(pkg_dir) ]:
+        return
+
     msg = "There are no more ebuilds for this package in the overlay.\n" + \
-          "Delete this directory and its entire contents?\n%s" % d
+          "Delete this directory and its entire contents?\n%s" % pkg_dir
     dlg = wx.MessageDialog(parent, msg,
             'Delete dirctory?', wx.YES_NO)
     val = dlg.ShowModal()
     if val == wx.ID_YES:
-        try:
-            do_sudo("rm -r %s" % d)
-            #See if category is empty, if not delete it
-            pd = os.path.abspath("%s/.." % d)
-            if not os.listdir(pd):
-                try:
-                    do_sudo("rmdir %s" % pd)
-                except:
-                    msg = "Couldn't delete empty category directory %s" % pd
-                    my_message(parent, msg, "Error", "error")
-        except:
-            msg = "Couldn't delete %s" % d
-            my_message(parent, msg, "Error", "error")
+        cat_dir = os.path.abspath("%s/.." % pkg_dir)
+        cat = os.path.basename(cat_dir)
+        pkg = os.path.basename(pkg_dir)
+        exec_sudo('-d "%s %s"' % (cat, pkg))
 
 def save_ebuild(parent):
     """Save ebuild if entries are sane"""
@@ -540,8 +535,6 @@ def get_s(parent):
 def is_unpacked(parent):
     """Return 1 if they have unpacked"""
     if os.path.exists("%s/portage/%s/.unpacked" % (PORTAGE_TMPDIR, get_p(parent))):
-    #if not os.system('sudo ls %s/portage/%s/.unpacked >& /dev/null' \
-    #                 % (PORTAGE_TMPDIR, get_p(parent))):
         return 1
 
 def get_envs(parent):
@@ -603,6 +596,7 @@ def get_options(parent):
 
 def query_metadata(parent):
     """Parse metadata.xml in PORTDIR"""
+    #return ("", "")
     if not os.path.exists("%s/metadata.xml" % get_portdir_path(parent)):
         return ("", "")
     mdata = parse_metadata.get_metadata(get_portdir_path(parent))
@@ -718,6 +712,13 @@ def switch_ebuilds(parent):
     enable_browser_olay(parent, filename)
     set_notes(parent)
 
+def is_open(parent, filename):
+    """Check if ebuild is already open in editor """
+    #file is already opened
+    if filename in parent.filename:
+        parent.Write("!!! Ebuild already open.")
+        return True
+
 def load_ebuild(parent, filename):
     """Load ebuild from filename"""
     filename = filename.strip()
@@ -726,10 +727,6 @@ def load_ebuild(parent, filename):
         return
     #make sure its a valid ebuild name
     if not verify_ebuild_name(parent, filename):
-        return
-    #file is already opened
-    if filename in parent.filename:
-        parent.Write("!!! Ebuild already open.")
         return
 
     s = filename.split("/")

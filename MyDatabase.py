@@ -1,7 +1,7 @@
 import os
 
-from sqlobject import *
 
+from sqlobject import *
 from options import Options
 
 
@@ -17,6 +17,7 @@ elif prefs['db'] == 4:
     database = 'mysql'
 else:
     database = None
+
 
 if database:
     conn = connectionForURI("%s://%s" % \

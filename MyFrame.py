@@ -11,50 +11,36 @@ import os
 import urlparse
 import shutil
 import sys
-import tempfile
-import commands
 import urlparse
 
 import wx
 import wx.stc
 from wx.lib.dialogs import MultipleChoiceDialog
-from portage import config, settings
 
 import __version__ 
 import utils
-
-import AboutDialog
-#import FileCopyDialog
-#import MetadataXMLDialog
 import RepomanDialog
 import AddFunctionDialog
 import GetURIDialog
-#import PermsDialog
 import ScrolledDialog
-#import FileCopyDialog
-#import HelpCVSDialog
 import PortageFuncsDialog
 import EmergeDialog
-import HelpFkeysDialog
 import PrefsDialog
-
 from GentooSTC import GentooSTC
 from FileBrowser import MyBrowser
 from MyLog import MyLog
 from URI_Link import MyURILink
-import MyDatabase
 import pyipc
 import enamer
 
 
-# __revision__ = "$Id: MyFrame.py,v 1.9 2005/01/24 05:33:39 robc Exp $"
+# __revision__ = "$Id: MyFrame.py,v 1.10 2005/01/28 00:11:47 robc Exp $"
 
-env = config(clone = settings).environ()
-PORTDIR_OVERLAY = env['PORTDIR_OVERLAY'].split(" ")[0]
+PORTDIR_OVERLAY = utils.get_portdir_overlay()
 if PORTDIR_OVERLAY[-1] == "/":
     PORTDIR_OVERLAY = PORTDIR_OVERLAY[:-1]
-PORTDIR = env['PORTDIR']
-PORTAGE_TMPDIR = env['PORTAGE_TMPDIR']
+PORTDIR = utils.get_portdir()
+PORTAGE_TMPDIR = utils.get_portage_tmpdir()
 
 
 class MyFrame(wx.Frame):
@@ -120,6 +106,10 @@ class MyFrame(wx.Frame):
         global mnuNextBufferID; mnuNextBufferID = wx.NewId()
         global mnuPrevBufferID; mnuPrevBufferID = wx.NewId()
         global mnuClearLogID; mnuClearLogID = wx.NewId()
+        self.log_bottom = wx.NewId()
+        self.log_middle = wx.NewId()
+        self.log_right = wx.NewId()
+        self.log_left = wx.NewId()
         global mnuPrefID; mnuPrefID = wx.NewId()
         global mnuHelpID; mnuHelpID = wx.NewId()
         global mnuHelpRefID; mnuHelpRefID = wx.NewId()
@@ -181,6 +171,11 @@ class MyFrame(wx.Frame):
         self.menubar.Append(wxglade_tmp_menu, "&View")
         self.menu_options = wx.Menu()
         self.menu_options.Append(mnuClearLogID, "&Clear log window\tF11", "", wx.ITEM_NORMAL)
+        self.menu_options.AppendSeparator()
+        self.menu_options.Append(self.log_bottom, "&Bottom", "", wx.ITEM_RADIO)
+        self.menu_options.Append(self.log_middle, "&Middle", "", wx.ITEM_RADIO)
+        self.menu_options.Append(self.log_right, "Top &Right", "", wx.ITEM_RADIO)
+        self.menu_options.Append(self.log_left, "Top &Left", "", wx.ITEM_RADIO)
         self.menubar.Append(self.menu_options, "Lo&g")
         wxglade_tmp_menu = wx.Menu()
         wxglade_tmp_menu.Append(mnuPrefID, "&Preferences", "", wx.ITEM_NORMAL)
@@ -278,6 +273,10 @@ class MyFrame(wx.Frame):
         self.__set_properties()
         self.__do_layout()
 
+        self.Bind(wx.EVT_MENU, self.LogRadio, id=self.log_bottom)
+        self.Bind(wx.EVT_MENU, self.LogRadio, id=self.log_middle)
+        self.Bind(wx.EVT_MENU, self.LogRadio, id=self.log_right)
+        self.Bind(wx.EVT_MENU, self.LogRadio, id=self.log_left)
         self.Bind(wx.EVT_NOTEBOOK_PAGE_CHANGED, self.OnEdChanged, self.notebook_editor)
         self.Bind(wx.EVT_NOTEBOOK_PAGE_CHANGING, self.OnEdChanging, self.notebook_editor)
         # end wxGlade
@@ -288,7 +287,6 @@ class MyFrame(wx.Frame):
         _icon = wx.EmptyIcon()
         _icon.CopyFromBitmap(wx.Bitmap("/usr/share/pixmaps/abeni/abeni_logo16.png", wx.BITMAP_TYPE_ANY))
         self.SetIcon(_icon)
-        self.SetMinSize((882, 860))
         self.statusbar.SetStatusWidths([-1])
         # statusbar fields
         statusbar_fields = [""]
@@ -441,6 +439,8 @@ class MyFrame(wx.Frame):
         sizer_main.Add(self.panel_main, 1, wx.EXPAND, 0)
         self.SetAutoLayout(True)
         self.SetSizer(sizer_main)
+        sizer_main.Fit(self)
+        sizer_main.SetSizeHints(self)
         self.Layout()
         self.Centre()
         # end wxGlade
@@ -448,26 +448,7 @@ class MyFrame(wx.Frame):
 
     def __my_layout(self):
         """Local changes to __do_layout()"""
-        if os.getuid() == 0:
-            utils.my_message(self,
-                             "You no longer need run Abeni as root.\n" + \
-                             "Setup your regular user to use sudo.\n" + \
-                             "See http://abeni.sf.net/ if you need\n" + \
-                             "help setting up sudo.",
-                             "You must NOT be root.",
-                             "error"
-                             )
-            sys.exit(1)
-        if commands.getoutput("sudo whoami").find("root") == -1:
-            utils.my_message(self, "You do not appear to have sudo\n" + \
-                             "setup correctly for Abeni.\n" + \
-                             "See http://abeni.sf.net/ if you need\n" + \
-                             "help setting up sudo.",
-                             "sudo test failed",
-                             "error"
-                             )
-            sys.exit(1)
-
+        self.security_check()
         wx.EVT_BUTTON(self, self.button_bugzilla.GetId(), self.OnLaunchBugz) 
         wx.EVT_BUTTON(self, self.button_env_refresh.GetId(),
                       self.OnViewEnvironment)
@@ -661,16 +642,8 @@ class MyFrame(wx.Frame):
         if self.pref['db'] == 0:
             self.db = None
         else: 
+            import MyDatabase
             self.db = MyDatabase
-        #CVS:
-        #self.menubar.Enable(self.mnuFullCommitID, False)
-        #Load ebuild if specified on command line, by filename or by
-        ## full package name
-        #if len(sys.argv) == 2:
-        #    f = sys.argv[1]
-        #    print "Checking for package: %s" % f
-        #    #Draw GUI before we start the slow search
-        #    utils.load_by_package(self, f)
         self.EnableToolbar(False)
 
         #Restore frame and splitters to last size/positions:
@@ -688,7 +661,6 @@ class MyFrame(wx.Frame):
         #Focus on Notes tab
         self.notebook_1.SetSelection(1)
 
-        self.emerge_log = os.path.expanduser("~/.abeni/emerge_log")
         #list of editor widgets:
         self.eds = []
         self.ed_panels = []
@@ -706,6 +678,18 @@ class MyFrame(wx.Frame):
             self.text_ctrl_PVR.Enable(True)
         # end wxGlade
 
+    def security_check(self):
+        if os.getuid() == 0:
+            utils.my_message(self,
+                             "You no longer need run Abeni as root.\n" + \
+                             "Setup your regular user to use sudo.\n" + \
+                             "See http://abeni.sf.net/ if you need\n" + \
+                             "help setting up sudo.",
+                             "You must NOT be root.",
+                             "error"
+                             )
+            sys.exit(1)
+            
     def EnableMenus(self):
         """Enable appropriate menus when first editor is opened"""
         # 'edit' through 'view' top menus:
@@ -1089,13 +1073,16 @@ class MyFrame(wx.Frame):
         val = dlg.ShowModal()
         if val == wx.ID_YES:
             if os.path.basename(f)[:6] == "digest":
-                utils.do_sudo("rm %s" % f)
+                cat = utils.get_category_name(self)
+                pn = utils.get_pn(self)
+                filename = os.path.basename(f)
+                utils.exec_sudo('-f "%s %s %s"' % (cat, pn, filename))
             else:
                 try:
                     os.unlink(f)
-                except:
+                except OSError, msg:
                     utils.my_message(self, "Couldn't delete file.", \
-                          "Error", "error")
+                          msg, "error")
             self.filesDir.onRefresh(-1)
 
     def OnCatButton(self, event):
@@ -1126,6 +1113,8 @@ class MyFrame(wx.Frame):
         # get the file based on the menu ID
         file_num = event.GetId() - wx.ID_FILE1
         path = self.filehistory.GetHistoryFile(file_num)
+        if utils.is_open(self, path):
+            return
         utils.reset(self)
         utils.load_ebuild(self, path)
         # add it back to the history so it will be moved up the list
@@ -1144,6 +1133,8 @@ class MyFrame(wx.Frame):
                             wildcard, wx.OPEN)
         if dlg.ShowModal() == wx.ID_OK:
             filename = dlg.GetPath()
+            if utils.is_open(self, filename):
+                return
             self.last_open = os.path.dirname(dlg.GetPath())
             utils.reset(self)
             utils.load_ebuild(self, filename)
@@ -1188,7 +1179,7 @@ class MyFrame(wx.Frame):
         page = self.notebook_editor.GetSelection()
         self.ed_shown = page
         self.UpdateChangedTab()
-        utils.reset(self)
+        #utils.reset(self)
         #if no more buffers open, disable menus/toolbars
         if not self.QueryEditing():
             self.DisableMenus()
@@ -1355,7 +1346,7 @@ class MyFrame(wx.Frame):
         if not utils.verify_saved(self):
             self.action = "digest"
             log_msg = '))) Creating digest...'
-            cmd = 'sudo /usr/sbin/ebuild %s digest' % self.filename[self.ed_shown]
+            cmd = 'sudo /usr/sbin/abex -e \"%s,digest\"' % self.filename[self.ed_shown]
             self.ExecuteInLog(cmd, log_msg)
 
     def OnToolbarCompile(self, event):
@@ -1367,15 +1358,15 @@ class MyFrame(wx.Frame):
         if not utils.verify_saved(self):
             self.action = "compile"
             log_msg = '))) Compiling...'
-            cmd = '''xterm -e "sudo sh -c 'export %s;export USE='%s';sudo ebuild %s compile 2>&1| tee %s'"''' \
-                     % (self.noauto, self.pref['use'], self.filename[self.ed_shown], self.emerge_log)
+            cmd = '''xterm -e "sudo /usr/sbin/abex -x \"%s,%s,compile,%s\""''' \
+                     % (self.noauto, self.pref['use'], self.filename[self.ed_shown])
             self.ExecuteInLog(cmd, log_msg)
 
     def OnMnuClean(self, event):
         """Run 'ebuild filename clean' on this ebuild"""
         log_msg = '))) Cleaning...'
         self.action = "clean"
-        cmd = 'sudo /usr/sbin/ebuild %s clean' % self.filename[self.ed_shown]
+        cmd = 'sudo /usr/sbin/abex -e \"%s,clean\"' % self.filename[self.ed_shown]
         self.ExecuteInLog(cmd, log_msg)
 
     def OnToolbarEdit(self, event):
@@ -1390,7 +1381,7 @@ class MyFrame(wx.Frame):
             return 0
         if not utils.verify_saved(self):
             self.action = 'unpack'
-            cmd = 'sudo /usr/sbin/ebuild %s unpack' % self.filename[self.ed_shown]
+            cmd = 'sudo /usr/sbin/abex -e \"%s,unpack\"' % self.filename[self.ed_shown]
             self.ExecuteInLog(cmd, "))) Unpacking..." )
 
     def OnToolbarInstall(self, event):
@@ -1403,10 +1394,8 @@ class MyFrame(wx.Frame):
         if not utils.verify_saved(self):
             self.action = 'install'
             log_msg = '))) Installing...'
-            cmd = '''xterm -e "sudo sh -c 'export %s;export USE='%s';sudo ebuild %s install 2>&1|tee %s'"''' \
-                  % (self.noauto, self.pref['use'], self.filename[self.ed_shown], self.emerge_log)
-
-
+            cmd = '''xterm -e "sudo /usr/sbin/abex -x \"%s,%s,install,%s\""''' \
+                     % (self.noauto, self.pref['use'], self.filename[self.ed_shown])
             self.ExecuteInLog(cmd, log_msg)
 
     def OnToolbarQmerge(self, event):
@@ -1419,8 +1408,8 @@ class MyFrame(wx.Frame):
         if not utils.verify_saved(self):
             self.action = 'qmerge'
             log_msg = '))) Qmerging...'
-            cmd = '''xterm -e "sudo sh -c 'export %s;export USE='%s';sudo ebuild %s qmerge 2>&1|tee %s'"''' \
-                  % (self.noauto, self.pref['use'], self.filename[self.ed_shown], self.emerge_log)
+            cmd = '''xterm -e "sudo /usr/sbin/abex -x \"%s,%s,install,%s\""''' \
+                     % (self.noauto, self.pref['use'], self.filename[self.ed_shown])
             self.Write(cmd)
             self.ExecuteInLog(cmd, log_msg)
 
@@ -1463,6 +1452,7 @@ class MyFrame(wx.Frame):
 
     def CreatePatch(self, orig=[]):
         """Creates patch from given file or selected from dialog"""
+        import tempfile
         if not self.pref['editor']:
             utils.my_message(self, "No editor defined in perferences", 
                              "Error: no editor defined", "error")
@@ -1476,11 +1466,7 @@ class MyFrame(wx.Frame):
                 orig = dlg.GetPaths()
             else:
                 return
-        f = utils.get_files_dir(self)
-        #copy file to /var/tmp
         fdir = utils.get_files_dir(self)
-        os.system("sudo chown root:portage %s" % fdir)
-        os.system("sudo chmod 775 %s" % fdir)
         tmpdir = tempfile.mkdtemp(suffix='', prefix='tmp', dir=None)
         tmp_patch = os.path.join(tmpdir, "tmp_patch")
         base = os.path.basename(orig[0])
@@ -1497,7 +1483,7 @@ class MyFrame(wx.Frame):
         else:
             return
 
-        dest = "%s/%s" % (f, pname)
+        dest = "%s/%s" % (fdir, pname)
         shutil.copy(tmp_patch, dest)
         try:
             os.unlink(tmp_patch)
@@ -1631,8 +1617,10 @@ class MyFrame(wx.Frame):
                                    )
         if dlg.ShowModal() == wx.ID_OK:
             e = dlg.GetStringSelection()
-            utils.reset(self)
             filename = "%s/%s" % (PORTDIR_OVERLAY, e)
+            if utils.is_open(self, filename):
+                return
+            utils.reset(self)
             if os.path.isfile(filename):
                 utils.load_ebuild(self, filename)
                 self.filehistory.AddFileToHistory(filename)
@@ -1833,12 +1821,14 @@ class MyFrame(wx.Frame):
 
     def OnMnuHelpFkeys(self, event):
         """List fkeys"""
+        import HelpFkeysDialog
         about = HelpFkeysDialog.MyHelpFkeys(self)
         about.ShowModal()
         about.Destroy()
 
     def OnMnuHelpCVS(self, event):
         """Repoman CVS help for Gentoo devs"""
+        import HelpCVSDialog
         about = HelpCVSDialog.MyHelpCVS(self)
         about.ShowModal()
         about.Destroy()
@@ -1846,6 +1836,7 @@ class MyFrame(wx.Frame):
 
     def OnMnuAbout(self, event):
         """Obligitory About me and my app screen"""
+        import AboutDialog
         about = AboutDialog.MyAboutBox(self)
         about.ShowModal()
         about.Destroy()
@@ -1863,11 +1854,6 @@ class MyFrame(wx.Frame):
 
     def KillProc(self, event):
         """Kill processes when stop button clicked"""
-        #os.system("sudo kill %s" % self.pid)
-        #self.Write("Killed %s" % self.pid)
-        #pid = open("/var/run/abeni_proc.pid", "r").read().strip()
-        #os.system("sudo kill %s" % pid)
-        #self.Write("sub pid %s killed" % pid)
         self.Write("If you're running a command in an xterm, " + \
                    "press Ctrl-C in that xterm.")
         event.Skip()
@@ -2030,10 +2016,11 @@ class MyFrame(wx.Frame):
             val = win.ShowModal()
             if val == wx.ID_OK:
                 self.action = "emerge"
-                cmd = '''xterm -e "sudo sh -c 'export USE='%s';%s | tee %s'"''' \
+                cmd = """xterm -e 'sudo /usr/sbin/abex -m \"%s\",\"%s\"'""" \
                          % (win.use.GetValue(),
-                            win.emerge.GetValue(),
-                            self.emerge_log)
+                            win.emerge.GetValue()[7:]
+                           )
+                print cmd
                 log_msg = "))) %s" % cmd
                 self.ExecuteInLog(cmd, log_msg)
 
@@ -2049,18 +2036,16 @@ class MyFrame(wx.Frame):
                                     c, wx.OK|wx.CANCEL)
         if dlg.ShowModal() == wx.ID_OK:
             opt = dlg.GetStringSelection()
+            print opt
             dlg.Destroy()
         else:
             dlg.Destroy()
             return
-
+        print opt
         if not utils.verify_saved(self):
-            if opt == 'setup':
-                self.action = 'setup'
-            cmd = 'USE="%s" FEATURES="%s" sudo /usr/sbin/ebuild %s %s' % \
-                    (self.pref['use'], self.pref['features'],
-                     self.filename[self.ed_shown], opt
-                    )
+            self.action = opt
+            cmd = '''xterm -e "sudo /usr/sbin/abex -x \"%s,%s,%s,%s\""''' \
+                     % (self.noauto, self.pref['use'], opt, self.filename[self.ed_shown])
             log_msg = "))) Executing:\n"
             log_msg += ")))   USE='%s' FEATURES='%s'\n" % (self.pref['use'],
                                                           self.pref['features']
@@ -2120,6 +2105,34 @@ class MyFrame(wx.Frame):
 
     def OnEdChanging(self, event): # wxGlade: MyFrame.<event_handler>
         """Catch page changes in notebook before new page is selected"""
+        event.Skip()
+
+    def LogRadio(self, event): # wxGlade: MyFrame.<event_handler>
+        log = event.GetId()
+        if log == self.log_bottom:
+            print "bottom log"
+            txt = self.text_ctrl_log.GetValue()
+            self.panel_log = wx.Panel(self.notebook_1, -1)
+            self.text_ctrl_log = wx.TextCtrl(self.panel_log, -1, "", style=wx.TE_MULTILINE|wx.TE_READONLY)
+            self.text_ctrl_log.SetValue(txt)
+            wx.Log_SetActiveTarget(MyLog(self.text_ctrl_log))
+            sizer_staticbox = (wx.StaticBox(self.panel_log, -1))
+            my_sizer = wx.StaticBoxSizer(sizer_staticbox, wx.HORIZONTAL)
+            my_sizer.Add(self.text_ctrl_log, 1, wx.EXPAND, 0)
+            self.panel_log.SetSizer(my_sizer)
+            my_sizer.Fit(self.panel_log)
+            my_sizer.SetSizeHints(self.panel_log)
+            self.notebook_1.AddPage(self.panel_log, "Log")
+
+        if log == self.log_middle:
+            print "middle log"
+
+        if log == self.log_left:
+            print "left"
+
+        if log == self.log_right:
+            print "right"
+
         event.Skip()
 
 # end of class MyFrame
