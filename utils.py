@@ -269,10 +269,10 @@ def PostAction(parent, action):
         parent.RefreshExplorer()
     if action:
         parent.statusbar.SetStatusText("%s done." % action, 0)
-    #TODO: major: gtk2 only:
     #this may cause -gtk2 to segfault. If I don't have it, the log
-    #window won't scroll properly after wxExecuteInLog ends
-    #wxYield()
+    #window won't scroll properly after wxExecuteInLog ends with gtk2
+    if parent.pref['gtk'] == 2:
+        wxYield()
 
 def ExportEbuild(parent):
     ''' Export ebuild directory to tar file '''
@@ -339,7 +339,6 @@ def ExportEbuild(parent):
 
 def PostUnpack(parent):
     """Report what directories were unpacked, try to set S if necessary"""
-    import popen2
     p = getP(parent)
     d = '%s/portage/%s/work' % (portage_tmpdir, p)
     try:
@@ -692,23 +691,6 @@ def ViewEnvironment(parent):
         if os.path.exists(f):
             parent.text_ctrl_environment.SetValue(open(f, 'r').read())
 
-def GetTemplates(parent):
-    """Return list of Eclass templates to load"""
-    import Templates
-    import MyTemplates
-
-    funcs = dir(Templates)
-    c = []
-    for l in funcs:
-        if l[0:2] == 'my':
-            c.append(l[2:])
-
-    funcs = dir(MyTemplates)
-    for l in funcs:
-        if l[0:2] == 'my':
-            c.append(l[2:])
-    return c
-
 def NotGentooDev(parent):
     ''' Warn user about non-developers using CVS '''
     e = parent.pref['email']
@@ -861,15 +843,43 @@ def WriteEbuild(parent, temp=0):
     SetFilename(parent, filename)
     parent.filehistory.AddFileToHistory(filename.strip())
     if parent.pref['stripHeader'] == 1:
-        parent.FindReplace("# $Header", '# $Header: /cvsroot/abeni/abeni/utils.py,v 1.29 2004/08/06 20:53:42 robc Exp $')
+        parent.FindReplace("# $Header", '# $Header: /cvsroot/abeni/abeni/utils.py,v 1.30 2004/08/10 02:32:51 robc Exp $')
     txt = parent.STCeditor.GetText()
+    # strip trailing whitespace
+    out = '\n'.join([t.rstrip() for t in txt.splitlines() if t != '\n'])
+    out += '\n'
+    if txt != out:
+        write(parent, "))) Stripped trailing whitespace.")
+        parent.STCeditor.SetText(out)
     f_out = open(filename, 'w')
-    f_out.writelines(txt)
+    f_out.write(out)
     f_out.close()
-
     parent.STCeditor.EmptyUndoBuffer()
     parent.STCeditor.SetSavePoint()
     parent.recentList.append(filename)
     parent.statusbar.SetStatusText("Saved", 0)
     #TODO: Add option in prefs to show this:
     write(parent, "))) Saved %s" % filename)
+
+def GetGtkVersion(self):
+    """Find if wxPython was compiled with gtk or gtk2:"""
+    wx_ver = '.'.join([str(x)for x in wxVERSION])[:-1]
+    basedir ='/var/db/pkg/dev-python'
+    files = os.listdir('/var/db/pkg/dev-python/')
+    for f in files:
+        if string.find(f, 'wxpython-' + wx_ver) != -1:
+            uf = os.path.join(basedir, f) 
+            break
+    uf = os.path.join(uf, "USE")
+    gtk = 1
+    if os.path.exists(uf):
+        cmd = "grep gtk2 %s" % uf
+        err, out = RunExtProgram(cmd)
+        for l in out:
+            if l:
+                gtk = 2
+    else:
+        write(parent, "!!! Couldn't detect gtk version wxPython was compiled with.")
+        write(parent, "!!! Please report this bug to pythonhead@gentoo.org")
+    return gtk
+

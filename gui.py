@@ -5,6 +5,7 @@ import urlparse
 import string
 import shutil
 import sys
+from wx.lib.evtmgr import eventManager
 
 from wxPython.lib.dialogs import wxMultipleChoiceDialog
 from wxPython.lib.dialogs import wxScrolledMessageDialog
@@ -328,6 +329,8 @@ class MyFrame(wxFrame):
         self.Layout()
         # end wxGlade
 
+        eventManager.Register(self.OnSetFocus, wx.EVT_SET_FOCUS, self.STCeditor)
+
         if os.getuid() != 0:
             utils.MyMessage(self, "You must be root, or running Abeni with 'sudo'.",\
                            "You must be root.", "error")
@@ -528,6 +531,8 @@ class MyFrame(wxFrame):
         self.SetTitle("Abeni - The ebuild Builder " + __version__.version)
         self.finddata = wxFindReplaceData()
         self.ExternalControlListen()
+        self.pref['gtk'] = utils.GetGtkVersion(self)
+
         #Load ebuild if specified on command line, by filename or by
         ## full package name
         if len(sys.argv) == 2:
@@ -535,6 +540,11 @@ class MyFrame(wxFrame):
             print "Checking for package: %s" % f
             #Draw GUI before we start the slow search
             utils.LoadByPackage(self, f)
+
+    def OnSetFocus(self, evt):
+        self.STCeditor.SetSTCFocus(1)
+        print "focus"
+        evt.Skip()
 
     def OnMnuExportEbuild(self, event):
         """Export ebuild and auxiliary files as tarball"""
@@ -1486,14 +1496,18 @@ class MyFrame(wxFrame):
         mq = pyipc.MessageQueue(100)
         data = mq.receive()
         if data:
-            print "Queue:", data        
             cmd, file = data.split("*")
-            print "'%s'" % cmd
-            print type(cmd)
-            print len(cmd)
+            print "External command recvd:'%s'" % cmd
             if cmd[4:] == "digest":
-                print "Trying to create digest..."
                 self.OnMnuCreateDigest(-1)
+            if cmd[4:] == "unpack":
+                self.OnToolbarUnpack(-1)
+            if cmd[4:] == "compile":
+                self.OnToolbarCompile(-1)
+            if cmd[4:] == "install":
+                self.OnToolbarInstall(-1)
+            if cmd[4:] == "qmerge":
+                self.OnToolbarQmerge(-1)
 
     def OnMnuHelpFkeys(self, event):
         """List fkeys"""
@@ -1506,18 +1520,21 @@ class MyFrame(wxFrame):
         about = HelpCVSDialog.MyHelpCVS(self)
         about.ShowModal()
         about.Destroy()
+        event.Skip()
 
     def OnMnuAbout(self, event):
         """Obligitory About me and my app screen"""
         about = AboutDialog.MyAboutBox(self)
         about.ShowModal()
         about.Destroy()
+        event.Skip()
 
     def OnMnuExport(self, event):
         """Export ebuild and auxiliary files as tarball"""
         if not self.editing:
             return
         utils.ExportEbuild(self)
+        event.Skip()
 
     def OnMnuBugzilla(self, event):
         """Dialog to add bugzilla info"""
@@ -1529,10 +1546,12 @@ class MyFrame(wxFrame):
         if v == wxID_OK:
             r = dlg.SaveInfo()
             dlg.Destroy()
+        event.Skip()
 
     def OnMnuClearLog(self, event):
         """Clear the log window"""
         self.text_ctrl_log.SetValue('')
+        event.Skip()
 
     def KillProc(self, event):
         """Kill processes when stop button clicked"""
@@ -1544,6 +1563,7 @@ class MyFrame(wxFrame):
             utils.write(self, "sub pid %s killed" % pid)
         except:
             pass
+        event.Skip()
 
     def OnProcessEnded(self, evt):
         #utils.write('OnProcessEnded, pid:%s,  exitCode: %s\n' %
@@ -1662,12 +1682,36 @@ class MyFrame(wxFrame):
                     os.chdir('%s/portage/%s/work/' % (portage_tmpdir, p))
                 except:
                     pass
-            if self.pref['xterm']:
-                try:
-                    os.system('%s &' % self.pref['xterm'])
-                    os.chdir(c)
-                except:
-                    pass
+            xterm = self.pref['xterm']
+            print xterm
+            if xterm:
+                #If using konsole, open a new instance if root isn't running one
+                #If root is running one, open new tab (session) in it
+                if string.find(xterm, 'konsole') != -1:
+                    dcop = "/usr/kde/3.2/bin/dcop"
+                    cmd = '%s |grep konsole' % dcop
+                    print cmd
+                    err, out = utils.RunExtProgram(cmd)
+                    inst = 0
+                    if not err:
+                        for l in out:
+                            inst = l
+                        if inst:
+                            os.system('%s %s konsole newSession 2>&1 &' % (dcop, inst))
+                            os.chdir(c)
+                        else:
+                            os.system('%s 2>&1 &' % xterm)
+                            os.chdir(c)
+                    else:
+                        os.system('%s &' % xterm)
+                        os.chdir(c)
+                else:
+                    print 'no konsole'
+                    try:
+                        os.system('%s &' % xterm)
+                        os.chdir(c)
+                    except:
+                        print "Abeni error: Couldn't launch xterm"
             else:
                 utils.MyMessage(self, "Set xterm in preferences", \
                   "Error - no xterm", "error")
