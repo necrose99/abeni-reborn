@@ -254,4 +254,4 @@ class NewFunction(wxPanel):
         box.Add(self.edNewFun, 1, wxALL|wxGROW, 1)
         self.SetSizer(box)
         self.SetAutoLayout(True)
-        self.edNewFun.SetText([""])
+

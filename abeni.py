@@ -32,6 +32,9 @@ class MyFrame(wxFrame):
         # Get options from abenirc file
         self.GetOptions()
 
+        # Keeps track of custom functions added
+        self.funcList = []
+
         iconFile = ('%s/Images/mocha.png' % appdir)
         icon = wxIcon(iconFile, wxBITMAP_TYPE_PNG)
         self.SetIcon(icon)
@@ -193,9 +196,13 @@ class MyFrame(wxFrame):
         dlg.SetValue("()")
         if dlg.ShowModal() == wxID_OK:
             newFunction = dlg.GetValue()
-            self.panelNewFunction=panels.NewFunction(self.nb, self.sb, self.pref)
-            self.nb.AddPage(self.panelNewFunction, newFunction)
-            self.panelNewFunction.edNewFun.SetText([newFunction + "{\n", "\n", "}\n"])
+            n = panels.NewFunction(self.nb, self.sb, self.pref)
+            self.funcList.append(n)
+            self.nb.AddPage(n, newFunction)
+            n.edNewFun.SetText([newFunction + "{\n", "\n", "}\n"])
+            #self.panelNewFunction=panels.NewFunction(self.nb, self.sb, self.pref)
+            #self.nb.AddPage(self.panelNewFunction, newFunction)
+            #self.panelNewFunction.edNewFun.SetText([newFunction + "{\n", "\n", "}\n"])
         dlg.Destroy()
 
     def OnMnuHelp(self, event):
@@ -365,6 +372,15 @@ class MyFrame(wxFrame):
         rd += '"'
         f.write(d + '\n\n')
         f.write(rd + '\n\n')
+
+
+        #Write and custom functions added:
+        for fun in self.funcList:
+            ftext = fun.edNewFun.GetText()
+            for line in ftext:
+                f.write(line + '\n')
+
+        # Now write src_compile, src_install
         c = self.panelCompile.ed.GetText()
         for line in c:
             f.write(line + '\n')
