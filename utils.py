@@ -39,43 +39,12 @@ portage_tmpdir = env['PORTAGE_TMPDIR']
 #arch = '~%s' % env['ACCEPT_KEYWORDS'].split(' ')[0].replace('~', '')
 arch = '%s' % env['ACCEPT_KEYWORDS'].split(' ')[0]
 
-codes={}
-codes["bold"]="\x1b[01m"
-codes["teal"]="\x1b[36;06m"
-codes["turquoise"]="\x1b[36;01m"
-codes["fuscia"]="\x1b[35;01m"
-codes["purple"]="\x1b[35;06m"
-codes["blue"]="\x1b[34;01m"
-codes["darkblue"]="\x1b[34;06m"
-codes["green"]="\x1b[32;01m"
-codes["darkgreen"]="\x1b[32;06m"
-codes["yellow"]="\x1b[33;01m"
-codes["brown"]="\x1b[33;06m"
-codes["red"]="\x1b[31;01m"
-codes["darkred"]="\x1b[31;06m"
 
 #TODO: We might get this every time from /etc/make.conf in case
 #      its changed while Abeni is running? 
 def GetArch():
     """Returns first arch listed in ACCEPT_KEYWORDS in /etc/make.conf"""
     return arch
-
-#TODO: These next 5 funcs aren't used yet.
-def GetPortDir():
-    """Returns PORTDIR set in /etc/make.conf"""
-    return portdir
-
-def GetPortDirOverlay():
-    """Returns first PORTDIROVERLAY set in /etc/make.conf"""
-    return portdir_overlay
-
-def GetDistdir():
-    """Returns DISTDIR set in /etc/make.conf"""
-    return distdir
-
-def GetPortageTmpDir():
-    """Returns PORTAGE_TMPDIR set in /etc/make.conf"""
-    return portage_tmpdir
 
 def search(search_key):
     matches = []
@@ -179,67 +148,32 @@ def WriteText(parent, text):
         if parent.action != 'unpack':
             return
 
+    if parent.pref['logfile'] == 1:
+        parent.logfile.write(text + "\n")
+
     if text[-1:] == '\n':
         text = text[:-1]
-    color = ''
+
+    pref = text[0:3]
     reset = "\x1b[0m"
     text = string.replace(text, '\b\b', '')
     if string.find(text, reset) != -1:
         text = string.replace(text, reset, '')
-        for c in codes:
-            if string.find(text, codes[c]) != -1:
-                #for nmbrColors in xrange(text.count(codes[c])):
-                if c == "darkgreen":
-                    color = "FOREST GREEN"
-                elif c == "yellow":
-                    color = "BROWN"
-                elif c == "brown":
-                    color = "BROWN"
-                elif c == "darkred":
-                    color = "RED"
-                elif c == "teal":
-                    color = "FOREST GREEN"
-                elif c == "turquoise":
-                    color = "TURQUOISE"
-                elif c == "fuscia":
-                    color = "PURPLE"
-                elif c == "green":
-                    color = "DARK GREEN"
-                elif c == "red":
-                    color = "RED"
-                else:
-                    color = "BLUE"
-                text = string.replace(text, codes[c], '')
-                break
 
-    if parent.pref['logfile'] == 1:
-        parent.logfile.write(text + "\n")
-
-    if color:
-        logColor(parent, color)
+    if pref == ">>>" or pref == "<<<" or pref == "---" \
+         or pref == ")))" or  pref == " * ":
+        log_color(parent, "BLUE")
         wxLogMessage(text)
-        logColor(parent, "BLACK")
+        log_color(parent, "BLACK")
+    elif pref == "!!!":
+        log_color(parent, "RED")
+        wxLogMessage(text)
+        log_color(parent, "BLACK")
     else:
-        if text[0:3] == ")))":
-            logColor(parent, "BLUE")
-            wxLogMessage(text)
-            logColor(parent, "BLACK")
-        elif text[0:3] == ">>>" or text[0:3] == "<<<":
-            logColor(parent, "BLUE")
-            wxLogMessage(text)
-            logColor(parent, "BLACK")
-        elif text[0:3] == " * ":
-            logColor(parent, "BLUE")
-            wxLogMessage(text)
-            logColor(parent, "BLACK")
-        elif text[0:3] == "!!!":
-            logColor(parent, "RED")
-            wxLogMessage(text)
-            logColor(parent, "BLACK")
-        else:
-            wxLogMessage(text)
+        wxLogMessage(text)
 
-def logColor(parent, color):
+
+def log_color(parent, color):
     """Set color of text sent to log window"""
     parent.text_ctrl_log.SetDefaultStyle(wxTextAttr(wxNamedColour(color)))
 
@@ -272,10 +206,10 @@ def PostAction(parent, action):
     #this may cause -gtk2 to segfault. If I don't have it, the log
     #window won't scroll properly after wxExecuteInLog ends with gtk2
     #if parent.pref['gtk'] == 2:
-        #wxYield()
+    wxYield()
 
 def ExportEbuild(parent):
-    ''' Export ebuild directory to tar file '''
+    """Export ebuild directory to tar file"""
     if not VerifySaved(parent):
         filelist = []
         filelist.append(GetFilename(parent))
@@ -356,10 +290,10 @@ def PostUnpack(parent):
         #We know we have S. Otherwise there were multiple directories unpacked
         p = dirs[0]
         if p == getP(parent):
-            write(parent, " *  S=${WORKDIR}/${P}")
-            write(parent, "))) removed S")
-            parent.FindReplace("S=${WORKDIR}/${P}", ""), 
-            SetS(parent, p)
+            write(parent, " * S=${WORKDIR}/${P}")
+            if parent.FindReplace("S=${WORKDIR}/${P}", "") != -1:
+                SetS(parent, p)
+                write(parent, "))) removed S from ebuild")
         else:
             ep = GetS(parent)
             if ep == "${WORKDIR}/${P}":
@@ -368,7 +302,7 @@ def PostUnpack(parent):
     else:
         if GetS(parent) == "${WORKDIR}/${P}":
             write(parent, "))) More than one directory unpacked, you get to guess what ${S} is.")
-    logColor(parent, "BLACK")
+    log_color(parent, "BLACK")
 
 def SetS(parent, myp):
     """Set S"""
@@ -411,6 +345,7 @@ def Reset(parent):
 def VerifySaved(parent):
     """Check if the ebuild has changed and offer to save if so"""
     status = 0
+
     if parent.STCeditor.GetModify() or not parent.saved:
         dlg = wxMessageDialog(parent, 'Save modified ebuild?\n' + parent.filename,
                 'Save ebuild?', wxYES_NO | wxCANCEL | wxICON_INFORMATION)
@@ -445,7 +380,7 @@ def DeleteEbuild(parent):
       MyMessage(parent, msg, "Error", "error")
 
 def SaveEbuild(parent):
-    '''Save ebuild if entries are sane'''
+    """Save ebuild if entries are sane"""
     msg = checkEntries(parent)
     if not msg:
         WriteEbuild(parent)
@@ -532,7 +467,7 @@ def checkEntries(parent):
         return msg
 
 def DoTitle(parent):
-    ''' Set application's titlebar '''
+    """Set application's titlebar"""
     p = parent.GetParent()
     if p.STCeditor.GetModify():
         p.SetTitle(getP(p) + " * Abeni " + __version__.version)
@@ -861,27 +796,8 @@ def WriteEbuild(parent, temp=0):
     #TODO: Add option in prefs to show this:
     write(parent, "))) Saved %s" % filename)
 
-def GetGtkVersion(self):
-    """Find if wxPython was compiled with gtk or gtk2:"""
-    #NOTE: I think this funcionality is included in wxPython 2.5+
-    #print wxVERSION
-    wx_ver = '.'.join([str(x)for x in wxVERSION])[:-1]
-    basedir ='/var/db/pkg/dev-python'
-    files = os.listdir('/var/db/pkg/dev-python/')
-    for f in files:
-        if string.find(f, 'wxpython-' + wx_ver) != -1:
-            uf = os.path.join(basedir, f) 
-            break
-    uf = os.path.join(uf, "USE")
-    gtk = 1
-    if os.path.exists(uf):
-        cmd = "grep gtk2 %s" % uf
-        err, out = RunExtProgram(cmd)
-        for l in out:
-            if l:
-                gtk = 2
-    else:
-        write(parent, "!!! Couldn't detect gtk version wxPython was compiled with.")
-        write(parent, "!!! Please report this bug to pythonhead@gentoo.org")
-    return gtk
+def IsOverlay(parent, ebuild_path):
+    """Returns 1 if this ebuild is in PORTDIR_OVERLAY, None if in PORTDIR"""
+    if ebuild_path[0:len(portdir_overlay)] == portdir_overlay:
+        return 1
 

@@ -328,8 +328,6 @@ class GentooSTC(wxStyledTextCtrl):
         self.StyleSetSpec(wxSTC_P_STRINGEOL, "fore:#000000,face:%(mono)s,eol,size:%(size)d" % faces)
 
 
- 
-
 class MyApp(wxApp):
 
     """ Main wxPython app class """

@@ -67,6 +67,7 @@ class MyDialog(wxDialog):
         self.text_ctrl_browser.SetSize((227, 22))
         self.text_ctrl_diff.SetSize((227, 22))
         self.text_ctrl_xterm.SetSize((227, 22))
+        self.checkbox_external_control.Enable(0)
         self.label_dev_warning.SetForegroundColour(wxColour(255, 0, 0))
         self.label_dev_warning.SetFont(wxFont(12, wxDEFAULT, wxNORMAL, wxNORMAL, 1, ""))
         self.text_ctrl_devUserName.SetSize((130, 22))

@@ -1,3 +1,9 @@
+  03 Nov 2004; Rob Cakebread <pythonhead@gentoo.org>:
+  Fixed bug with templates not working in fresh installs,
+  removed CVS functions until I make a better interface for
+  gpg manifest signing, updated preference dialog, fixed detection
+  of gtk2
+
   18 Aug 2004; Rob Cakebread <pythonhead@gentoo.org>:
   Added tabsize and show whitespace options to Editor preferences
   Cleaned up fonts to use same face and size

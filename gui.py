@@ -38,12 +38,7 @@ class MyFrame(wxFrame):
     def __init__(self, *args, **kwds):
 
         # begin wxGlade: MyFrame.__init__
-        #wxPython 2.4
-        if wxVERSION[1] == 4:
-            kwds["style"] = wxCAPTION|wxMAXIMIZE_BOX|wxSYSTEM_MENU|wxRESIZE_BORDER
-        #wxPython 2.5
-        else:
-            kwds["style"] = wxCAPTION|wxCLOSE_BOX|wxMAXIMIZE_BOX|wxSYSTEM_MENU|wxRESIZE_BORDER
+        kwds["style"] = wxCAPTION|wxMINIMIZE_BOX|wxMAXIMIZE_BOX|wxSYSTEM_MENU|wxRESIZE_BORDER
         wxFrame.__init__(self, *args, **kwds)
         self.panel_1 = wxPanel(self, -1)
         self.splitter = wxSplitterWindow(self.panel_1, -1, style=wxSP_3D|wxSP_BORDER)
@@ -86,7 +81,7 @@ class MyFrame(wxFrame):
         global mnuXtermSID; mnuXtermSID = wxNewId()
         global mnuXtermDID; mnuXtermDID = wxNewId()
         global mnuXtermCVSID; mnuXtermCVSID = wxNewId()
-        global mnuFullCommitID; mnuFullCommitID = wxNewId()
+        self.mnuFullCommitID = wxNewId()
         global mnuEditID; mnuEditID = wxNewId()
         global mnuViewMetadataID; mnuViewMetadataID = wxNewId()
         global mnuViewChangeLogID; mnuViewChangeLogID = wxNewId()
@@ -138,7 +133,7 @@ class MyFrame(wxFrame):
         wxglade_tmp_menu.Append(mnuXtermCVSID, "xterm in CVS dir\tShift-F12", "", wxITEM_NORMAL)
         self.menubar.Append(wxglade_tmp_menu, "&Tools")
         wxglade_tmp_menu = wxMenu()
-        wxglade_tmp_menu.Append(mnuFullCommitID, "repoman cvs commit", "", wxITEM_NORMAL)
+        wxglade_tmp_menu.Append(self.mnuFullCommitID, "repoman cvs commit", "", wxITEM_NORMAL)
         self.menubar.Append(wxglade_tmp_menu, "&CVS")
         wxglade_tmp_menu = wxMenu()
         wxglade_tmp_menu.Append(mnuEditID, "&ebuild in external editor\tF7", "", wxITEM_NORMAL)
@@ -191,7 +186,6 @@ class MyFrame(wxFrame):
         self.toolbar.AddLabelTool(editID, "edit", wxBitmap("/usr/share/pixmaps/abeni/edit.png", wxBITMAP_TYPE_ANY), wxNullBitmap, wxITEM_NORMAL, "Edit ebuild in external editor F7", "")
         self.toolbar.AddSeparator()
         self.toolbar.AddLabelTool(newFuncID, "newFunc", wxBitmap("/usr/share/pixmaps/abeni/fx.png", wxBITMAP_TYPE_ANY), wxNullBitmap, wxITEM_NORMAL, "New Function F6", "")
-        self.toolbar.AddSeparator()
         self.toolbar.AddLabelTool(toolCleanID, "clean", wxBitmap("/usr/share/pixmaps/abeni/clean.png", wxBITMAP_TYPE_ANY), wxNullBitmap, wxITEM_NORMAL, "Clean Shift-F1", "")
         self.toolbar.AddLabelTool(digestID, "digest", wxBitmap("/usr/share/pixmaps/abeni/digest.png", wxBITMAP_TYPE_ANY), wxNullBitmap, wxITEM_NORMAL, "Digest F1", "")
         self.toolbar.AddLabelTool(unpackID, "unpack", wxBitmap("/usr/share/pixmaps/abeni/unpack.png", wxBITMAP_TYPE_ANY), wxNullBitmap, wxITEM_NORMAL, "Unpack F2", "")
@@ -200,7 +194,6 @@ class MyFrame(wxFrame):
         self.toolbar.AddLabelTool(qmergeID, "qmerge", wxBitmap("/usr/share/pixmaps/abeni/qmerge.png", wxBITMAP_TYPE_ANY), wxNullBitmap, wxITEM_NORMAL, "Qmerge F5", "")
         self.toolbar.AddLabelTool(ebuildID, "ebuild", wxBitmap("/usr/share/pixmaps/abeni/ebuild.png", wxBITMAP_TYPE_ANY), wxNullBitmap, wxITEM_NORMAL, "ebuild <this ebuild> command F9", "")
         self.toolbar.AddLabelTool(emergeID, "emerge", wxBitmap("/usr/share/pixmaps/abeni/emerge.png", wxBITMAP_TYPE_ANY), wxNullBitmap, wxITEM_NORMAL, "emerge <options><this ebuild> F10", "")
-        self.toolbar.AddSeparator()
         self.toolbar.AddLabelTool(xtermID, "xterm", wxBitmap("/usr/share/pixmaps/abeni/xterm.png", wxBITMAP_TYPE_ANY), wxNullBitmap, wxITEM_NORMAL, "Launch xterm in $S F12", "")
         self.toolbar.AddSeparator()
         self.toolbar.AddLabelTool(self.StopID, "stop", wxBitmap("/usr/share/pixmaps/abeni/stop.png", wxBITMAP_TYPE_ANY), wxNullBitmap, wxITEM_NORMAL, "Interrupt process running in log window", "")
@@ -236,7 +229,7 @@ class MyFrame(wxFrame):
         _icon = wxEmptyIcon()
         _icon.CopyFromBitmap(wxBitmap("/usr/share/pixmaps/abeni/abeni_logo16.png", wxBITMAP_TYPE_ANY))
         self.SetIcon(_icon)
-        self.SetSize((857, 696))
+        self.SetSize((882, 696))
         self.statusbar.SetStatusWidths([-1, 400])
         # statusbar fields
         statusbar_fields = ["", ""]
@@ -305,7 +298,7 @@ class MyFrame(wxFrame):
         self.window_1_pane_2.SetSizer(sizer_11)
         sizer_11.Fit(self.window_1_pane_2)
         sizer_11.SetSizeHints(self.window_1_pane_2)
-        self.window_1.SplitVertically(self.window_1_pane_1, self.window_1_pane_2, 195)
+        self.window_1.SplitVertically(self.window_1_pane_1, self.window_1_pane_2, 272)
         sizer_9.Add(self.window_1, 1, wxEXPAND, 0)
         self.panel_explorer.SetAutoLayout(1)
         self.panel_explorer.SetSizer(sizer_9)
@@ -322,7 +315,7 @@ class MyFrame(wxFrame):
         self.notebook_1.AddPage(self.panel_log, "Log")
         self.notebook_1.AddPage(self.panel_explorer, "Explorer")
         self.notebook_1.AddPage(self.panel_environment, "Environment")
-        self.splitter.SplitHorizontally(self.STCeditor, self.notebook_1, 295)
+        self.splitter.SplitHorizontally(self.STCeditor, self.notebook_1, 310)
         sizer_2.Add(self.splitter, 1, wxEXPAND, 0)
         self.panel_1.SetAutoLayout(1)
         self.panel_1.SetSizer(sizer_2)
@@ -334,7 +327,6 @@ class MyFrame(wxFrame):
         self.Layout()
         # end wxGlade
 
-        #eventManager.Register(self.OnSetFocus, wx.EVT_SET_FOCUS, self.STCeditor)
 
         if os.getuid() != 0:
             utils.MyMessage(self, "You must be root, or running Abeni with 'sudo'.",\
@@ -343,9 +335,6 @@ class MyFrame(wxFrame):
 
         EVT_TREE_SEL_CHANGED(self, treeID, self.OnTreeActivate)
         EVT_TREE_SEL_CHANGED(self, self.explorer.GetTreeCtrl().GetId(), self.OnFileSelect)
-        EVT_STC_DO_DROP(self, self.STCeditor.GetId(), self.OnDoDrop)
-        EVT_STC_DRAG_OVER(self, self.STCeditor.GetId(), self.OnDragOver)
-        EVT_STC_START_DRAG(self, self.STCeditor.GetId(), self.OnStartDrag)
 
         EVT_BUTTON(self, self.button_env_refresh.GetId(), self.ViewEnvironment)
         EVT_BUTTON(self, self.button_view.GetId(), self.OnViewButton)
@@ -416,7 +405,7 @@ class MyFrame(wxFrame):
         EVT_MENU(self, mnuEditID, self.OnMnuEdit)
 
         # repoman CVS commit
-        EVT_MENU(self, mnuFullCommitID, self.OnMnuFullCommit)
+        EVT_MENU(self, self.mnuFullCommitID, self.OnMnuFullCommit)
 
         # Log:
         EVT_MENU(self, mnuClearLogID, self.OnMnuClearLog)
@@ -439,8 +428,7 @@ class MyFrame(wxFrame):
 
         EVT_CLOSE(self, self.OnClose)
         EVT_END_PROCESS(self, -1, self.OnProcessEnded)
-        EVT_IDLE(self, self.OnIdle)
-
+        #EVT_IDLE(self, self.OnIdle)
         self.process = None
 
     	self.toolbar.EnableTool(self.StopID, False)
@@ -461,22 +449,15 @@ class MyFrame(wxFrame):
         #screenHeight = wx.wxSystemSettings_GetSystemMetric(wx.wxSYS_SCREEN_Y)
         #Prevent splitter windows from becoming un-split
         self.splitter.SetMinimumPaneSize(20)
+        #SashPosition(230)
         #SashPosition(370)
         self.window_1.SetMinimumPaneSize(20)
-        #SashPosition(230)
 
         # Are we in the process of editing an ebuild?
         self.editing = 0
 
-        abeniDir = os.path.expanduser('~/.abeni')
-        if not os.path.exists(abeniDir):
-            os.mkdir(abeniDir)
-
-        rcfile = '%s/abenirc' % abeniDir
-        if not os.path.exists(rcfile):
-            shutil.copy("/usr/share/abeni/abenirc", rcfile)
-
         #Load recently accessed ebuilds
+        abeniDir = os.path.expanduser('~/.abeni')
         bookmarks = '%s/recent.txt' % abeniDir
         if os.path.exists(bookmarks):
             self.recentList = open(bookmarks, 'r').readlines()
@@ -522,9 +503,8 @@ class MyFrame(wxFrame):
         self.SetTitle("Abeni - The ebuild Builder " + __version__.version)
         self.finddata = wxFindReplaceData()
         self.ExternalControlListen()
-        self.pref['gtk'] = utils.GetGtkVersion(self)
         self.ApplyPrefs()
-
+        self.menubar.Enable(self.mnuFullCommitID, False)
         #Load ebuild if specified on command line, by filename or by
         ## full package name
         if len(sys.argv) == 2:
@@ -532,10 +512,6 @@ class MyFrame(wxFrame):
             print "Checking for package: %s" % f
             #Draw GUI before we start the slow search
             utils.LoadByPackage(self, f)
-
-    def OnSetFocus(self, evt):
-        self.STCeditor.SetSTCFocus(1)
-        evt.Skip()
 
     def OnMnuExportEbuild(self, event):
         """Export ebuild and auxiliary files as tarball"""
@@ -607,17 +583,6 @@ class MyFrame(wxFrame):
     def OnFindClose(self, event):
         event.GetDialog().Destroy()
 
-    def OnDoDrop(self, evt):
-        #print "abeni: clipboard drop"
-        evt.Skip()
-
-    def OnDragOver(self, evt):
-        evt.Skip()
-
-    def OnStartDrag(self, evt):
-        #print "abeni: start clipboard drag"
-        evt.Skip()
-
     def EvtRadioBox(self, event):
         """set either full or brief mode for enviornment tab"""
         self.envView = event.GetInt()
@@ -635,7 +600,6 @@ class MyFrame(wxFrame):
         #self.STCeditor.SetCursor(wxSTC_CURSORNORMAL)
         #self.saved = 0
         dlg.Destroy()
-        #self.GrabEditor()
 
     def OnViewButton(self, evt):
         """View file in explorer"""
@@ -871,13 +835,16 @@ class MyFrame(wxFrame):
 
     def FindReplace(self, target, replace):
         """Replace line containing text in STCeditor. return length of str replaced if found"""
+        #Note: If we replace string with "" this will return 0
+        #so don't use the length to determine if we matched anything
         s = self.STCeditor.FindText(0, self.LastPos(), '^%s' % target, wxSTC_FIND_REGEXP)
         e = self.STCeditor.GetLineEndPosition(self.STCeditor.LineFromPosition(s))
         if s != -1:
             self.STCeditor.SetTargetStart(s)
             self.STCeditor.SetTargetEnd(e)
             return self.STCeditor.ReplaceTarget(replace)
-            
+        else:
+            return -1
 
     def OnMnuNew(self,event):
         """Creates a new ebuild from scratch"""
@@ -974,6 +941,11 @@ class MyFrame(wxFrame):
         """Run 'ebuild filename digest' on this ebuild"""
         if not self.editing:
             return
+
+        if not utils.IsOverlay(self, self.filename):
+            utils.MyMessage(self, "You need to save the ebuild first.", "error")
+            return 0
+
         if not utils.VerifySaved(self):
             self.action = "digest"
             logMsg = '))) Creating digest...'
@@ -985,6 +957,9 @@ class MyFrame(wxFrame):
     def OnToolbarCompile(self, event):
         """ebuild <this ebuild> compile"""
         if self.editing:
+            if not utils.IsOverlay(self, self.filename):
+                utils.MyMessage(self, "You need to save the ebuild first.", "error")
+                return 0
             if not utils.VerifySaved(self):
                 self.action = "compile"
                 logMsg = '))) Compiling...'
@@ -1009,6 +984,9 @@ class MyFrame(wxFrame):
     def OnToolbarUnpack(self, event): 
         """ebuild <this ebuild> unpack"""
         if self.editing:
+            if not utils.IsOverlay(self, self.filename):
+                utils.MyMessage(self, "You need to save the ebuild first.", "error")
+                return 0
             if not utils.VerifySaved(self):
                 self.action = 'unpack'
                 logMsg = '))) Unpacking...'
@@ -1019,6 +997,10 @@ class MyFrame(wxFrame):
     def OnToolbarInstall(self, event):
         """ebuild <this ebuild> Install"""
         if self.editing:
+            if not utils.IsOverlay(self, self.filename):
+                utils.MyMessage(self, "You need to save the ebuild first.", "error")
+                return 0
+
             if not utils.VerifySaved(self):
                 self.action = 'install'
                 logMsg = '))) Installing...'
@@ -1029,6 +1011,10 @@ class MyFrame(wxFrame):
     def OnToolbarQmerge(self, event):
         """ebuild <this ebuild> qmerge"""
         if self.editing:
+            if not utils.IsOverlay(self, self.filename):
+                utils.MyMessage(self, "You need to save the ebuild first.", "error")
+                return 0
+
             if not utils.VerifySaved(self):
                 self.action = 'qmerge'
                 logMsg = '))) Qmerging...'
@@ -1041,9 +1027,12 @@ class MyFrame(wxFrame):
         """Import an existing patch"""
         if not self.editing:
             return
+        if not utils.IsOverlay(self, self.filename):
+            utils.MyMessage(self, "You need to save the ebuild first.", "error")
+            return 0
 
         f = utils.GetFilesDir(self)
-        dlg = wxFileDialog(self, "Choose a file", "/var/tmp", "", "*", wxOPEN)
+        dlg = wxFileDialog(self, "Choose a file", "/var/tmp/abeni/", "", "*", wxOPEN)
 
         if dlg.ShowModal() == wxID_OK:
             orig = dlg.GetPaths()
@@ -1061,6 +1050,10 @@ class MyFrame(wxFrame):
         """Create a patch from something in ${S}"""
         if not self.editing:
             return
+        if not utils.IsOverlay(self, self.filename):
+            utils.MyMessage(self, "You need to save the ebuild first.", "error")
+            return 0
+
         if not utils.CheckUnpacked(self):
             msg = 'You need to unpack first'
             title = 'Error'
@@ -1070,6 +1063,12 @@ class MyFrame(wxFrame):
 
     def CreatePatch(self, orig=[]):
         """Creates patch from given file or selected from dialog"""
+        #TODO: Make function for this:
+        if not self.pref['editor']:
+            utils.MyMessage(self, "No editor defined in perferences", \
+              "Error: no editor defined", "error")
+            return
+
         if not orig:
             s = utils.GetS(self)
             #wxYield()
@@ -1081,14 +1080,15 @@ class MyFrame(wxFrame):
                 return
         f = utils.GetFilesDir(self)
         #copy file to /var/tmp
+        tmpdir = "/var/tmp/abeni"
+        tmp_patch = "%s/%s" % (tmpdir, "tmp_patch")
+        if not os.path.exists(tmpdir):
+            os.mkdir(tmpdir)
         base = os.path.basename(orig[0])
-        shutil.copy(orig[0], "/var/tmp")
-        out = os.path.join("/var/tmp", base)
-        if not self.pref['editor']:
-            utils.MyMessage(self, "No editor defined in perferences", \
-              "Error: no editor defined", "error")
+        shutil.copy(orig[0], tmpdir)
+        out = os.path.join(tmpdir, base)
         os.system('%s %s' % (self.pref['editor'], out))
-        os.system("diff -u %s %s > /var/tmp/abeni_.diff" % (orig[0], out))
+        os.system("diff -u %s %s > %s" % (orig[0], out, tmp_patch))
 
         dlg = wxTextEntryDialog(self, 'Choose name for your patch:',
                             'Choose patch name', '')
@@ -1096,12 +1096,10 @@ class MyFrame(wxFrame):
         if dlg.ShowModal() == wxID_OK:
             pname = dlg.GetValue()
         else:
-            dlg.Destroy()
             return
-        dlg.Destroy()
 
         dest = "%s/%s" % (f, pname)
-        shutil.copy("/var/tmp/abeni_.diff", dest)
+        shutil.copy(tmp_patch, dest)
 
         #insert inheirt eutils:
         p = self.STCeditor.FindText(0, self.LastPos(), "^inherit", wxSTC_FIND_REGEXP)
@@ -1198,16 +1196,6 @@ class MyFrame(wxFrame):
                 """
 
         if self.editing:
-            cvs_dir = self.pref['cvsRoot']
-            if cvs_dir == portdir:
-                msg = "Abeni can't do repoman CVS commits if you\nuse your CVS dir as your PORTDIR.\n\nThe next version of Abeni may be able to handle that, but I've never tested it\n\nSearch for this message in gui.py and delete the line above if you're brave."
-                utils.MyMessage(self, msg, "PORTDIR == CVS Dir!", "error")
-                return
-            #if (utils.MyMessage(self, msg, "Commit to CVS?", "info", cancel=1)):
-            #    cvs = abeniCVS.CVS(self)
-            #    cvs.FullCommit()
-            #else:
-            #    utils.write(self, "CVS commit Cancelled.")
             self.stdout = 1
             cvs = abeniCVS.CVS(self)
             cvs.FullCommit()
@@ -1683,7 +1671,6 @@ class MyFrame(wxFrame):
                 if string.find(xterm, 'konsole') != -1:
                     dcop = "/usr/kde/3.2/bin/dcop"
                     cmd = '%s |grep konsole' % dcop
-                    print cmd
                     err, out = utils.RunExtProgram(cmd)
                     inst = 0
                     if not err:
@@ -1699,7 +1686,6 @@ class MyFrame(wxFrame):
                         os.system('%s &' % xterm)
                         os.chdir(c)
                 else:
-                    print 'no konsole'
                     try:
                         os.system('%s &' % xterm)
                         os.chdir(c)
@@ -1733,12 +1719,6 @@ class MyFrame(wxFrame):
                         f = filename
                     os.system('%s %s' % (self.pref['editor'], f))
                     utils.LoadEbuild(self, f)
-
-    def GrabEditor(self):
-        """Set focus on STC widget"""
-        #wxYield()
-        self.STCeditor.SetFocus()
-        self.STCeditor.SetSTCFocus(1)
 
     def OnMnuRepomanScan(self, event):
         """Run repoman --pretend scan on this ebuild"""
@@ -1860,7 +1840,11 @@ class GentooSTC(wxStyledTextCtrl):
         EVT_STC_SAVEPOINTREACHED(self, -1, self.SavedTitle)
 
     def SetMyStyle(self):
-        my_face, my_size = options.Options().Prefs()['font'].split(",")
+        try:
+            my_face, my_size = options.Options().Prefs()['font'].split(",")
+        except:
+            my_face = "Courier"
+            my_size = "12"
         my_size = string.atoi(my_size)
         faces = { 'mono' : my_face,
             'size' : my_size,

@@ -3,30 +3,30 @@ This is the TODO file for Abeni.
 If you are interested in working on any of these, please
 email pythonhead AT gentoo DOT org
 
-* General:
 
- - Apply font to wxSTC ons startup, its using courier for non-keywords
- - Make sure wxGlade adds wxCLOSE_BOX to gui.wxg (wx* 2.5)
+* General:
+ - Change focus to log window when doing emerge
+ - Add separator after menu, between groups Cat, PN, PV? (test with various gtk styles)
  - Option to sort functions: src_unpack then src_compile, src_install etc.
    (See ebuild.py by genone, it can probably do that easily)
- - Need to check if external apps exist every time someone tries to launch
+ - Need function to check/warn if external apps exist every time someone tries to launch
    the external editor, web browser etc.
  - When you inherit an eclass, scan the functions and add them to Scintilla's
    keyword list for highlighting and auto-completion
  - Get dev email from env var: ECHANGELOG_USER="Rob Cakebread <pythonhead@gentoo.org>"
    then fill in option in dev prefs.
  - Disable menus when not in edit mode
- - Improve find / search&replace dialog, "whole word", "match case" don't work
+ - Improve find / search&replace dialog: "whole word", "match case" don't work
  - Lowercase PN when given URI on new ebuilds in GetURIDialog.py
- - Launch browser to HOMEPAGE url
+ - New feature: Launch browser to HOMEPAGE url
  - Need function to extract variables from editor (see genone's ebuild.py)
  - Don't let user edit current ebuild through Explorer
 
 * Repoman/CVS:
 
- - FEATURES for manifest signing gets password from CLI, find better way
+ - Test signing of manifests
  - Don't allow CVS operations if ssh-agent isn't running 
- - Option to rm -rf CVS/cat/PN then 'cvs update' in CVS/cat
+ - New feature: rm -rf CVS/cat/PN then 'cvs update' in CVS/cat
 
 * Dialogs:
 
@@ -57,21 +57,20 @@ email pythonhead AT gentoo DOT org
 
 * Command line options:
 
-    * -c, --create <src_uri>            Create ebuild using src_uri to determine package and filename
+    * -s, --create <src_uri>            Create ebuild using src_uri to determine package and filename
     * -e, --eclass <eclass name>        Add inherit and appropriate functions for eclass, used with --created
     * -v, --variable <x=val, y=val...>  Add variable(s) and their value(s)
     * -f, --function <func1, func2...>  Add function name(s)
     * -h, --help                        Show list of command line options
     * -b, --bump <version>              Bump the given ebuild up to <version>
     * -d, --digest                      Create digest. Used with --bump
-    * -t, --category <category>         Set package category
+    * -c, --category <category>         Set package category
     * -l, --license <license>           Set LICENSE
     * -i, --iuse <iuse>                 Set IUSE
     * -t, --description <description>   Set DESCRIPTION
     * -a, --homepage <homepage>         Set HOMEPAGE
     * -k, --keywords <keywords>         Set KEYWORDS
     * -o, --slot <slot>                 Set SLOT
-    * -s, --s <s>                       Set S
     * -p, --pretend                     Show which package would be used with --bump, and version numbers.
 
     Example One:
@@ -107,14 +106,4 @@ email pythonhead AT gentoo DOT org
    loses focus and you focus it again. Author of wxPython says its a known
    issue and won't be fixed in 2.4*.  Verified fixed in wxPython 2.5*
    (2.4* used an old version of Scintilla)
-
-Needs to be added after re-generating wxGlade code for gui.py due
-to new wxPython 2.5 options:
-        # begin wxGlade: MyFrame.__init__
-        #wxPython 2.4
-        if wxVERSION[1] == 4:
-            kwds["style"] = wxCAPTION|wxMAXIMIZE_BOX|wxSYSTEM_MENU|wxRESIZE_BORDER
-        #wxPython 2.5
-        else:
-            kwds["style"] = wxCAPTION|wxCLOSE_BOX|wxMAXIMIZE_BOX|wxSYSTEM_MENU|wxRESIZE_BORDER
 

@@ -13,7 +13,7 @@ class Options:
         self.pref['checkSyntax'] = 1
         self.pref['logfile'] = 0
         self.pref['logFilename'] = "/root/.abeni/log.txt"
-        self.pref['font'] = "Courier 12"
+        self.pref['font'] = "Courier,12"
         self.pref['highlighting'] = 1
         self.pref['show_whitespace'] = 0
         self.pref['tabsize'] = 4

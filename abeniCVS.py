@@ -148,7 +148,7 @@ class CVS:
         self.FixPerms()
         # Create digest for ebuild (should auto-add to cvs)
         self.CreateDigest()
-        utils.write(self.parent, "     ")
+        wxYield()
         busy = None
 
         # echangelog dialog
@@ -158,17 +158,13 @@ class CVS:
             utils.write(self.parent, "!!! Aborted CVS commit.")
             return
 
-        #kludge to keep log window scrolled to bottom:
-        utils.write(self.parent, "     ")
 
         self.Echangelog(self.cmsg)
 
-        utils.write(self.parent, "     ")
-
         if self.newPackage:
             self.CVSAdd("ChangeLog")
-            utils.write(self.parent, "     ")
 
+        wxYield()
 
         # Get commit message (could be same as echangelog msg)
         r = self.GetMsg("Enter CVS commit message                                ", \
@@ -185,11 +181,10 @@ class CVS:
         dlg.ShowModal()
         dlg.Destroy()
 
-        utils.write(self.parent, "     ")
+        wxYield()
 
-
-        msg = """Happy with 'repoman full'?\nDo you want to run:\n \
-              /usr/bin/repoman --pretend commit -m "%s" """ % self.cmsg
+        msg = "Happy with repoman full?\nDo you want to run:\n \
+              /usr/bin/repoman --pretend commit -m " + self.cmsg
 
         if (utils.MyMessage(self.parent, msg, "repoman --pretend commit", "info", 1)):
             busy = wxBusyInfo("Running repoman --pretend commit...")
@@ -203,17 +198,16 @@ class CVS:
             utils.write(self.parent, "!!! CVS commit Cancelled.")
             return
 
-        utils.write(self.parent, "     ")
-
+        wxYield()
         msg = 'Happy with repoman --pretend commit?\nDo you want to run:\n \
-              /usr/bin/repoman commit -m "%s"\n\n \
+              /usr/bin/repoman commit -m %s\n\n \
               WARNING: This will actually COMMIT to CVS with repoman!' % self.cmsg
 
         if (utils.MyMessage(self.parent, msg, "repoman commit", "info", 1)):
             busy = wxBusyInfo("Running repoman commit...")
-            self.SyncExecute('''PORTDIR_OVERLAY=%s /usr/bin/repoman commit -m "%s"''' % (self.cvsEbuildDir, self.cmsg))
+            self.SyncExecute('PORTDIR_OVERLAY=%s /usr/bin/repoman commit -m %s' % (self.cvsEbuildDir, self.cmsg))
             busy=None
-            wxSafeYield()
+            wxYield()
             utils.write(self.parent,"))) Repoman commit finished.")
         else:
             utils.write(self.parent, "!!! CVS commit Cancelled.")

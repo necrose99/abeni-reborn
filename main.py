@@ -24,6 +24,8 @@ __changelog_ = 'http://abeni.sourceforge.net/ChangeLog'
 
 
 import sys
+import os
+import shutil
 
 from portage import config, settings
 from wxPython.wx import *
@@ -58,6 +60,14 @@ except:
 if not portdir_overlay:
     print "ERROR: Create the directory PORTDIR_OVERLAY in /etc/make.conf"
     sys.exit(1)
+
+abeniDir = os.path.expanduser('~/.abeni')
+if not os.path.exists(abeniDir):
+    os.mkdir(abeniDir)
+
+rcfile = '%s/abenirc' % abeniDir
+if not os.path.exists(rcfile):
+    shutil.copy("/usr/share/abeni/abenirc", rcfile)
 
 class MyApp(wxApp):
 
