@@ -23,7 +23,7 @@ class MyFrame(wxFrame):
     """ Main frame that holds the menu, toolbar and notebook """
 
     def __init__(self, parent, id, title):
-        wxFrame.__init__(self, parent, -1, title, size=wxSize(600,480))
+        wxFrame.__init__(self, parent, -1, title, size=wxSize(800,480))
         self.SetAutoLayout(true)
 
         # Are we in the process of editing an ebuild?
@@ -66,6 +66,12 @@ class MyFrame(wxFrame):
         menubar = wxMenuBar()
         menubar.Append(menu_file, "&File")
 
+        # Edit
+        menu_edit = wxMenu()
+        mnuEditID = wxNewId()
+        menu_edit.Append(mnuEditID, "&New Variable")
+        menubar.Append(menu_edit, "&Edit")
+
         # Options
         menu_options = wxMenu()
         mnuPrefID = wxNewId()
@@ -85,6 +91,7 @@ class MyFrame(wxFrame):
         EVT_MENU(self, mnuLoadID, self.OnMnuLoad)
         EVT_MENU(self, mnuNewID, self.OnMnuNew)
         EVT_MENU(self, mnuNewFromID, self.OnMnuNewFrom)
+        EVT_MENU(self, mnuEditID, self.OnMnuNewVariable)
         EVT_MENU(self, mnuPrefID, self.OnMnuPref)
         EVT_MENU(self, mnuAboutID, self.OnMnuAbout)
         EVT_MENU(self, mnuHelpID, self.OnMnuHelp)
@@ -141,6 +148,17 @@ class MyFrame(wxFrame):
         """Catch event when page in notebook is changed"""
         event.Skip()
         self.nbPage = event.GetSelection()
+
+    def OnMnuNewVariable(self, event):
+        """Add new variable to Main panel"""
+        dlg = wxTextEntryDialog(self, 'New Variable Name:',
+                            'Enter Variable Name', 'test')
+        dlg.SetValue("")
+        if dlg.ShowModal() == wxID_OK:
+            newVariable = dlg.GetValue()
+            self.panelMain.AddVar(newVariable)
+        dlg.Destroy()
+
 
     def OnMnuHelp(self, event):
         """Display html help file"""
@@ -279,6 +297,14 @@ class MyFrame(wxFrame):
         ebuildFile = os.path.join(ebuildDir, self.panelMain.EbuildFile.GetValue())
         f = open(ebuildFile, 'w')
 
+        f.write("S=${WORKDIR}/${P}\n\n")
+        f.write('DESCRIPTION="' + self.panelMain.Desc.GetValue() + '"\n\n')
+        f.write('HOMEPAGE="' + self.panelMain.Homepage.GetValue() + '"\n\n')
+        f.write('SRC_URI="' + self.panelMain.URI.GetValue() + '"\n\n')
+        f.write('LICENSE="' + self.panelMain.License + '"\n\n')
+        f.write('SLOT="' + self.panelMain.Slot.GetValue() + '"\n\n')
+        f.write('KEYWORDS="' + self.panelMain.Keywords.GetValue() + '"\n\n')
+        f.write('IUSE="' + self.panelMain.USE.GetValue() + '"\n\n')
         dlist = self.panelDepend.elb1.GetStrings()
         d = 'DEPEND="'
         for ds in dlist:
@@ -288,7 +314,6 @@ class MyFrame(wxFrame):
                 d += '   ' + ds + "\n"
         d = string.strip(d)
         d += '"'
-
         rdlist = self.panelDepend.elb2.GetStrings()
         rd = 'RDEPEND="'
         for ds in rdlist:
@@ -298,18 +323,8 @@ class MyFrame(wxFrame):
                 rd += "   " + ds + "\n"
         rd = string.strip(rd)
         rd += '"'
-        f.write("S=${WORKDIR}/${P}\n\n")
-        f.write('DESCRIPTION="' + self.panelMain.Desc.GetValue() + '"\n\n')
-        f.write('HOMEPAGE="' + self.panelMain.Homepage.GetValue() + '"\n\n')
-        f.write('SRC_URI="' + self.panelMain.URI.GetValue() + '"\n\n')
-        f.write('LICENSE="' + self.panelMain.License + '"\n\n')
-        f.write('SLOT="' + self.panelMain.Slot.GetValue() + '"\n\n')
-        f.write('KEYWORDS="' + self.panelMain.Keywords.GetValue() + '"\n\n')
-        f.write('IUSE="' + self.panelMain.USE.GetValue() + '"\n\n')
-
         f.write(d + '\n\n')
         f.write(rd + '\n\n')
-
         c = self.panelCompile.ed.GetText()
         for line in c:
             f.write(line + '\n')
@@ -318,7 +333,8 @@ class MyFrame(wxFrame):
         for line in i:
             f.write(line + '\n')
         f.write('\n\n')
-        #f.write(self.panelChangelog.ed.GetText())
+
+        #CHANGELOG.write(self.panelChangelog.ed.GetText())
 
 
 class GetURIDialog(wxDialog):
