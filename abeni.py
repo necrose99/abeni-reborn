@@ -13,6 +13,7 @@ from portage import config
 from wxPython.wx import *
 from wxPython.lib.dialogs import wxScrolledMessageDialog
 import os, string, sys, urlparse, time
+#Abeni modules:
 import dialogs, panels
 from utils import *
 
@@ -21,11 +22,13 @@ for p in sys.path:
         modulePath = "%s/abeni" % p
         break
 
-distdir = config().environ()['DISTDIR']
-portdir = config().environ()['PORTDIR']
+env = config().environ()
+distdir = env['DISTDIR']
+portdir = env['PORTDIR']
 #You can specify multiple overlay directories, we use the first one:
-portdir_overlay = config().environ()['PORTDIR_OVERLAY'].split(" ")[0]
-portage_tmpdir = config().environ()['PORTAGE_TMPDIR']
+portdir_overlay = env['PORTDIR_OVERLAY'].split(" ")[0]
+portage_tmpdir = env['PORTAGE_TMPDIR']
+arch = '~%s' % env['ACCEPT_KEYWORDS'].split(' ')[0].replace('~', '')
 
 defaults = ["SRC_URI", "HOMEPAGE", "DEPEND", "RDEPEND", "DESCRIPTION", \
             "S", "IUSE", "SLOT", "KEYWORDS", "LICENSE"]
@@ -101,6 +104,7 @@ class MyFrame(wxFrame):
         self.nb = wxNotebook(self.splitter, -1, style=wxCLIP_CHILDREN)
         EVT_NOTEBOOK_PAGE_CHANGED(self.nb, -1, self.OnPageChanged)
         EVT_NOTEBOOK_PAGE_CHANGED(self.nb, -1, self.OnPageChanging)
+        #TODO, just pass the env dict
         self.nb.portdir_overlay = portdir_overlay
         self.nb.portdir = portdir
         self.log = wxTextCtrl(self.splitter, -1,
@@ -540,7 +544,8 @@ class MyFrame(wxFrame):
         self.write("Killed %s" % self.pid)
         try:
             pid = open("/tmp/abeni_proc.pid", "r").read().strip()
-            self.write("sub pid %s" % pid)
+            os.system("sudo kill %s" % pid)
+            self.write("sub pid %s killed" % pid)
         except:
             pass
 
@@ -744,7 +749,8 @@ class MyFrame(wxFrame):
 
     def AddFunc(self, newFunction, val):
         """Add page in notebook for a new function"""
-        n = panels.NewFunction(self.nb, self.sb, self.pref)
+        #TODO don't pass sb, pref if not necessary
+        n = panels.NewFunction(self.nb)
         self.funcList.append(n)
         self.NewPage(n, newFunction)
         n.edNewFun.SetText(val)
@@ -771,14 +777,12 @@ class MyFrame(wxFrame):
 
     def AddEditor(self, name, val):
         """Add page in notebook for an editor"""
-        n = panels.Editor(self.nb, self.sb, self.pref)
-        #self.nb.AddPage(n, name)
+        n = panels.Editor(self.nb)
         self.NewPage(n, name)
         n.editorCtrl.SetText(val)
         if name == 'Output':
             n.editorCtrl.SetReadOnly(1)
             self.ebuildfile = n
-        #self.nb.SetSelection(self.nb.GetPageCount() -1)
 
     def OnMnuHelpRef(self, event):
         """Display html help file"""
@@ -823,11 +827,6 @@ class MyFrame(wxFrame):
         if not os.path.exists(valid_cat):
             msg = category + " isn't a valid category."
             return msg
-        l = self.panelMain.Category.GetValue()
-        if not l:
-            msg = "You must specify a license."
-            return msg
-        return 0
 
     def OnMnuNew(self,event):
         """Creates a new ebuild from scratch"""
@@ -883,12 +882,13 @@ class MyFrame(wxFrame):
 
     def AddPages(self):
         """Add pages to blank notebook"""
-        self.panelMain=panels.main(self.nb, self.sb, self.pref)
+        self.panelMain=panels.main(self.nb, env)
         self.panelDepend=panels.depend(self.nb)
         self.panelChangelog=panels.changelog(self.nb)
         self.NewPage(self.panelMain, "Main")
         self.NewPage(self.panelDepend, "Dependencies")
         self.NewPage(self.panelChangelog, "ChangeLog")
+        self.AddEditor("Output", "")
 
     def OnClose(self, event):
         """Called when trying to close application"""

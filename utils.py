@@ -140,8 +140,8 @@ def LoadEbuild(parent, filename, portdir):
         for v in otherVars:
             if v == parent.varOrder[n]:
                 parent.AddNewVar(v, otherVars[v])
+    parent.ViewEnvironment()
     if parent.CheckUnpacked():
-        parent.ViewEnvironment()
         parent.ViewConfigure()
         parent.ViewMakefile()
         parent.ViewSetuppy()

@@ -1,5 +1,10 @@
 Abeni 0.0.5
 
+remove "${WORKDIR}/${P}" from ebuilds when writing
+Make New Function descripts more clear i.e. 
+ src_compile ./configure && make
+
+---------
 
 There are minor bugs and new features needed noted in the source code with #TODO. Mostly these are
 message dialogs that need to be created for error and confirmation msgs.
@@ -16,6 +21,7 @@ Bugs:
     MISC:
 
     Get Stop button to cancel running commands in log window.
+    Should be fixed, need testing to make sure it cancels wget when creating digest etc.
 
     Need to check if people have saved/changed ebuilds before loading/creating new one
        Only thing not checked is when a variable or statement changes.
@@ -27,10 +33,6 @@ Bugs:
     If opening ${PORTDIR} ebuild, copy files in ${FILESDIR} to PORTDIR_OVERLAY/${FILESDIR}
 
     COSMETIC:
-
-    Shift-F5 to clear log
-
-    Use ShowPosition(GetLastPosition()) to show end of log when switching to that page
 
     Watch to see if/when repoman gets patched for users so I can stop using
     my custom repoman-safe.py:
@@ -47,8 +49,8 @@ Bugs:
         * Syntax highlighting is buggy for multi-line variables, see RDEPENDS/DEPENDS
         * UPDATE: Got rid of purple line but first and last variable's font are too small.
 
-    Order of funtions is not kept when saving.
-        * Save in logical order: src_unpack, src_compile, src_install etc.
+    Order of funtions should be logical no matter the sequence created:
+        src_unpack, src_compile, src_install etc.
 
     When you delete a notebook page, the control gets screwy looking.
         * This problem isn't resolved in wxPython 2.4.1.2. Bah.
@@ -59,7 +61,7 @@ Bugs:
 Add Features:
 
     After unpacking a file with a new ebuild, determine if its a kde, python,
-    etc. package and add eclass and corresponding functions automatically.
+    etc. package and add eclass and corresponding functions automatically, optionally.
 
     Add command line options:
         * As of 0.0.5 you can abeni <filename> to load an ebuild.
@@ -107,6 +109,7 @@ Add Features:
     Create diff of ebuild
         * Need dialog to verify 'diff file-x file-y' or let them choose.
         * As of now it diffs current ebuild vs last loaded.
+        Holding off on this as some developers do not like diffs. liquidx said it was prefered.
 
     Eclass templates for the most common secnarios:
         * KDE, Gnome etc.
@@ -116,6 +119,7 @@ Add Features:
     Download, unpack and view Makefile/configure from source tarball
     Hmmm. Why not open by default when unpacking package?
     ** Run file browser in ${WORKDIR} and let them open files with editor?
+        Doesn't work with sudo for kfmclient.
 
 Documentation:
 

@@ -15,11 +15,11 @@ class main(wxPanel):
 
     """Main panel - contains ebuild info, variables and statements"""
 
-    def __init__(self, parent, sb, pref):
+    def __init__(self, parent, env):
         wxPanel.__init__(self, parent, -1)
-        self.pref = pref
+        # parent is notebook
         self.parent=parent
-        self.sb = sb
+        self.env = env
         #Custom variables
         self.varDict = {}
         self.vrow = 160
@@ -182,7 +182,10 @@ class main(wxPanel):
                                    c, wxOK|wxCANCEL)
         if dlg.ShowModal() == wxID_OK:
             opt = dlg.GetStringSelection()
+            #Mark all games stable: Bugzilla #25708
             self.Category.SetValue(opt)
+            if opt == 'app-games':
+                self.Keywords.SetValue(self.Keywords.GetValue().replace('~', ''))
             dlg.Destroy()
         else:
             dlg.Destroy()
@@ -218,9 +221,10 @@ class main(wxPanel):
         self.Desc.SetValue('""')
         self.S.SetValue('"${WORKDIR}/${P}"')
         self.USE.SetValue('""')
-        self.Keywords.SetValue('"~x86"')
+        arch = '~%s' % self.env['ACCEPT_KEYWORDS'].split(' ')[0].replace('~', '')
+        self.Keywords.SetValue('"%s"' % arch)
         self.Slot.SetValue('"0"')
-        self.Homepage.SetValue('"http://"')
+        self.Homepage.SetValue('""')
         self.License.SetValue('""')
 
     def SetURI(self, uri):
@@ -365,11 +369,8 @@ class NewFunction(wxPanel):
 
     """Add notebook page for new function, using a simple text editor"""
 
-    def __init__(self, parent, statusbar, pref):
+    def __init__(self, parent):
         wxPanel.__init__(self, parent, -1)
-        self.statusbar = statusbar
-        self.pref = pref
-        self.parent=parent
         self.edNewFun = PythonSTC(self, -1)
         s = wxBoxSizer(wxHORIZONTAL)
         s.Add(self.edNewFun, 1, wxEXPAND)
@@ -387,11 +388,8 @@ class Editor(wxPanel):
 
     """Add notebook page for editor"""
 
-    def __init__(self, parent, statusbar, pref):
+    def __init__(self, parent):
         wxPanel.__init__(self, parent, -1)
-        self.statusbar = statusbar
-        self.pref = pref
-        self.parent=parent
         self.editorCtrl = PythonSTC(self, -1)
         s = wxBoxSizer(wxHORIZONTAL)
         s.Add(self.editorCtrl, 1, wxEXPAND)

@@ -60,16 +60,17 @@ class BugzillaDialog(wxDialog):
               label='Bugzilla Information', name='BuzillaStaticBox',
               parent=self, pos=wxPoint(8, 8), size=wxSize(448, 128), style=0)
 
-        self.StatusCombo = wxComboBox(choices=[], id=wxID_BUGZILLASTATUSCOMBO,
+        statusList = ['NEW', 'UNCONFIRMED', 'ASSIGNED', 'REOPENED', 'RESOLVED', 'VERIFIED', 'CLOSED']
+        self.StatusCombo = wxComboBox(id=wxID_BUGZILLASTATUSCOMBO,
               name='StatusCombo', parent=self, pos=wxPoint(16, 88),
-              size=wxSize(200, 22), style=0, validator=wxDefaultValidator,
-              value='NEW')
+              size=wxSize(200, 22), style=0, validator=wxDefaultValidator, choices=statusList)
         self.StatusCombo.SetLabel('')
 
-        self.ResolutionCombo = wxComboBox(choices=[],
+        resolutionList = ['FIXED', 'INVALID', 'WONTFIX', 'LATER', 'REMIND', 'DUPLICATE', 'WORKSFORME']
+        self.ResolutionCombo = wxComboBox(
               id=wxID_BUGZILLARESOLUTIONCOMBO, name='ResolutionCombo',
               parent=self, pos=wxPoint(224, 88), size=wxSize(224, 22), style=0,
-              validator=wxDefaultValidator, value='FIXED')
+              validator=wxDefaultValidator, choices=resolutionList)
         self.ResolutionCombo.SetLabel('')
 
         self.NotesStaticBox = wxStaticBox(id=wxID_BUGZILLANOTESSTATICBOX,
@@ -77,7 +78,7 @@ class BugzillaDialog(wxDialog):
               144), size=wxSize(448, 280), style=0)
 
     def OnSearchButton(self, event):
-        bugNbr, foo = self.GetValues()
+        bugNbr, foo, foo, foo = self.GetValues()
         URL = "http://bugs.gentoo.org/show_bug.cgi?id=%s" % bugNbr
         os.system("%s %s &" % (self.parent.pref['browser'], URL))
 
@@ -85,13 +86,25 @@ class BugzillaDialog(wxDialog):
         import pickle
         ebuild = self.parent.GetP()
         filename = os.path.expanduser('~/.abeni/bugzilla/%s' % ebuild)
-        bug, notes = self.GetValues()
+        bug, notes, status, resolution = self.GetValues()
         f = open(filename, 'w')
-        all = {'bugNbr' : bug, 'notes' : notes}
+        all = {'bugNbr' : bug, \
+               'notes' : notes, \
+               'status' : status, \
+               'resolution' : resolution
+            }
         pickle.dump(all, f)
 
     def LoadInfo(self):
         import pickle
+        """
+        all = {'bugNbr' : '', \
+               'notes' : '', \
+               'status' : '', \
+               'resolution' : ''
+            }
+        """
+
         ebuild = self.parent.GetP()
         filename = os.path.expanduser('~/.abeni/bugzilla/%s' % ebuild)
         if os.path.exists(filename):
@@ -100,15 +113,19 @@ class BugzillaDialog(wxDialog):
             self.FillForm(all)
 
     def FillForm(self, all):
-        bug = all['bugNbr']
-        notes = all['notes']
-        self.BugNbr.SetValue(bug)
-        self.NotestextCtrl.SetValue(notes)
+        self.BugNbr.SetValue(all['bugNbr'])
+        self.NotestextCtrl.SetValue(all['notes'])
+        if all['status'] != '':
+            self.StatusCombo.SetValue(all['status'])
+        if all['resolution'] != '':
+            self.ResolutionCombo.SetValue(all['resolution'])
 
     def GetValues(self):
         bug = self.BugNbr.GetValue()
         notes = self.NotestextCtrl.GetValue()
-        return bug, notes
+        status = self.StatusCombo.GetStringSelection()
+        resolution = self.ResolutionCombo.GetStringSelection()
+        return bug, notes, status, resolution
 
 class GetURIDialog(wxDialog):
 
