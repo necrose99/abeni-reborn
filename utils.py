@@ -1070,10 +1070,10 @@ def WriteEbuild(parent, temp=0):
     for fns in parent.funcList:
         fns.edNewFun.SetSavePoint()
 
-    changelog = os.path.join(parent.ebuildDir, 'ChangeLog')
-    f = open(changelog, 'w')
-    f.write(parent.panelChangelog.edChangelog.GetText())
-    f.close()
+    #changelog = os.path.join(parent.ebuildDir, 'ChangeLog')
+    #f = open(changelog, 'w')
+    #f.write(parent.panelChangelog.edChangelog.GetText())
+    #f.close()
     parent.recentList.append(filename)
     parent.sb.SetStatusText("Saved", 0)
     #parent.write("Saved %s" % filename)
