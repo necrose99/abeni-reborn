@@ -28,7 +28,7 @@ import os
 import shutil
 
 from portage import config, settings
-from wxPython.wx import *
+import wx
 
 import gui
 import __version__
@@ -69,19 +69,19 @@ rcfile = '%s/abenirc' % abeniDir
 if not os.path.exists(rcfile):
     shutil.copy("/usr/share/abeni/abenirc", rcfile)
 
-class MyApp(wxApp):
+class MyApp(wx.App):
 
     """ Main wxPython app class """
 
     def OnInit(self):
         """Set up the main frame"""
         # Enable gif, jpg, bmp, png handling for wxHtml and icons
-        wxInitAllImageHandlers()
+        wx.InitAllImageHandlers()
         self.frame=gui.MyFrame(None,-1, 'Abeni - The ebuild Builder ' + \
                                __version__.version)
-        self.frame.Show(true)
+        self.frame.Show(True)
         self.SetTopWindow(self.frame)
-        return true
+        return True
 
 
 app=MyApp(0)
