@@ -150,8 +150,8 @@ class MyFrame(wxFrame):
                 self.LoadByPackage(f)
 
     def OnMnuBugzSum(self, event):
-        import GridCustTable
-        frame = GridCustTable.TestFrame(None, sys.stdout)
+        import ProjectManager
+        frame = ProjectManager.MyFrame(None, self.write)
         frame.Show(true)
 
     def OnMnuGetDeps(self, event):

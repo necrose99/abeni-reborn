@@ -38,8 +38,11 @@ class BugzillaDialog(wxDialog):
            bzstatus VARCHAR, \
            bzresolution VARCHAR, \
            notes VARCHAR, \
+           mine BOOL, \
            abenistatus VARCHAR \
            )"
+        self.cursor.execute(cmd)
+        self.cursor.execute("CREATE UNIQUE INDEX pkey ON ebuilds (p)")
         self.cursor.execute(cmd)
         self.connection.commit()
 
@@ -51,20 +54,20 @@ class BugzillaDialog(wxDialog):
         abenistatus = '1'
         if self.new:
             self.cursor.execute("INSERT INTO ebuilds(p, package, cat, bug, bzstatus, bzresolution, notes, abenistatus) \
-                VALUES ('%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s')" \
-                % (p, package, cat, bug, bzstatus, bzresolution, notes, abenistatus)\
+                VALUES ('%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s')" \
+                % (p, package, cat, bug, bzstatus, bzresolution, notes, mine, abenistatus)\
                 )
         else:
             self.cursor.execute("UPDATE ebuilds SET p='%s', package='%s', cat='%s', bug='%s', bzstatus='%s',  \
-                                bzresolution='%s', notes='%s', abenistatus='%s' WHERE p='%s'" \
-                                % (p, package, cat, bug, bzstatus, bzresolution, notes, abenistatus, p))
+                                bzresolution='%s', notes='%s', mine='%s', abenistatus='%s' WHERE p='%s'" \
+                                % (p, package, cat, bug, bzstatus, bzresolution, notes, mine, abenistatus, p))
         self.connection.commit()
 
     def LoadInfo(self):
         P = self.parent.GetP()
         cat = self.parent.panelMain.Category.GetValue()
         package = self.parent.panelMain.Package.GetValue()
-        self.cursor.execute("SELECT p, package, cat, bug, bzstatus, bzresolution, notes, abenistatus \
+        self.cursor.execute("SELECT p, package, cat, bug, bzstatus, bzresolution, notes, mine, abenistatus \
                                 FROM ebuilds WHERE p='%s'" % P)
         data = self.cursor.fetchall()
         if data:
@@ -74,7 +77,7 @@ class BugzillaDialog(wxDialog):
             self.new = 1
 
     def FillForm(self, data):
-        p, package, cat, bug, bzstatus, bzresolution, notes, abenistatus = data[0]
+        p, package, cat, bug, bzstatus, bzresolution, notes, mine, abenistatus = data[0]
         self.BugNbr.SetValue(bug)
         self.NotestextCtrl.SetValue(notes)
         if bzstatus != '':
