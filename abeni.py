@@ -1,11 +1,11 @@
 #!/usr/bin/env python
 
 """Abeni - by Rob Cakebread
-Released under the terms of the GNU Public License v2"""
+Released under the terms of the GNU Public License v2
+"""
 
 __author__ = 'Rob Cakebread'
 __version__ = '0.0.1'
-
 from wxPython.wx import *
 from wxPython.help import *
 import os, os.path, string, sys, re, urlparse
@@ -14,10 +14,6 @@ import panels, options
 #Find directory Abeni was started from
 appdir = os.path.abspath(os.path.join(os.getcwd(), sys.path[0]))
 
-# Enable gif, jpg, bmp, png handling for wxHtml and icons
-wxInitAllImageHandlers()
-
-
 class MyFrame(wxFrame):
 
     """ Main frame that holds the menu, toolbar and notebook """
@@ -25,23 +21,18 @@ class MyFrame(wxFrame):
     def __init__(self, parent, id, title):
         wxFrame.__init__(self, parent, -1, title, size=wxSize(800,480))
         self.SetAutoLayout(true)
-
         # Are we in the process of editing an ebuild?
         self.editing = 0
-
         # Get options from ~/.abeni/abenirc file
         self.GetOptions()
-
         # Custom variables added
         self.varList = []
-
         # Custom functions added
         self.funcList = []
-
+        #application icon
         iconFile = ('%s/Images/mocha.png' % appdir)
         icon = wxIcon(iconFile, wxBITMAP_TYPE_PNG)
         self.SetIcon(icon)
-
         #Setup wxNotebook in main frame
         self.nb = wxNotebook(self, -1)
         lc = wxLayoutConstraints()
@@ -53,7 +44,6 @@ class MyFrame(wxFrame):
         self.sb = self.CreateStatusBar(1, wxST_SIZEGRIP)
         self.sb.SetFieldsCount(2)
         EVT_NOTEBOOK_PAGE_CHANGED(self.nb, self.nb.GetId(), self.OnPageChanged)
-
         #Create menus, setup keyboard accelerators
         # File
         menu_file = wxMenu()
@@ -67,21 +57,28 @@ class MyFrame(wxFrame):
         menu_file.Append(mnuExitID, "E&xit")
         menubar = wxMenuBar()
         menubar.Append(menu_file, "&File")
-
+        EVT_MENU(self, mnuExitID, self.OnMnuExit)
+        EVT_MENU(self, mnuSaveID, self.OnMnuSave)
+        EVT_MENU(self, mnuLoadID, self.OnMnuLoad)
+        EVT_MENU(self, mnuNewID, self.OnMnuNew)
         # Edit
         menu_edit = wxMenu()
         mnuNewVariableID = wxNewId()
         mnuNewFunctionID = wxNewId()
+        mnuDelFunctionID = wxNewId()
         menu_edit.Append(mnuNewVariableID, "New &Variable")
         menu_edit.Append(mnuNewFunctionID, "New &Function")
+        menu_edit.Append(mnuDelFunctionID, "&Delete Function")
         menubar.Append(menu_edit, "&Edit")
-
+        EVT_MENU(self, mnuNewVariableID, self.OnMnuNewVariable)
+        EVT_MENU(self, mnuNewFunctionID, self.OnMnuNewFunction)
+        EVT_MENU(self, mnuDelFunctionID, self.OnMnuDelFunction)
         # Options
         menu_options = wxMenu()
         mnuPrefID = wxNewId()
         menu_options.Append(mnuPrefID, "&Global Preferences")
         menubar.Append(menu_options, "&Options")
-
+        EVT_MENU(self, mnuPrefID, self.OnMnuPref)
         # Help
         menu_help = wxMenu()
         mnuHelpID = wxNewId()
@@ -90,25 +87,14 @@ class MyFrame(wxFrame):
         menu_help.Append(mnuAboutID,"&About")
         menubar.Append(menu_help,"&Help")
         self.SetMenuBar(menubar)
-        EVT_MENU(self, mnuExitID, self.OnMnuExit)
-        EVT_MENU(self, mnuSaveID, self.OnMnuSave)
-        EVT_MENU(self, mnuLoadID, self.OnMnuLoad)
-        EVT_MENU(self, mnuNewID, self.OnMnuNew)
-        EVT_MENU(self, mnuNewVariableID, self.OnMnuNewVariable)
-        EVT_MENU(self, mnuNewFunctionID, self.OnMnuNewFunction)
-        EVT_MENU(self, mnuPrefID, self.OnMnuPref)
         EVT_MENU(self, mnuAboutID, self.OnMnuAbout)
         EVT_MENU(self, mnuHelpID, self.OnMnuHelp)
-
         # Keyboard accelerators
         # TODO: Add for accelerator for each item in menu
-
         # Alt-X to exit
         aTable = wxAcceleratorTable([(wxACCEL_ALT,  ord('X'), mnuExitID)])
         self.SetAcceleratorTable(aTable)
-
         #Create Toolbar with icons
-
         newID = wxNewId()
         #closeID = wxNewId()
         openID = wxNewId()
@@ -149,11 +135,17 @@ class MyFrame(wxFrame):
         EVT_TIMER(self, -1, self.OnClearSB)
         self.timer = None
 
+    def OnMnuDelFunction(self, event):
+        """Remove current function page"""
+        self.nb.RemovePage(self.nb.GetSelection())
+
     def ClearNotebook(self):
+        """Delete all pages in the notebook"""
         self.nb.DeleteAllPages()
 
     def OnMnuLoad(self, event):
         """Load ebuild file"""
+        #TODO: Add an "Are you sure?" dialog
         if self.editing:
             self.ClearNotebook()
         wildcard = "ebuild files (*.ebuild)|*.ebuild"
@@ -180,8 +172,20 @@ class MyFrame(wxFrame):
                 funcTest3 = re.search('^[a-z]*_[a-z]*\(\) {', l)
                 funcTest4 = re.search('^[a-z]*_[a-z]* \(\) {', l)
                 if varTest:
-                    #TODO: Multi-line variables
                     s = string.split(l, "=")
+                    if len(s) > 2:  # RDEPEND = ">=foolib2"   (has two equal signs)
+                        s[1] = s[1] + "=" + s[2] + "\n"
+                    #Multi-line variables
+                    if l.count('"') == 1:
+                        v = s[1]
+                        while 1:
+                            l = f.readline()
+                            v += l
+                            if l.count('"') == 1:
+                                print s[0], v
+                                s[1] = v
+                                break
+
                     vars[s[0]] = string.replace(s[1], '"', '')
                     continue
                 if funcTest1 or funcTest2 or funcTest3 or funcTest4:
@@ -190,8 +194,6 @@ class MyFrame(wxFrame):
                     tempf.append(l + "\n")
                     while 1:
                         l = f.readline()
-                        #if len(l) > 1:
-                        #    l = string.strip(l)
                         tempf.append(l)
                         if l[0] == "}":
                             s = ""
@@ -203,32 +205,18 @@ class MyFrame(wxFrame):
                 # Command like rm -rf /tmp/foo
                 if re.search('^[a-z]', l):
                     commands.append(l)
-
-            #Debug:
-            #print "VARIABLES:\n"
-            #for key in vars.keys():
-            #    print key
-            #    print vars[key]
-            #print "FUNCTIONS:\n"
-            #for key in funcs.keys():
-            #    print key
-            #    print funcs[key]
             f.close()
+            #DEBUG
             print "COMMANDS:\n"
             print commands
-
             s = string.split(filename, "/")
-            print "filename", filename
             ebuild_file = s[len(s)-1]
             ebuild = s[len(s)-2]
             category = s[len(s)-3]
             clog = string.replace(filename, ebuild_file, '') + 'ChangeLog'
-
             myData = {}
             otherVars = {}
             myData, otherVars = self.SeparateVars(vars)
-            #print myData.keys()
-            #print otherVars.keys()
             myData['ebuild'] = ebuild
             myData['ebuild_file'] = ebuild_file
             myData['category'] = category
@@ -242,13 +230,15 @@ class MyFrame(wxFrame):
             # Add function pages to notebook
             for fname in funcs:
                 self.AddFunc(fname, funcs[fname])
+            # Add original ebuild file:
+            self.AddFunc('Original File', open(filename, 'r').read())
+            self.nb.SetSelection(0)
             # Set titlebar of app to ebuild name
             self.SetTitle('Abeni: ' + ebuild_file)
             #TODO:
             # Comments
-            # Commands panel
-            # Add functions panels DONE
-            # Changelog DONE
+            # DEPEND/RDEPEND
+            # Commands section
         dlg.Destroy()
 
     def SeparateVars(self, vars):
@@ -323,6 +313,7 @@ class MyFrame(wxFrame):
         self.funcList.append(n)
         self.nb.AddPage(n, newFunction)
         n.edNewFun.SetText(val)
+        self.nb.SetSelection(self.nb.GetPageCount() -1)
 
     def OnMnuHelp(self, event):
         """Display html help file"""
@@ -394,6 +385,7 @@ class MyFrame(wxFrame):
 
     def OnMnuNew(self,event):
         """Creates a new ebuild from scratch"""
+        #TODO: Add an "Are you sure?" dialog
         if self.editing:
             self.ClearNotebook()
         win = GetURIDialog(self, -1, "Enter Package URI", \
@@ -424,7 +416,7 @@ class MyFrame(wxFrame):
         self.panelChangelog=panels.changelog(self.nb, self.sb, self.pref)
         self.nb.AddPage(self.panelMain, "Main")
         self.nb.AddPage(self.panelDepend, "Dependencies")
-        self.nb.AddPage(self.panelChangelog, "Changelog")
+        self.nb.AddPage(self.panelChangelog, "ChangeLog")
 
     def OnMnuNewFrom(self,event):
         """Create new ebuild, copying existing ebuild"""
@@ -520,7 +512,7 @@ class MyFrame(wxFrame):
 
 class GetURIDialog(wxDialog):
 
-    """ Dialog box that pops up for URI """
+    """Dialog box that pops up for URI"""
 
     def __init__(self, parent, ID, title,
                  pos=wxDefaultPosition, size=wxDefaultSize,
@@ -568,11 +560,12 @@ class MyApp(wxApp):
     """ Main wxPython app class """
 
     def OnInit(self):
-        """Set titlebar and help provider for entire app"""
-        title = 'Abeni - The ebuild Builder'
+        """Set up the main frame"""
         provider = wxSimpleHelpProvider()
         wxHelpProvider_Set(provider)
-        frame=MyFrame(None, -1, title)
+        # Enable gif, jpg, bmp, png handling for wxHtml and icons
+        wxInitAllImageHandlers()
+        frame=MyFrame(None, -1, 'Abeni - The ebuild Builder')
         frame.Show(true)
         self.SetTopWindow(frame)
         return true
