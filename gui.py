@@ -6,6 +6,7 @@ import string
 import shutil
 import sys
 import tempfile
+import commands
 
 import wx
 import wx.stc
@@ -98,7 +99,7 @@ class MyFrame(wx.Frame):
         global mnuCVS_ID; mnuCVS_ID = wx.NewId()
         global mnuAboutID; mnuAboutID = wx.NewId()
         self.fileMenu = wx.Menu()
-        self.fileMenu.Append(mnuNewID, "&New ebuild", "", wx.ITEM_NORMAL)
+        self.fileMenu.Append(mnuNewID, "&New ebuild\tCtrl-n", "", wx.ITEM_NORMAL)
         self.fileMenu.Append(mnuLoadOverlayID, "L&oad ebuild from PORTDIR_OVERLAY", "", wx.ITEM_NORMAL)
         self.fileMenu.Append(mnuLoadID, "&Load ebuild from PORTDIR", "", wx.ITEM_NORMAL)
         self.fileMenu.Append(mnuSaveID, "&Save ebuild\tCtrl-S", "", wx.ITEM_NORMAL)
@@ -299,7 +300,7 @@ class MyFrame(wx.Frame):
         self.window_1_pane_2.SetSizer(sizer_11)
         sizer_11.Fit(self.window_1_pane_2)
         sizer_11.SetSizeHints(self.window_1_pane_2)
-        self.window_1.SplitVertically(self.window_1_pane_1, self.window_1_pane_2, 277)
+        self.window_1.SplitVertically(self.window_1_pane_1, self.window_1_pane_2, -361)
         sizer_9.Add(self.window_1, 1, wx.EXPAND, 0)
         self.panel_explorer.SetAutoLayout(True)
         self.panel_explorer.SetSizer(sizer_9)
@@ -330,10 +331,14 @@ class MyFrame(wx.Frame):
         # end wxGlade
 
         if os.getuid() == 0:
-            utils.MyMessage(self, "You no longer need run Abeni as root.\
-                                   Setup your regular user to use sudo.",\
+            utils.MyMessage(self, "You no longer need run Abeni as root.\nSetup your regular user to use sudo.\nSee http://abeni.sf.net/ if you need\nhelp setting up sudo.",\
                            "You must NOT be root.", "error")
             sys.exit(1)
+        if commands.getoutput("sudo whoami").find("root") == -1:
+            utils.MyMessage(self, "You do not appear to have sudo\nsetup correctly for Abeni.\nSee http://abeni.sf.net/ if you need\nhelp setting up sudo.",\
+                           "sudo test failed", "error")
+            sys.exit(1)
+
 
         wx.EVT_TREE_SEL_CHANGED(self, treeID, self.OnTreeActivate)
         wx.EVT_TREE_SEL_CHANGED(self, self.explorer.GetTreeCtrl().GetId(), self.OnFileSelect)
@@ -1585,10 +1590,10 @@ class MyFrame(wx.Frame):
         os.system("sudo kill %s" % self.pid)
         utils.write(self, "Killed %s" % self.pid)
         try:
-            #Critical: This won't work
             pid = open("/var/run/abeni_proc.pid", "r").read().strip()
             os.system("sudo kill %s" % pid)
             utils.write(self, "sub pid %s killed" % pid)
+            utils.write(self, "If running command in xterm, press Ctrl-C in that xterm." % pid)
         except:
             pass
         event.Skip()
