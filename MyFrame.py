@@ -47,7 +47,7 @@ import pyipc
 import enamer
 
 
-# __revision__ = "$Id: MyFrame.py,v 1.7 2005/01/22 21:11:43 robc Exp $"
+# __revision__ = "$Id: MyFrame.py,v 1.8 2005/01/23 17:50:24 robc Exp $"
 
 env = config(clone = settings).environ()
 PORTDIR_OVERLAY = env['PORTDIR_OVERLAY'].split(" ")[0]
@@ -688,6 +688,7 @@ class MyFrame(wx.Frame):
         #Focus on Notes tab
         self.notebook_1.SetSelection(1)
 
+        self.emerge_log = os.path.expanduser("~/abeni/emerge_log")
         #list of editor widgets:
         self.eds = []
         self.ed_panels = []
@@ -1131,18 +1132,17 @@ class MyFrame(wx.Frame):
         else:
             open_dir = PORTDIR
 
-        if not utils.verify_saved(self):
-            wildcard = "ebuild files (*.ebuild)|*.ebuild"
-            dlg = wx.FileDialog(self, "Choose a file", open_dir, "", \
-                                wildcard, wx.OPEN)
-            if dlg.ShowModal() == wx.ID_OK:
-                filename = dlg.GetPath()
-                self.last_open = os.path.dirname(dlg.GetPath())
-                utils.reset(self)
-                utils.load_ebuild(self, filename)
-                #Add option to add overlay to file history?
-                #self.filehistory.AddFileToHistory(filename)
-            dlg.Destroy()
+        wildcard = "ebuild files (*.ebuild)|*.ebuild"
+        dlg = wx.FileDialog(self, "Choose a file", open_dir, "", \
+                            wildcard, wx.OPEN)
+        if dlg.ShowModal() == wx.ID_OK:
+            filename = dlg.GetPath()
+            self.last_open = os.path.dirname(dlg.GetPath())
+            utils.reset(self)
+            utils.load_ebuild(self, filename)
+            #Add option to add overlay to file history?
+            #self.filehistory.AddFileToHistory(filename)
+        dlg.Destroy()
 
     def OnMnuHelpRef(self, event):
         """Display html help file"""
@@ -1174,6 +1174,7 @@ class MyFrame(wx.Frame):
         except IndexError:
             #no more pages in notebook
             return
+        #TODO: should we keep track of panels or does DeletePage kill it?
         del self.ed_panels[page]
         del self.filename[page]
         self.notebook_editor.DeletePage(page)
@@ -1260,7 +1261,7 @@ class MyFrame(wx.Frame):
             else:
                 self.Write("))) Couldn't convert URI to " + \
                            "mirror://sourceforge/ format.")
-        utils.reset(self) 
+        #utils.reset(self) 
         my_p = ""
         if enamer.is_good_filename(uri):
             uri_out, foo, bar = enamer.get_components(uri)
@@ -1268,12 +1269,14 @@ class MyFrame(wx.Frame):
             uri_out, my_p = enamer.get_myp(uri)
             my_p = my_p.replace(pn, "${PN}")
             my_p = my_p.replace(pv, "${PV}")
+        print cat, pn, pv
         self.text_ctrl_Category.SetValue(cat)
         self.text_ctrl_PN.SetValue(pn)
         self.text_ctrl_PVR.SetValue(pv)
         self.Write('))) Pkg URI="%s"' % uri)
         self.Write('))) I will try to determine ${S} when you unpack.')
-        self.AddEditor("filename", "untitled")
+        #self.AddEditor("%s-%s.ebuild" % (pn, pv), "untitled")
+        self.AddEditor("untitled", "untitled")
 
         self.ThisEd().SetText(open("/usr/share/abeni/templates/%s" % template, 'r').read())
 
@@ -1284,12 +1287,19 @@ class MyFrame(wx.Frame):
                              'MY_P="%s"\nDESCRIPTION=""' % my_p)
         self.ThisEd().EmptyUndoBuffer()
         self.ThisEd().SetSavePoint()
-        self.ThisEd().Show()
+        #self.ThisEd().Show()
         self.FindReplace("SRC_URI", 'SRC_URI="%s"' % uri_out)
         self.SetTitle("Abeni * The ebuild Builder " + __version__.version)
-        self.text_ctrl_Category.SetFocus()
         self.ApplyPrefs()
         utils.save_ebuild(self)
+        self.ThisEd().SetFocus()
+        if self.QueryEditing() == 1:
+            self.EnableMenus()
+            self.EnableToolbar(True)
+            self.button_Category.Enable(True)
+            self.text_ctrl_Category.Enable(True)
+            self.text_ctrl_PN.Enable(True)
+            self.text_ctrl_PVR.Enable(True)
 
     def OnClose(self, event):
         """Do clean shutdown"""
@@ -1350,8 +1360,8 @@ class MyFrame(wx.Frame):
         if not utils.verify_saved(self):
             self.action = "compile"
             log_msg = '))) Compiling...'
-            cmd = '''xterm -e "sudo sh -c 'export %s;export USE='%s';sudo ebuild %s compile 2>&1| tee /var/tmp/abeni/emerge_log'"''' \
-                     % (self.noauto, self.pref['use'], self.filename[self.ed_shown])
+            cmd = '''xterm -e "sudo sh -c 'export %s;export USE='%s';sudo ebuild %s compile 2>&1| tee %s'"''' \
+                     % (self.noauto, self.pref['use'], self.filename[self.ed_shown], self.emerge_log)
             self.ExecuteInLog(cmd, log_msg)
 
     def OnMnuClean(self, event):
@@ -1386,8 +1396,8 @@ class MyFrame(wx.Frame):
         if not utils.verify_saved(self):
             self.action = 'install'
             log_msg = '))) Installing...'
-            cmd = '''xterm -e "sudo sh -c 'export %s;export USE='%s';sudo ebuild %s install 2>&1|tee /var/tmp/abeni/emerge_log'"''' \
-                  % (self.noauto, self.pref['use'], self.filename[self.ed_shown])
+            cmd = '''xterm -e "sudo sh -c 'export %s;export USE='%s';sudo ebuild %s install 2>&1|tee %s'"''' \
+                  % (self.noauto, self.pref['use'], self.filename[self.ed_shown], self.emerge_log)
 
 
             self.ExecuteInLog(cmd, log_msg)
@@ -1402,8 +1412,8 @@ class MyFrame(wx.Frame):
         if not utils.verify_saved(self):
             self.action = 'qmerge'
             log_msg = '))) Qmerging...'
-            cmd = '''xterm -e "sudo sh -c 'export %s;export USE='%s';sudo ebuild %s qmerge 2>&1|tee /var/tmp/abeni/emerge_log'"''' \
-                  % (self.noauto, self.pref['use'], self.filename[self.ed_shown])
+            cmd = '''xterm -e "sudo sh -c 'export %s;export USE='%s';sudo ebuild %s qmerge 2>&1|tee %s'"''' \
+                  % (self.noauto, self.pref['use'], self.filename[self.ed_shown], self.emerge_log)
             self.Write(cmd)
             self.ExecuteInLog(cmd, log_msg)
 
@@ -1415,7 +1425,8 @@ class MyFrame(wx.Frame):
             return 0
 
         f = utils.get_files_dir(self)
-        dlg = wx.FileDialog(self, "Choose a file", "/var/tmp/abeni/", "", 
+        tmpdir = os.path.expanduser("~/.abeni/")
+        dlg = wx.FileDialog(self, "Choose a file", tmpdir, "", 
                             "*", wx.OPEN)
 
         if dlg.ShowModal() == wx.ID_OK:
@@ -1601,25 +1612,24 @@ class MyFrame(wx.Frame):
     def OnMnuLoadFromOverlay(self, event):
         """Load an ebuild from list of overlay ebuilds only"""
         #TODO: Create custom dialog with notebook for separate olay directories
-        if not utils.verify_saved(self):
-            cmd = "find %s -name '*.ebuild'" % PORTDIR_OVERLAY
-            r, choices = utils.run_ext_cmd(cmd)
-            choices.sort()
-            out = []
-            for l in choices:
-                out.append(l.replace(('%s/' % PORTDIR_OVERLAY), ''))
-            dlg = wx.SingleChoiceDialog(self, 'Load overlay ebuild:',
-                                        'Load overlay ebuild', out, 
-                                        wx.OK|wx.CANCEL
-                                       )
-            if dlg.ShowModal() == wx.ID_OK:
-                e = dlg.GetStringSelection()
-                utils.reset(self)
-                filename = "%s/%s" % (PORTDIR_OVERLAY, e)
-                if os.path.isfile(filename):
-                    utils.load_ebuild(self, filename)
-                    self.filehistory.AddFileToHistory(filename)
-            dlg.Destroy()
+        cmd = "find %s -name '*.ebuild'" % PORTDIR_OVERLAY
+        r, choices = utils.run_ext_cmd(cmd)
+        choices.sort()
+        out = []
+        for l in choices:
+            out.append(l.replace(('%s/' % PORTDIR_OVERLAY), ''))
+        dlg = wx.SingleChoiceDialog(self, 'Load overlay ebuild:',
+                                    'Load overlay ebuild', out, 
+                                    wx.OK|wx.CANCEL
+                                   )
+        if dlg.ShowModal() == wx.ID_OK:
+            e = dlg.GetStringSelection()
+            utils.reset(self)
+            filename = "%s/%s" % (PORTDIR_OVERLAY, e)
+            if os.path.isfile(filename):
+                utils.load_ebuild(self, filename)
+                self.filehistory.AddFileToHistory(filename)
+        dlg.Destroy()
 
     def OnMnuPrivHelp(self, event):
         """View private portage fnunctions"""
@@ -2013,8 +2023,10 @@ class MyFrame(wx.Frame):
             val = win.ShowModal()
             if val == wx.ID_OK:
                 self.action = "emerge"
-                cmd = '''xterm -e "sudo sh -c 'export USE='%s';%s | tee /var/tmp/abeni/emerge_log'"''' \
-                         % (win.use.GetValue(), win.emerge.GetValue())
+                cmd = '''xterm -e "sudo sh -c 'export USE='%s';%s | tee %s'"''' \
+                         % (win.use.GetValue(),
+                            win.emerge.GetValue(),
+                            self.emerge_log)
                 log_msg = "))) %s" % cmd
                 self.ExecuteInLog(cmd, log_msg)
 
@@ -2087,6 +2099,11 @@ class MyFrame(wx.Frame):
             utils.reset(self)
             self.SetTitle(utils.get_p(self) + " - Abeni " + __version__.version)
             self.label_filename.SetLabel("")
+            return
+        if self.filename[self.ed_shown] == "untitled":
+            self.ThisEd().DoTitle(False)
+            utils.set_status(self, self.ed_shown)
+            wx.CallAfter(self.ThisEd().SetFocus)
             return
         utils.reset(self)
         utils.switch_ebuilds(self)
