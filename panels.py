@@ -14,59 +14,118 @@ class main(wxPanel):
         self.parent=parent
         self.sb = sb
 
+        #Custom variable globals
+        self.text = []
+        self.newVar = []
+        self.vrow = 30
+
         row = 20
         col = 130
         width = 260
+        self.group1_ctrls = []
 
-        wxStaticText(self, -1, "Ebuild", wxPoint(15, row), wxSize(145, 20))
-        self.Ebuild = wxTextCtrl(self, wxNewId(), "", wxPoint(col, row), wxSize(width, 20))
-
+        text1 = wxStaticText(self, -1, "Ebuild")
+        self.Ebuild = wxTextCtrl(self, wxNewId(), "", wxPoint(0,0), wxSize(250, 20))
         row+=30
-        wxStaticText(self, -1, "Ebuild file", wxPoint(15, row), wxSize(145, 20))
-        self.EbuildFile = wxTextCtrl(self, wxNewId(), "", wxPoint(col, row), wxSize(width, 20))
-
+        text2 = wxStaticText(self, -1, "Ebuild File")
+        self.EbuildFile = wxTextCtrl(self, wxNewId(), "", wxPoint(0,0), wxSize(250, 20))
         row+=30
-        wxStaticText(self, -1, "Package URI", wxPoint(15, row), wxSize(145, 20))
-        self.URI = wxTextCtrl(self, wxNewId(), "", wxPoint(col, row), wxSize(width, 20))
 
+        self.group2_ctrls = []
+        text3 = wxStaticText(self, -1, "SRC_URI")
+        self.URI = wxTextCtrl(self, wxNewId(), "", wxPoint(0,0), wxSize(250, 20))
         row+=30
-        wxStaticText(self, -1, "Ebuild Rev", wxPoint(15, row), wxSize(145, 20))
-        self.Rev = wxTextCtrl(self, wxNewId(), "", wxPoint(col, row), wxSize(width, 20))
-
-        row+=30
-        wxStaticText(self, -1, "Homepage", wxPoint(15, row), wxSize(145, 20))
-        self.Homepage = wxTextCtrl(self, wxNewId(), "", wxPoint(col, row), wxSize(width, 20))
+        text5 = wxStaticText(self, -1, "HOMEPAGE")
+        self.Homepage = wxTextCtrl(self, wxNewId(), "", wxPoint(0,0), wxSize(250, 20))
         self.Homepage.SetFocus()
-
         row+=30
-        wxStaticText(self, -1, "Description", wxPoint(15, row), wxSize(145, 20))
-        self.Desc = wxTextCtrl(self, wxNewId(), "", wxPoint(col, row), wxSize(width, 20))
-
+        text6 = wxStaticText(self, -1, "DESCRIPTION")
+        self.Desc = wxTextCtrl(self, wxNewId(), "", wxPoint(0,0), wxSize(250, 20))
         row+=30
-        wxStaticText(self, -1, "USE variables", wxPoint(15, row), wxSize(145, 20))
-        self.USE = wxTextCtrl(self, wxNewId(), "", wxPoint(col, row), wxSize(width, 20))
-
+        text7 = wxStaticText(self, -1, "USE")
+        self.USE = wxTextCtrl(self, wxNewId(), "", wxPoint(0,0), wxSize(250, 20))
         row+=30
-        wxStaticText(self, -1, "Slot", wxPoint(15, row), wxSize(145, 20))
-        self.Slot = wxTextCtrl(self, wxNewId(), "", wxPoint(col, row), wxSize(width, 20))
-
+        text8 = wxStaticText(self, -1, "SLOT")
+        self.Slot = wxTextCtrl(self, wxNewId(), "", wxPoint(0,0), wxSize(250, 20))
         row+=30
-        wxStaticText(self, -1, "Keywords", wxPoint(15, row), wxSize(145, 20))
-        self.Keywords = wxTextCtrl(self, wxNewId(), "", wxPoint(col, row), wxSize(width, 20))
-
+        text9 = wxStaticText(self, -1, "KEYWORDS")
+        self.Keywords = wxTextCtrl(self, wxNewId(), "", wxPoint(0,0), wxSize(250, 20))
         row+=30
-        wxStaticText(self, -1, "License", wxPoint(15, row), wxSize(145, 20))
+        text10 = wxStaticText(self, -1, "LICENSE")
         licenseList = ['Artistic', 'BSD', 'GPL-1', 'GPL-2']
+        self.group3_ctrls = []
+
         chEvt = wxNewId()
-        self.ch = wxChoice(self, chEvt, (col, row), choices = licenseList)
+        self.ch = wxChoice(self, chEvt, wxPoint(0,0), choices = licenseList)
         self.License = licenseList[0]
         EVT_CHOICE(self, chEvt, self.EvtChoice)
+        #text11 = wxStaticText(self, -1, "Choose 'New Variable' in the 'Edit' menu to add new variables.")
+        #text12 = wxStaticText(self, -1, "     ")
+
+        self.group1_ctrls.append((text1, self.Ebuild))
+        self.group1_ctrls.append((text2, self.EbuildFile))
+
+        self.group2_ctrls.append((text3, self.URI))
+        #self.group2_ctrls.append((text4, self.Rev))
+        self.group2_ctrls.append((text5, self.Homepage))
+        self.group2_ctrls.append((text6, self.Desc))
+        self.group2_ctrls.append((text7, self.USE))
+        self.group2_ctrls.append((text8, self.Slot))
+        self.group2_ctrls.append((text9, self.Keywords))
+        self.group2_ctrls.append((text10, self.ch))
+
+        #self.group3_ctrls.append((text11, text12))
+
+        # Layout controls on panel:
+        vs = wxBoxSizer( wxVERTICAL )
+        box1_title = wxStaticBox( self, -1, "Ebuild Info")
+        box1 = wxStaticBoxSizer( box1_title, wxVERTICAL )
+        grid1 = wxFlexGridSizer( 0, 2, 0, 20 )
+        for ctrl, text in self.group1_ctrls:
+            grid1.AddWindow( ctrl, 0, wxALIGN_LEFT|wxLEFT|wxRIGHT|wxTOP, 5 )
+            grid1.AddWindow( text, 0, wxALIGN_LEFT|wxLEFT|wxRIGHT|wxTOP, 5 )
+
+        box1.AddSizer( grid1, 0, wxALIGN_LEFT|wxALL, 5 )
+        vs.AddSizer( box1, 1, wxALIGN_LEFT|wxALL, 5 )
+
+        box2_title = wxStaticBox( self, -1, "Default Variables" )
+        box2 = wxStaticBoxSizer( box2_title, wxVERTICAL )
+        grid2 = wxFlexGridSizer( 0, 2, 0, 0 )
+        for ctrl, text in self.group2_ctrls:
+            grid2.AddWindow( ctrl, 0, wxALIGN_LEFT|wxLEFT|wxRIGHT|wxTOP, 5 )
+            grid2.AddWindow( text, 0, wxALIGN_LEFT|wxLEFT|wxRIGHT|wxTOP, 5 )
+
+        box2.AddSizer( grid2, 0, wxALIGN_LEFT|wxALL, 5 )
+        vs.AddSizer( box2, 2, wxALIGN_LEFT|wxALL, 5 )
+
+        #vs2 = wxBoxSizer( wxVERTICAL )
+        #box3_title = wxStaticBox( self, -1, "Custom Variables" )
+        #box3 = wxStaticBoxSizer( box3_title, wxVERTICAL )
+        #self.grid3 = wxFlexGridSizer( 0, 1, 0, 0 )
+        #for ctrl, text in self.group3_ctrls:
+        #    self.grid3.AddWindow( ctrl, 0, wxALIGN_LEFT|wxLEFT|wxRIGHT|wxTOP, 5 )
+        #    self.grid3.AddWindow( text, 0, wxALIGN_LEFT|wxLEFT|wxRIGHT|wxTOP, 5 )
+
+        #box3.AddSizer(self.grid3, 0, wxALIGN_LEFT|wxALL, 5 )
+        #vs2.AddSizer(box3, 0, wxALIGN_RIGHT|wxALL, 5 )
+
+        self.SetSizer(vs)
+        vs.Fit(self)
+        #self.SetSizer(vs2)
+        #vs2.Fit(self)
+        boxt = wxStaticBox( self, -1, "Other Variables", wxPoint(400, 5), wxSize(390,350))
+
+    def AddVar(self, var):
+        t = wxStaticText(self, -1, var, wxPoint(410, self.vrow))
+        self.text.append(t)
+        v =wxTextCtrl(self, wxNewId(), "", wxPoint(525, self.vrow), wxSize(250, 20))
+        self.newVar.append(v)
+        self.vrow += 30
 
     def PopulateDefault(self):
         self.Keywords.SetValue("~x86")
         self.Slot.SetValue("0")
         self.Homepage.SetValue("http://")
-        self.Rev.SetValue("0")
 
     def EvtChoice(self, event):
         self.License = event.GetString()
