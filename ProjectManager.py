@@ -1,7 +1,7 @@
 from portage import config
 from wxPython.wx import *
 from wxPython.grid import *
-import popen2, gadfly, os, string
+import popen2, gadfly, os, string, options
 
 env = config().environ()
 portdir_overlay = env['PORTDIR_OVERLAY'].split(":")[0]
@@ -31,7 +31,7 @@ class CustomDataTable(wxPyGridTableBase):
                           wxGRID_VALUE_CHOICE + ':,FIXED,INVALID,WONTFIX,LATER,REMIND,DUPLICATE,WORKSFORME',
                           wxGRID_VALUE_BOOL,
                           wxGRID_VALUE_BOOL,
-                          wxGRID_VALUE_CHOICE + ':,FIXED,WONTFIX,LATER,OBSOLETE,TESTING,REMIND,SUBMITTED',
+                          wxGRID_VALUE_CHOICE + ':,'+options.Options().Prefs()['statuslist'],
                           ]
 
         #self.data = [

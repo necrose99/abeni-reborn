@@ -256,7 +256,7 @@ class BugzillaDialog(wxDialog):
               label='Ebuild Package', name='PackageText', parent=self,
               pos=wxPoint(228, 20), size=wxSize(88, 16), style=0)
 
-        abeniList = ['', 'FIXED', 'INVALID', 'WONTFIX', 'LATER', 'REMIND', 'OBSOLETE', 'SUBMITTED']
+        abeniList = [''] + Options().Prefs()['statuslist'].split(',')
         self.AbeniComboBox = wxComboBox(choices=abeniList,
               id=wxID_BUGZILLAABENICOMBOBOX, name='AbeniComboBox', parent=self,
               pos=wxPoint(224, 160), size=wxSize(224, 22), style=0,
@@ -474,6 +474,8 @@ class Preferences(wxDialog):
         self.log.SetValue(self.pref['log'])
         self.email = wxTextCtrl(self, wxNewId(), "", size=(200,-1))
         self.email.SetValue(self.pref['email'])
+        self.statuslist = wxTextCtrl(self, wxNewId(), "", size=(200,-1))
+        self.statuslist.SetValue(self.pref['statuslist'])
 
         gs.AddMany([
         (wxStaticText(self, -1, "Web browser"), 0, wxALIGN_LEFT),
@@ -488,6 +490,8 @@ class Preferences(wxDialog):
         (self.autoTabs, 0, wxALIGN_RIGHT),
         (wxStaticText(self, -1, "File Browser"), 0, wxALIGN_LEFT),
         (self.fileBrowser, 0, wxALIGN_RIGHT),
+        (wxStaticText(self, -1, "Abeni status modes"), 0, wxALIGN_LEFT),
+        (self.statuslist, 0, wxALIGN_RIGHT),
         (wxStaticText(self, -1, "USE"), 0, wxALIGN_LEFT),
         (self.use, 0, wxALIGN_RIGHT),
         (wxStaticText(self, -1, "FEATURES"), 0, wxALIGN_LEFT),

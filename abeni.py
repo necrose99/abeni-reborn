@@ -1120,7 +1120,9 @@ class MyFrame(wxFrame):
             self.pref['features'] = win.features.GetValue()
             self.pref['log'] = win.log.GetValue()
             self.pref['email'] = win.email.GetValue()
+            self.pref['statuslist'] = win.statuslist.GetValue()
             f = open(os.path.expanduser('~/.abeni/abenirc'), 'w')
+
             for v in self.pref.keys():
                 f.write('%s = %s\n' % (v, self.pref[v]))
             f.close()

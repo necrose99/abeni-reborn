@@ -2,6 +2,7 @@ import sys, string, os, shutil
 
 class Options:
     def __init__(self):
+
         """Set all var names"""
         self.pref = {}
         self.pref['browser'] = ''
@@ -14,6 +15,8 @@ class Options:
         self.pref['features'] = ''
         self.pref['log'] = ''
         self.pref['email'] = ''
+        self.pref['statuslist'] = 'FIXED,WONTFIX,LATER,OBSOLETE,TESTING,REMIND,SUBMITTED'
+
         self.Read_apprc()
 
     def Read_apprc(self):
