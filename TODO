@@ -40,13 +40,11 @@ Make New Function descripts more clear i.e.
 Add a submit button to ProjMan to submit new ebuilds to bugzilla (we 
 should exclude the bugzilla stuff to its own class)
 
-Export function to generate a tarball with all necessary files (mostly done)
-
 make the "Abeni status" combo list configurable
 
 seperate the GUI code from the backend code
 
-better format for TODO
+better format for TODO :)
 
 ---------
 
