@@ -425,7 +425,6 @@ class MyFrame(wxFrame):
         dlg.SetValue("")
         if dlg.ShowModal() == wxID_OK:
             newVariable = dlg.GetValue()
-            self.varOrder.append(newVariable)
             self.AddNewVar(newVariable, "")
         self.saved = 0
         dlg.Destroy()
@@ -434,6 +433,7 @@ class MyFrame(wxFrame):
         """Add new variable on Main panel"""
         if val == '':
             val = '""'
+        self.varOrder.append(var)
         self.panelMain.AddVar(var, val)
 
     def OnMnuDelVariable(self, event):
@@ -929,10 +929,11 @@ class MyFrame(wxFrame):
                 if self.pref['log'] == 'window':
                     self.LogWindow()
                 self.panelMain.PopulateDefault()
+                # I do this in case we edit SRC_URI and forget what the original url is:
                 self.write(self.URI)
                 if self.URI.find('sourceforge') != -1:
-                    #http://umn.dl.sourceforge.net/sourceforge/tikiwiki/tiki161.zip
-                    #mirror://sourceforge/tikiwiki/tiki161.ip
+                    #http://umn.dl.sourceforge.net/sourceforge/tikiwiki/tiki161.zip ->
+                    #mirror://sourceforge/tikiwiki/tiki161.ip ->
                     #a = urlparse.urlparse("http://umn.dl.sourceforge.net/sourceforge/tikiwiki/tiki161.zip")
                     #('http', 'umn.dl.sourceforge.net', '/sourceforge/tikiwiki/tiki161.zip', '', '', '')
                     a = urlparse.urlparse(self.URI)
@@ -940,7 +941,8 @@ class MyFrame(wxFrame):
                 self.panelMain.SetURI(self.URI)
                 self.panelMain.SetName(self.URI)
                 self.panelMain.SetPackageName()
-                n = self.panelMain.GetPackageName()
+                n = self.panelMain.GetPackage()
+                self.write(n)
                 if not pkgsplit(n):
                     self.logColor("RED")
                     self.write("Warning: You need to set the Package Name and ebuild name properly.")
@@ -1036,7 +1038,6 @@ class MyFrame(wxFrame):
 
     def OnMnuEclassHelp(self, event):
         """View an eclass file"""
-        #TODO: This is a modal dialog, use a wxFrame maybe?
         d = "%s/eclass/" % portdir
         c = os.listdir(d)
         c.sort()
@@ -1322,6 +1323,37 @@ class MyFrame(wxFrame):
     def SetToNewPage(self):
         self.nb.SetSelection(self.nb.GetPageCount() -1)
 
+    def OnMnuGetTemplate(self, event):
+        """"""
+        if not self.editing:
+            return
+
+        c = self.GetTemplates()
+        c.sort()
+        dlg = wxSingleChoiceDialog(self, 'Templates:', 'Choose template:',
+                                   c, wxOK|wxCANCEL)
+        if dlg.ShowModal() == wxID_OK:
+            opt = dlg.GetStringSelection().strip()
+            dlg.Destroy()
+        else:
+            dlg.Destroy()
+            return
+
+        func = "my%s" % opt
+        exec "from Templates import " + func
+        cmd = "%s(self)" % func
+        exec cmd
+
+    def GetTemplates(self):
+        """Return list of Eclass templates to load"""
+        import EclassTemplates
+        funcs = dir(EclassTemplates)
+        c = []
+        for l in funcs:
+            if l[0:6] == 'Eclass':
+                c.append(l[6:])
+        return c
+
     def MyMenu(self):
         #Create menus, setup keyboard accelerators
         # File
@@ -1366,6 +1398,11 @@ class MyFrame(wxFrame):
         menubar.Append(menu_function, "Functio&n")
         # Eclass
         menu_eclass = wxMenu()
+        mnuGetTemplateID = wxNewId()
+        menu_eclass.Append(mnuGetTemplateID, "&Load template")
+        EVT_MENU(self, mnuGetTemplateID, self.OnMnuGetTemplate)
+        menubar.Append(menu_eclass, "Templates")
+        '''
         mnuGamesID = wxNewId()
         menu_eclass.Append(mnuGamesID, "games")
         EVT_MENU(self, mnuGamesID, self.OnMnuEclassGames)
@@ -1375,7 +1412,8 @@ class MyFrame(wxFrame):
         mnuDistutilsID = wxNewId()
         menu_eclass.Append(mnuDistutilsID, "distutils")
         EVT_MENU(self, mnuDistutilsID, self.OnMnuEclassDistutils)
-        menubar.Append(menu_eclass, "E&class templates")
+
+        '''
         # Tools
         menu_tools = wxMenu()
         mnuEbuildID = wxNewId()
@@ -1522,6 +1560,7 @@ class MySplashScreen(wxSplashScreen):
         frame=MyFrame(None, -1, 'Abeni - The ebuild Builder ' + __version__)
         frame.Show()
         evt.Skip()  # Make sure the default handler runs too...
+
 
 app=MyApp()
 app.MainLoop()

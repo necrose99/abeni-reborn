@@ -23,7 +23,6 @@ def GetOptions(parent):
 def LoadEbuild(parent, filename, portdir):
     """Load ebuild from filename"""
     filename = string.strip(filename)
-
     #Check if ebuild has syntax errors before loading.
     #If there are errors ask if they want to edit it in external editor.
     #Try to load again after exiting external editor.
@@ -32,7 +31,7 @@ def LoadEbuild(parent, filename, portdir):
     r, out = RunExtProgram(filename)
     os.system("chmod -x %s" % filename)
     if r:
-        parent.write("Ebuild syntax is incorrect. Fix this before trying to load:")
+        parent.write("Ebuild syntax is incorrect - /bin/bash found an error. Fix this before trying to load:")
         for l in out:
             parent.write(l)
         msg = "The ebuild has a syntax error. Would you like to edit this in your external editor?"
@@ -52,7 +51,7 @@ def LoadEbuild(parent, filename, portdir):
     f = open(filename, 'r')
     # Read in header, then discard it. We always write clean header.
     header1 = f.readline()
-    # First line should read:
+    # First line should contain:
     # Copyright 1999-200n Gentoo Technologies, Inc.
     if header1.find("Gentoo Technologies") == -1:
         msg = "The ebuild has no header. Would you like to edit this ebuild in your external editor?"
@@ -338,57 +337,6 @@ def getDefaultVars(parent):
         defaultVars['S'] = "S=${WORKDIR}/${P}"
     defaultVars['changelog'] = parent.panelChangelog.edChangelog.GetText()
     return defaultVars
-
-def EclassGames(parent):
-    """Add games.eclass stuff"""
-
-    parent.AddCommand("inherit games")
-
-    src_compile = "src_compile() {\n" + \
-    "\tegamesconf\n" + \
-    "\temake\n" + \
-    "}"
-    parent.AddFunc("src_compile", (src_compile))
-
-    src_install = "src_install() {\n" + \
-    "\t#make DESTDIR=${D} install || die\n" + \
-    "\tegamesinstall || die\n" + \
-    "\tprepgamesdirs\n" + \
-    "}"
-    parent.AddFunc("src_install", (src_install))
-
-
-def EclassDistutils(parent):
-    """Add Python distutils-related variables, inherit etc."""
-    # You don't need src_install() with distutils because it gets called automatically.
-    # We add it in case they want to add anything to it.
-
-    src_install = "src_install() {\n" + \
-    "\tdistutils_src_install\n" + \
-    "}"
-    parent.AddCommand("inherit distutils")
-    parent.AddFunc("src_install", (src_install))
-
-def EclassCVS(parent):
-    """Add CVS-related variables, inherit etc."""
-    src_compile = "src_compile() {\n" + \
-    "\texport WANT_AUTOCONF_2_5=1\n" + \
-    "\tsh autogen.sh\n" + \
-    "\teconf || die 'configure failed'\n" + \
-    "\temake || die 'parallel make failed'\n" + \
-    "}"
-
-    src_install = "src_install() {\n" + \
-    "\teinstall || die 'make install failed'\n" + \
-    "}"
-
-    parent.AddNewVar("ECVS_SERVER", "")
-    parent.AddNewVar("ECVS_MODULE", "")
-    parent.AddNewVar("ECVS_TOD_DIR", "$DIST/")
-    parent.AddNewVar("S", "${WORKDIR}/${PN/-cvs/}")
-    parent.AddCommand("inherit cvs")
-    parent.AddFunc("src_compile", (src_compile))
-    parent.AddFunc("src_install", (src_install))
 
 def AddToolbar(parent):
     #Create Toolbar with icons
