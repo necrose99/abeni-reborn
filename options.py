@@ -15,6 +15,8 @@ class Options:
         self.pref['logFilename'] = "/root/.abeni/log.txt"
         self.pref['font'] = "Courier 12"
         self.pref['highlighting'] = 1
+        self.pref['show_whitespace'] = 0
+        self.pref['tabsize'] = 4
         self.pref['gentooHighlight'] = 1
         self.pref['externalControl'] = 0
         self.pref['browser'] = '/usr/bin/firebird'

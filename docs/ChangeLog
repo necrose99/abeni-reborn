@@ -1,3 +1,6 @@
+  18 Aug 2004; Rob Cakebread <pythonhead@gentoo.org>:
+  Added tabsize and show whitespace options to Editor preferences
+  Cleaned up fonts to use same face and size
 
   17 Aug 2004; Rob Cakebread <pythonhead@gentoo.org>:
   Changed deprecated AddSizer's to Add

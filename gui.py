@@ -25,6 +25,7 @@ import HelpFkeysDialog
 import HelpCVSDialog
 import PortageFuncsDialog
 import pyipc
+import options 
 
 env = config(clone=settings).environ()
 portdir_overlay = env['PORTDIR_OVERLAY'].split(" ")[0]
@@ -391,20 +392,6 @@ class MyFrame(wxFrame):
         EVT_COMMAND_FIND(self, -1, self.OnFind)
         EVT_COMMAND_FIND_NEXT(self, -1, self.OnFind)
         EVT_COMMAND_FIND_CLOSE(self, -1, self.OnFindClose)
-
-        #Individual CVS commands:
-
-        #EVT_MENU(self, mnuBugID, self.OnMnuBugzilla)
-        #EVT_MENU(self, mnuSumID, self.OnMnuProjManager)
-        #EVT_MENU(self, mnuMetadataEditID, self.OnMnuMetadataEdit)
-        #EVT_MENU(self, mnuRepomanScanID, self.OnMnuRepomanScan)
-        #EVT_MENU(self, mnuCVSupdateID, self.OnMnuCVSupdate)
-        #EVT_MENU(self, mnuCopyEbuildID, self.OnMnuCopyFile)
-        #EVT_MENU(self, mnuDigestID, self.OnMnuCreateCVSDigest)
-        #EVT_MENU(self, mnuCVSaddID, self.OnMnuCVSaddEbuild)
-        #EVT_MENU(self, mnuCVSaddMetadataID, self.OnMnuCVSaddMetadata)
-        #EVT_MENU(self, mnuCVSaddDigestID, self.OnMnuCVSaddDigest)
-        #EVT_MENU(self, mnuCVSaddDirID, self.OnMnuCVSaddDir)
 
         #Tools:
 
@@ -1456,6 +1443,8 @@ class MyFrame(wxFrame):
             self.pref['font'] = win.text_ctrl_font.GetValue()
             self.pref['highlighting'] = win.checkbox_highlight.GetValue()
             self.pref['gentooHighlight'] = win.checkbox_gentoo_highlighting.GetValue()
+            self.pref['show_whitespace'] = win.checkbox_whitespace.GetValue()
+            self.pref['tabsize'] = win.text_ctrl_1.GetValue()
             f = open(os.path.expanduser('~/.abeni/abenirc'), 'w')
 
             for v in self.pref.keys():
@@ -1466,8 +1455,9 @@ class MyFrame(wxFrame):
     def ApplyPrefs(self):
         """Apply changes after getting prefs"""
         face, size = self.pref['font'].split(",")
+        self.STCeditor.SetMyStyle() 
         self.STCeditor.StyleSetFontAttr(0, string.atoi(size), face, 0, 0, 0)
-        #comments: 1
+        ##comments: 1
         self.STCeditor.StyleSetFontAttr(1, string.atoi(size), face, 0, 0, 0)
         self.STCeditor.StyleSetFontAttr(2, string.atoi(size), face, 0, 0, 0)
         self.STCeditor.StyleSetFontAttr(3, string.atoi(size), face, 0, 0, 0)
@@ -1478,7 +1468,6 @@ class MyFrame(wxFrame):
         self.STCeditor.StyleSetFontAttr(8, string.atoi(size), face, 0, 0, 0)
         self.STCeditor.StyleSetFontAttr(9, string.atoi(size), face, 0, 0, 0)
         self.STCeditor.StyleSetFontAttr(10, string.atoi(size), face, 0, 0, 0)
-        
         if self.pref['logfile'] == 1:
             self.logfile = open(self.pref['logFilename'], 'a')
         else:
@@ -1837,10 +1826,6 @@ class GentooSTC(wxStyledTextCtrl):
     def __init__(self, parent, ID):
         wxStyledTextCtrl.__init__(self, parent, ID,
                                   style = wxNO_FULL_REPAINT_ON_RESIZE)
-        faces = { 'mono' : 'Courier',
-            'size' : 12,
-            'size2': 10,
-            }
         self.parent = parent
         #Increase text size
         self.CmdKeyAssign(ord('B'), wxSTC_SCMOD_CTRL, wxSTC_CMD_ZOOMIN)
@@ -1861,7 +1846,6 @@ class GentooSTC(wxStyledTextCtrl):
         self.SetProperty("tab.timmy.whinge.level", "3") 
         self.SetMargins(0,0)
         self.SetUseTabs(1)
-        self.SetViewWhiteSpace(True)
         self.SetBufferedDraw(False)
 
         self.SetEdgeMode(wxSTC_EDGE_BACKGROUND)
@@ -1869,6 +1853,21 @@ class GentooSTC(wxStyledTextCtrl):
 
         self.SetMarginWidth(2, 12)
 
+        self.SetCaretForeground("BLUE")
+        self.SetMyStyle()
+        EVT_STC_SAVEPOINTLEFT(self, -1, self.UnsavedTitle)
+        EVT_STC_SAVEPOINTREACHED(self, -1, self.SavedTitle)
+
+    def SetMyStyle(self):
+        my_face, my_size = options.Options().Prefs()['font'].split(",")
+        my_size = string.atoi(my_size)
+        faces = { 'mono' : my_face,
+            'size' : my_size,
+            'size2': 10,
+            }
+
+        self.SetViewWhiteSpace(int(options.Options().Prefs()['show_whitespace']))
+        self.SetTabWidth(int(options.Options().Prefs()['tabsize']))
         self.StyleClearAll()
 
         self.StyleSetSpec(wxSTC_STYLE_DEFAULT,     "face:%(mono)s,size:%(size)d" % faces)
@@ -1891,14 +1890,10 @@ class GentooSTC(wxStyledTextCtrl):
         self.StyleSetSpec(wxSTC_P_OPERATOR, "bold,size:%(size)d" % faces)
         self.StyleSetSpec(wxSTC_P_IDENTIFIER,"face:%(mono)s,size:%(size)d" % faces) 
         self.StyleSetSpec(wxSTC_P_COMMENTBLOCK, "fore:#7F7F7F,size:%(size)d" % faces)
-
         self.StyleSetSpec(wxSTC_P_STRINGEOL, "fore:#000000,face:%(mono)s,eol,size:%(size)d" % faces)
 
-        self.SetCaretForeground("BLUE")
-        self.SetTabWidth(4)
-        EVT_STC_SAVEPOINTLEFT(self, -1, self.UnsavedTitle)
-        EVT_STC_SAVEPOINTREACHED(self, -1, self.SavedTitle)
 
+    
     def UnsavedTitle(self, evt):
         ''' Set application's titlebar '''
         utils.DoTitle(self.parent.GetParent())

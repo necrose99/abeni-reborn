@@ -107,3 +107,14 @@ email pythonhead AT gentoo DOT org
    loses focus and you focus it again. Author of wxPython says its a known
    issue and won't be fixed in 2.4*.  Verified fixed in wxPython 2.5*
    (2.4* used an old version of Scintilla)
+
+Needs to be added after re-generating wxGlade code for gui.py due
+to new wxPython 2.5 options:
+        # begin wxGlade: MyFrame.__init__
+        #wxPython 2.4
+        if wxVERSION[1] == 4:
+            kwds["style"] = wxCAPTION|wxMAXIMIZE_BOX|wxSYSTEM_MENU|wxRESIZE_BORDER
+        #wxPython 2.5
+        else:
+            kwds["style"] = wxCAPTION|wxCLOSE_BOX|wxMAXIMIZE_BOX|wxSYSTEM_MENU|wxRESIZE_BORDER
+

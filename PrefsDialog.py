@@ -38,6 +38,9 @@ class MyDialog(wxDialog):
         self.text_ctrl_font = wxTextCtrl(self.noteboo_pane_editor, -1, "", style=wxTE_READONLY)
         self.checkbox_highlight = wxCheckBox(self.noteboo_pane_editor, -1, "Sourcecode highlighting (color)")
         self.checkbox_gentoo_highlighting = wxCheckBox(self.noteboo_pane_editor, -1, "Highlight Gentoo keywords/functions/variables")
+        self.checkbox_whitespace = wxCheckBox(self.noteboo_pane_editor, -1, "Show whitespace")
+        self.label_tabsize = wxStaticText(self.noteboo_pane_editor, -1, "Spaces per tab char:")
+        self.text_ctrl_1 = wxTextCtrl(self.noteboo_pane_editor, -1, "4")
         self.label_dev_warning = wxStaticText(self.noteboo_pane_dev, -1, "These are only necessary for official Gentoo Developers")
         self.label_dev_user = wxStaticText(self.noteboo_pane_dev, -1, "cvs, repoman and echangelog will run as this user:")
         self.text_ctrl_devUserName = wxTextCtrl(self.noteboo_pane_dev, -1, "")
@@ -80,6 +83,7 @@ class MyDialog(wxDialog):
         sizer_cvs = wxStaticBoxSizer(wxStaticBox(self.noteboo_pane_dev, -1, "CVS"), wxVERTICAL)
         sizer_dev_user = wxStaticBoxSizer(wxStaticBox(self.noteboo_pane_dev, -1, "User name"), wxVERTICAL)
         sizer_11 = wxBoxSizer(wxVERTICAL)
+        sizer_3 = wxBoxSizer(wxHORIZONTAL)
         sizer_12 = wxStaticBoxSizer(wxStaticBox(self.noteboo_pane_editor, -1, "Font"), wxHORIZONTAL)
         sizer_8 = wxBoxSizer(wxVERTICAL)
         sizer_9 = wxStaticBoxSizer(wxStaticBox(self.noteboo_pane_general, -1, "Logging"), wxVERTICAL)
@@ -124,8 +128,12 @@ class MyDialog(wxDialog):
         sizer_12.Add(self.button_font, 0, wxALL, 8)
         sizer_12.Add(self.text_ctrl_font, 1, wxALL, 8)
         sizer_11.Add(sizer_12, 0, wxALL|wxEXPAND, 12)
-        sizer_11.Add(self.checkbox_highlight, 0, wxALL, 12)
-        sizer_11.Add(self.checkbox_gentoo_highlighting, 0, wxALL, 12)
+        sizer_11.Add(self.checkbox_highlight, 0, wxALL|wxEXPAND, 12)
+        sizer_11.Add(self.checkbox_gentoo_highlighting, 0, wxALL|wxEXPAND, 12)
+        sizer_11.Add(self.checkbox_whitespace, 0, wxALL|wxEXPAND, 12)
+        sizer_3.Add(self.label_tabsize, 0, wxLEFT|wxRIGHT, 12)
+        sizer_3.Add(self.text_ctrl_1, 0, 0, 0)
+        sizer_11.Add(sizer_3, 1, wxEXPAND, 0)
         self.noteboo_pane_editor.SetAutoLayout(1)
         self.noteboo_pane_editor.SetSizer(sizer_11)
         sizer_11.Fit(self.noteboo_pane_editor)
@@ -192,6 +200,10 @@ class MyDialog(wxDialog):
         self.text_ctrl_font.SetValue(p['font'])
         self.checkbox_highlight.SetValue(int(p['highlighting']))
         self.checkbox_gentoo_highlighting.SetValue(int(p['gentooHighlight']))
+        self.checkbox_whitespace.SetValue(int(p['show_whitespace']))
+        #spaces per tab
+        #TODO: change in wxglade
+        self.text_ctrl_1.SetValue(p['tabsize'])
 
         #gen devs
         self.text_ctrl_cvs_root.SetValue(p['cvsRoot'])
