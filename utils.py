@@ -312,16 +312,49 @@ def PostInstall(parent):
     os.system("sudo chmod +g+r -R %s" %  d)
     os.system("sudo chmod +g+xr %s" %  d)
 
+def get_status(parent):
+    """Let us know if ebuild has been unpacked, comiled and installed"""
+    p = getP(parent)
+    d = '%s/portage/%s' % (portage_tmpdir, p)
+    if not os.path.exists(d):
+        return
+    fs = ['.unpacked', '.compiled', '.installed']
+    out = []
+    for f in fs:
+        if os.path.exists(os.path.join(d,f)): 
+            out.append(f)
+    if len(out):
+        write(parent, "))) This package is:")
+        for o in out:
+            if o == ".unpacked":
+                write(parent, ")))     unpacked")
+                fix_unpacked(parent)
+            if o == ".compiled":
+                write(parent, ")))     compiled")
+            if o == ".installed":
+                write(parent, ")))     installed")
+
+def fix_unpacked(parent):
+    """chmod for portage group read"""
+    p = getP(parent)
+    d = '%s/portage/%s/work' % (portage_tmpdir, p)
+    d1 = '%s/portage/%s' % (portage_tmpdir, p)
+    #uname = pwd.getpwuid(os.getuid())[0]
+    #Yay! Can we say 'kludge'?
+    #print uname, d
+    #os.system("sudo chown %s -R %s" % (uname, d1))
+    os.system("sudo chmod +g+xrw -R %s &" % d1)
+
 def PostUnpack(parent):
     """Report what directories were unpacked, try to set S if necessary"""
     p = getP(parent)
     d = '%s/portage/%s/work' % (portage_tmpdir, p)
     d1 = '%s/portage/%s' % (portage_tmpdir, p)
-    uname = pwd.getpwuid(os.getuid())[0]
+    #uname = pwd.getpwuid(os.getuid())[0]
     #Yay! Can we say 'kludge'?
     #print uname, d
     #os.system("sudo chown %s -R %s" % (uname, d1))
-    os.system("sudo chmod +g+xrw -R %s" % d1)
+    fix_unpacked(parent)
     #print "done"
     try:
         lines = os.listdir(d)
@@ -329,7 +362,7 @@ def PostUnpack(parent):
         return
     dirs = []
     #logColor(parent, "RED")
-    write(parent, "))) Unpacked these directory(s) into ${WORKDIR}:")
+    write(parent, "))) These directory(s) are in ${WORKDIR}:")
     for l in lines:
         if os.path.isdir("%s/%s" % (d, l)):
             write(parent, " * %s" % l)
@@ -341,7 +374,8 @@ def PostUnpack(parent):
             write(parent, " * S=${WORKDIR}/${P}")
             if parent.FindReplace("S=${WORKDIR}/${P}", "") != -1:
                 SetS(parent, p)
-                write(parent, "))) removed S from ebuild")
+                write(parent, "))) removed S=${WORKDIR}/${P} from ebuild")
+                write(parent, "    (its not necessary)")
         else:
             ep = GetS(parent)
             if ep == "${WORKDIR}/${P}":
@@ -378,7 +412,7 @@ def ExecuteInLog(parent, cmd, logMsg=''):
     ID_Timer = wx.NewId()
     parent.timer = wx.Timer(parent, ID_Timer)
     wx.EVT_TIMER(parent,  ID_Timer, parent.OnTimer)
-    parent.timer.Start(20)
+    parent.timer.Start(100)
 
 def Reset(parent):
     """Reset abeni for new/loaded ebuild"""
@@ -790,6 +824,7 @@ def LoadEbuild(parent, filename):
     parent.tree_ctrl_1.UnselectAll()
     parent.ApplyPrefs()
     ViewEnvironment(parent)
+    get_status(parent)
 
 def isValidP(parent, filename):
     """Return cat,pkg,ver,rev if valid otherwise 0"""

@@ -1054,7 +1054,7 @@ class MyFrame(wx.Frame):
                 #cmd = 'FEATURES="%s" USE="%s" sudo /usr/sbin/ebuild %s qmerge' % \
                 #    (self.pref['features'], self.pref['use'], self.filename)
                 cmd = '''xterm -e "sudo sh -c 'export %s;export USE='%s';sudo ebuild %s qmerge 2>&1|tee /var/tmp/abeni/emerge_log'"''' \
-                         % (aelf.noauto, self.pref['use'], self.filename)
+                         % (self.noauto, self.pref['use'], self.filename)
 
                 #cmd = """sudo sh -c 'export USE='%s';sudo ebuild %s qmerge 2>&1|\
                 #         tee /var/tmp/abeni/emerge_log'""" \
@@ -1711,8 +1711,7 @@ class MyFrame(wx.Frame):
                 #If using konsole, open a new instance if root isn't running one
                 #If root is running one, open new tab (session) in it
                 if string.find(xterm, 'konsole') != -1:
-                    dcop = "/usr/kde/3.2/bin/dcop"
-                    cmd = '%s |grep konsole' % dcop
+                    cmd = 'dcop |grep konsole'
                     err, out = utils.RunExtProgram(cmd)
                     inst = 0
                     if not err:
@@ -1862,7 +1861,7 @@ class GentooSTC(wx.stc.StyledTextCtrl):
         self.SetLexer(wx.stc.STC_LEX_PYTHON)
         #self.SetLexer(wx.stc.STC_LEX_AUTOMATIC)
 
-        gentooKeywords = 'FILESDIR WORKDIR PV P PN PVR D S DESCRIPTION HOMEPAGE SRC_URI LICENSE SLOT KEYWORDS IUSE DEPEND RDEPEND insinto docinto glibc_version ewarn replace-flags env-update filter-flags inherit pkg_postinst pkg_postrm pkg_preinst pkg_setup src_unpack src_install pkg_prerm pkg_nofetch pkg_config unpack src_compile dodir pkg_mv_plugins src_mv_plugins einfo epatch use has_version best_version use_with use_enable doexe exeinto econf emake dodoc dohtml dobin dosym einstall check_KV keepdir die einfo eerror into dohard doinfo doins dolib dolib.a dolib.so doman domo donewins dosbin dosed fowners fperms newbin newdoc newexe newins newlib.a newlib.so newman newsbin pmake prepalldocs prepallinfo prepallman prepall addwrite replace-sparc64-flags edit_makefiles'
+        gentooKeywords = 'jumpin eastereggs abeni FILESDIR WORKDIR PV P PN PVR D S DESCRIPTION HOMEPAGE SRC_URI LICENSE SLOT KEYWORDS IUSE DEPEND RDEPEND insinto docinto glibc_version ewarn replace-flags env-update filter-flags inherit pkg_postinst pkg_postrm pkg_preinst pkg_setup src_unpack src_install pkg_prerm pkg_nofetch pkg_config unpack src_compile dodir pkg_mv_plugins src_mv_plugins einfo epatch use has_version best_version use_with use_enable doexe exeinto econf emake dodoc dohtml dobin dosym einstall check_KV keepdir die einfo eerror into dohard doinfo doins dolib dolib.a dolib.so doman domo donewins dosbin dosed fowners fperms newbin newdoc newexe newins newlib.a newlib.so newman newsbin pmake prepalldocs prepallinfo prepallman prepall addwrite replace-sparc64-flags edit_makefiles'
         self.SetKeyWords(0, gentooKeywords)
         self.SetProperty("fold", "0")
         # Leading spaces are bad in Gentoo ebuilds!
