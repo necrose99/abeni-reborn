@@ -990,13 +990,6 @@ class MyFrame(wxFrame):
                 self.panelMain.PopulateDefault()
                 # I do this in case we edit SRC_URI and forget what the original url is:
                 self.write(self.URI)
-                if self.URI.find('sourceforge') != -1:
-                    #http://umn.dl.sourceforge.net/sourceforge/tikiwiki/tiki161.zip ->
-                    #mirror://sourceforge/tikiwiki/tiki161.ip ->
-                    #a = urlparse.urlparse("http://umn.dl.sourceforge.net/sourceforge/tikiwiki/tiki161.zip")
-                    #('http', 'umn.dl.sourceforge.net', '/sourceforge/tikiwiki/tiki161.zip', '', '', '')
-                    a = urlparse.urlparse(self.URI)
-                    self.URI='mirror:/%s' % a[2]
                 self.panelMain.SetURI(self.URI)
                 self.panelMain.SetName(self.URI)
                 self.panelMain.SetPackageName()
@@ -1006,16 +999,16 @@ class MyFrame(wxFrame):
                     new_uri = self.URI.replace(p, "${P}")
                     self.panelMain.URI.SetValue(new_uri)
                 else:
-                    self.logColor("RED")
-                    self.write("Warning: You need to set the Package Name and ebuild name properly.")
-                    self.logColor("BLACK")
                     self.panelMain.Package.SetValue("")
                     self.panelMain.EbuildFile.SetValue("")
-                #This is in case we want to automatically set the SourceForge homepage:
-                #if self.URI.find('sourceforge') != -1:
-                #    self.panelMain.Homepage.SetValue('"http://sourceforge.net/projects/%s"' % \
-                #                                    self.panelMain.GetPackageName().lower())
                 self.panelChangelog.Populate("%s/skel.ChangeLog" % portdir, portdir)
+                if self.URI.find('sourceforge') != -1:
+                    a = urlparse.urlparse(self.URI)
+                    if a[2].find('sourceforge') != -1:
+                        self.panelMain.SetURI('mirror:/%s' % a[2])
+                        #This is in case we want to automatically set the SourceForge homepage:
+                        #    self.panelMain.Homepage.SetValue('"http://sourceforge.net/projects/%s"' % \
+                        #    self.panelMain.GetPackageName().lower())
                 self.editing = 1
                 self.saved = 0
                 self.DoTitle()
