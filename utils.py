@@ -1,6 +1,19 @@
 from wxPython.wx import *
-import os, string, sys, re
+import os, string, sys, re, popen2
 import options
+
+
+def RunExtProgram(cmd):
+    """Run program and return exit code, output in a list"""
+    out = []
+    p = popen2.Popen4(cmd , 1)
+    inp = p.fromchild
+    l = inp.readline()
+    while l:
+        out.append(l.strip())
+        l = inp.readline()
+    r = p.poll()
+    return r, out
 
 def GetOptions(parent):
     """Global options from apprc file"""
@@ -8,7 +21,27 @@ def GetOptions(parent):
     parent.pref = myOptions.Prefs()
 
 def LoadEbuild(parent, filename, portdir):
+    """Load ebuild from filename"""
     filename = string.strip(filename)
+
+    #Check if ebuild has syntax errors before loading.
+    #If there are errors ask if they want to edit it in external editor.
+    #Try to load again after exiting external editor.
+    os.system("chmod +x %s" % filename)
+    cmd = "/bin/bash -n %s" % filename
+    r, out = RunExtProgram(filename)
+    os.system("chmod -x %s" % filename)
+    if r:
+        parent.write("Ebuild syntax is incorrect. Fix this before trying to load:")
+        for l in out:
+            parent.write(l)
+        msg = "The ebuild has a syntax error. Would you like to edit this in your external editor?"
+        dlg = wxMessageDialog(parent, msg,
+                'Syntax Error', wxOK | wxCANCEL | wxICON_ERROR)
+        val = dlg.ShowModal()
+        if val == wxID_OK:
+            parent.OnMnuEdit(save=0, filename=filename)
+        return
     parent.SetFilename(filename)
     parent.recentList.append(filename)
     vars = {}
@@ -22,7 +55,13 @@ def LoadEbuild(parent, filename, portdir):
     # First line should read:
     # Copyright 1999-200n Gentoo Technologies, Inc.
     if header1.find("Gentoo Technologies") == -1:
-        parent.write("ERROR: Ebuild has no valid header. See %s/skel.ebuild for a good header." % portdir)
+        msg = "The ebuild has no header. Would you like to edit this ebuild in your external editor?"
+        dlg = wxMessageDialog(parent, msg,
+                'Header Error', wxOK | wxCANCEL | wxICON_ERROR)
+        val = dlg.ShowModal()
+        if val == wxID_OK:
+            parent.write("filename %s" % filename)
+            parent.OnMnuEdit(save=0, filename=filename)
         return
 
     f.readline()
@@ -143,8 +182,8 @@ def LoadEbuild(parent, filename, portdir):
         for v in otherVars:
             if v == parent.varOrder[n]:
                 parent.AddNewVar(v, otherVars[v])
-    parent.ViewEnvironment()
     if parent.CheckUnpacked():
+        parent.ViewEnvironment()
         parent.ViewConfigure()
         parent.ViewMakefile()
     #TODO: This is dumb. Put them in logical order: pkg_setup, src_unpack, src_compile etc.
@@ -354,8 +393,7 @@ def EclassCVS(parent):
 def AddToolbar(parent):
     #Create Toolbar with icons
     # icons are about 28x28
-    parent.tb = parent.CreateToolBar(wxTB_HORIZONTAL|wxNO_BORDER|wxTB_FLAT) #wxTB_3DBUTTONS
-    #parent.tb.SetToolSeparation(10)
+    parent.tb = parent.CreateToolBar(wxTB_HORIZONTAL|wxNO_BORDER|wxTB_FLAT)
     newID = wxNewId()
     newBmp = ('/usr/share/pixmaps/abeni/new.png')
     parent.tb.AddSimpleTool(newID, wxBitmap(newBmp, wxBITMAP_TYPE_PNG), \
@@ -408,6 +446,13 @@ def AddToolbar(parent):
                          "Install this package")
     EVT_TOOL(parent, toolInstallID, parent.OnToolbarInstall)
 
+
+    toolQmergeID = wxNewId()
+    qmergeBmp = ('/usr/share/pixmaps/abeni/qmerge.png')
+    parent.tb.AddSimpleTool(toolQmergeID, wxBitmap(qmergeBmp, wxBITMAP_TYPE_PNG), \
+                         "Qmerge this package")
+    EVT_TOOL(parent, toolQmergeID, parent.OnToolbarQmerge)
+
     parent.tb.AddSeparator()
     toolEbuildID = wxNewId()
     ebuildBmp = ('/usr/share/pixmaps/abeni/ebuild.png')
@@ -432,7 +477,7 @@ def AddToolbar(parent):
     xtermID = wxNewId()
     xtermBmp = ('/usr/share/pixmaps/abeni/xterm.png')
     parent.tb.AddSimpleTool(xtermID, wxBitmap(xtermBmp, wxBITMAP_TYPE_PNG), \
-                            "Launch xterm in ../${WORKDIR}")
+                            "Launch xterm in ${S}")
     EVT_TOOL(parent, xtermID, parent.OnToolbarXterm)
 
     helpID = wxNewId()

@@ -1,7 +1,9 @@
+from portage import pkgsplit
 from wxPython.wx import *
 import urlparse, string, os, keyword
 from wxPython.gizmos import *
 from wxPython.stc import *
+
 
 faces = { 'times': 'Times',
         'mono' : 'Courier',
@@ -27,7 +29,7 @@ class main(wxPanel):
         col = 130
         width = 260
         self.group1_ctrls = []
-        text0 = wxStaticText(self, -1, "Package")
+        text0 = wxStaticText(self, -1, "Package Name")
         self.Package = wxTextCtrl(self, wxNewId(), "", wxPoint(0,0), wxSize(250, 20))
         row+=30
 
@@ -132,18 +134,19 @@ class main(wxPanel):
 
 
     def EvtText(self, event):
-        print('EvtText: %s\n' % event.GetString())
+        event.Skip()
+        #print('EvtText: %s\n' % event.GetString())
 
     def EvtChar(self, event):
-        print('EvtChar: %d\n' % event.GetKeyCode())
+        #print('EvtChar: %d\n' % event.GetKeyCode())
         event.Skip()
 
     def OnSetFocus(self, evt):
-        print "OnSetFocus"
+        #print "OnSetFocus"
         evt.Skip()
 
     def OnKillFocus(self, evt):
-        print "OnKillFocus"
+        #print "OnKillFocus"
         evt.Skip()
 
     def DeleteVars(self):
@@ -204,7 +207,6 @@ class main(wxPanel):
             opt = dlg.GetValueString()
             l = ""
             for s in opt:
-                print s
                 l = ('%s %s' % (l, s.strip()))
             self.License.SetValue('"%s"' % l.strip())
             dlg.Destroy()
@@ -232,32 +234,41 @@ class main(wxPanel):
         self.URI.SetValue('"%s"' % uri)
 
     def SetName(self, uri):
-        """Set ebuild name"""
+        """Set ebuild name from SRC_URI"""
         path = urlparse.urlparse(uri)[2]
         path = string.split(path, '/')
-        file = path[len(path)-1]
+        file = self.StripExt(path[len(path)-1])
+        self.ebuildName = file + ".ebuild"
+
+    def StripExt(self, file):
         file = string.replace(file, ".zip", "")
         file = string.replace(file, ".tgz", "")
         file = string.replace(file, ".tar.gz", "")
         file = string.replace(file, ".tar.bz2", "")
         file = string.replace(file, ".tbz2", "")
-        self.SetEbuildName(file)
-
-    def SetEbuildName(self, file):
-        """Set name of ebuild from filename"""
-        self.ebuildName = file + ".ebuild"
+        return file
 
     def GetEbuildName(self):
         """Return name of ebuild"""
         return self.EbuildFile.GetValue()
 
-    def SetPackage(self):
+    def GetPackage(self):
+        """Return package"""
+        p = self.GetEbuildName().replace(".ebuild", "")
+        return p
+
+    def SetPackageName(self):
         """Set ebuild package name"""
         self.EbuildFile.SetValue(self.ebuildName)
-        ebuild = string.split(self.ebuildName, '-')
-        self.Package.SetValue(ebuild[0])
+        p = self.GetPackage()
+        if not p:
+            return
+        l = pkgsplit(p)
+        if l:
+            self.Package.SetValue(l[0])
 
-    def GetPackage(self):
+    def GetPackageName(self):
+        """Return package name"""
         return self.Package.GetValue()
 
 class LogWindow(wxFrame):

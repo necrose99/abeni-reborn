@@ -4,7 +4,7 @@ from distutils.core import setup
 from glob import glob
 
 setup(name="abeni",
-      version="0.0.5",
+      version="0.0.8",
       description="Gentoo Linux ebuild GUI editor",
       author="Rob Cakebread",
       author_email="robc@myrealbox.com",

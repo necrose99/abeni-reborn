@@ -5,12 +5,12 @@ Released under the terms of the GNU Public License v2"""
 
 __author__ = 'Rob Cakebread'
 __email__ = 'robc@myrealbox.com'
-__version__ = '0.0.7'
+__version__ = '0.0.8'
 __changelog_ = 'http://abeni.sf.net/ChangeLog'
 
 print "Importing portage config, wxPython, Python and Abeni modules..."
 
-from portage import config, portdb, db
+from portage import config, portdb, db, pkgsplit, catpkgsplit
 from wxPython.wx import *
 from wxPython.lib.dialogs import wxScrolledMessageDialog
 import os, string, sys, urlparse, time, re, shutil
@@ -18,7 +18,6 @@ import os, string, sys, urlparse, time, re, shutil
 import dialogs, panels
 from utils import *
 
-#Is there a better way?
 modulePath = "/usr/lib/python%s/site-packages/abeni" % sys.version[0:3]
 
 try:
@@ -34,7 +33,7 @@ portdir = env['PORTDIR']
 # or if defined but directory doesn't exist.
 try:
     #Users may specify multiple overlay directories, we use the first one:
-    portdir_overlay = env['PORTDIR_OVERLAY'].split(" ")[0]
+    portdir_overlay = env['PORTDIR_OVERLAY'].split(":")[0]
 except:
     print "ERROR: You must define PORTDIR_OVERLAY in your /etc/make.conf"
     print "You can simply uncomment this line:"
@@ -65,7 +64,6 @@ class MyFrame(wxFrame):
         EVT_CLOSE(self,self.OnClose)
         # Are we in the process of editing an ebuild?
         self.editing = 0
-        #Load recently accessed ebuilds
         if not os.path.exists(os.path.expanduser('~/.abeni')):
             print "Creating directory " + os.path.expanduser('~/.abeni')
             os.mkdir(os.path.expanduser('~/.abeni'))
@@ -73,6 +71,7 @@ class MyFrame(wxFrame):
         rcfile = os.path.expanduser('~/.abeni/abenirc')
         if not os.path.exists(rcfile):
             shutil.copy("/usr/share/abeni/abenirc", rcfile)
+        #Load recently accessed ebuilds
         bookmarks = os.path.expanduser('~/.abeni/recent.txt')
         if os.path.exists(bookmarks):
             self.recentList = open(bookmarks, 'r').readlines()
@@ -88,6 +87,8 @@ class MyFrame(wxFrame):
         self.varOrder = []
         # Keep track of order functions are set
         self.funcOrder = []
+        # ${S}
+        self.s = ''
         # Ebuild's path and filename
         self.filename = ''
         # Previous file opened. For use with diff
@@ -101,22 +102,18 @@ class MyFrame(wxFrame):
         # Ordered list of notebook tabs
         self.tabs = []
         self.tabsInstance = []
-
         #Stuff to keep log window updating in "real-time" as shell commands are executed
         self.process = None
         EVT_IDLE(self, self.OnIdle)
         EVT_END_PROCESS(self, -1, self.OnProcessEnded)
-
         # Setting for noauto toggle button
         self.StripNoAuto()
         self.noauto = 1
-
         #application icon 16x16
         iconFile = ('/usr/share/pixmaps/abeni/abeni_logo16.png')
         icon = wxIcon(iconFile, wxBITMAP_TYPE_PNG)
         self.SetIcon(icon)
         #AddMenu(self)
-
         self.MyMenu()
 
         AddToolbar(self)
@@ -133,11 +130,6 @@ class MyFrame(wxFrame):
         self.log = wxTextCtrl(self.splitter, -1,
                              style = wxTE_MULTILINE|wxTE_READONLY|wxHSCROLL|wxTE_RICH2)
         self.log.SetFont(wxFont(12, wxMODERN, wxNORMAL, wxNORMAL, faceName="Lucida Console"))
-        #This would be nice, but some .gtkrc files screw it up:
-        #self.log.SetBackgroundColour(wxBLACK)
-        #self.log.SetDefaultStyle(wxTextAttr(wxWHITE))
-        #self.log.SetDefaultStyle(wxTextAttr(wxNullColour, wxBLACK))
-
         wxLog_SetActiveTarget(MyLog(self.log))
         self.Show(True)
         self.splitter.SplitHorizontally(self.nb, self.log, 400)
@@ -160,7 +152,16 @@ class MyFrame(wxFrame):
         frame.Show(true)
 
     def OnMnuGetDeps(self, event):
+        #DEPEND
         l = self.panelDepend.elb1.GetStrings()
+        new = self.ResolveDeps(l)
+        self.panelDepend.elb1.SetStrings(new)
+        #RDEPEND
+        l = self.panelDepend.elb2.GetStrings()
+        new = self.ResolveDeps(l)
+        self.panelDepend.elb2.SetStrings(new)
+
+    def ResolveDeps(self, l):
         new = []
         for p in l:
             p = p.strip()
@@ -168,17 +169,17 @@ class MyFrame(wxFrame):
                 #curver = self.versions('^%s$' % p)
                 curver = self.versions(p)
                 if curver == None:
-                    self.write("Can't find: %s" % p)
+                    #self.write("Can't find: %s" % p)
                     new.append(p)
                 elif curver == "":
                     #Multiple names. Be more specific.")
                     #Also means isn't installed. TODO
-                    self.write("Not installed, or multiple names like %s" % p)
+                    #self.write("Not installed, or multiple names like %s" % p)
                     new.append(p)
                 else:
                     self.write(">=%s" % curver)
                     new.append(">=%s" % curver)
-        self.panelDepend.elb1.SetStrings(new)
+        return new
 
     def search(self, search_key):
         matches = []
@@ -241,14 +242,15 @@ class MyFrame(wxFrame):
             self.process = None
 
     def MyMessage(self, msg, title, type="info"):
-            if type == "info":
-                icon = wxICON_INFORMATION
-            elif type == "error":
-                icon = wxICON_ERROR
+        """Simple informational dialog"""
+        if type == "info":
+            icon = wxICON_INFORMATION
+        elif type == "error":
+            icon = wxICON_ERROR
 
-            dlg = wxMessageDialog(self, msg, title, wxOK | icon)
-            dlg.ShowModal()
-            dlg.Destroy()
+        dlg = wxMessageDialog(self, msg, title, wxOK | icon)
+        dlg.ShowModal()
+        dlg.Destroy()
 
     def OnMnuLogBottom(self, event):
         """Switch ouput log to bottom"""
@@ -264,6 +266,7 @@ class MyFrame(wxFrame):
             self.pref['log'] = 'bottom'
 
     def LogBottom(self, log):
+        """Show log at the bottom"""
         self.menu_options.Check(self.mnuLogBottomID, 1)
         self.log = log
         self.log.Reparent(self.splitter)
@@ -275,7 +278,7 @@ class MyFrame(wxFrame):
         self.pref['log'] = 'bottom'
 
     def LogWindow(self):
-        #Show log in separate window
+        """Show log in separate window"""
         if self.splitter.IsSplit():
             self.splitter.Unsplit()
             self.logWin=panels.LogWindow(self)
@@ -303,14 +306,14 @@ class MyFrame(wxFrame):
 
     def StripNoAuto(self):
         """Strip noauto feature"""
-        #We completely ignore what's in make.conf and Abeni's preference file because this switch is so damned handy
+        #We completely ignore what's in make.conf and Abeni's preference file because the toggle switch is so damned handy
         if string.find(self.pref['features'], "-noauto") != -1:
             self.pref['features'] = string.replace(self.pref['features'], "-noauto", "")
         if string.find(self.pref['features'], "noauto") != -1:
             self.pref['features'] = string.replace(self.pref['features'], "noauto", "")
 
     def OnMnuClearLog(self, event):
-        """Blank out the log windows"""
+        """Clear the log window"""
         self.log.SetValue('')
 
     def WriteText(self, text):
@@ -384,13 +387,13 @@ class MyFrame(wxFrame):
         self.WriteText(txt)
 
     def GetP(self):
+        """ Returns P from the ebuild name"""
         ebuild = self.panelMain.EbuildFile.GetValue()
         p = string.replace(ebuild, '.ebuild', '')
         return p
 
     def OnToolbarXterm(self, event):
         """Launch xterm in PORTAGE_TMPDIR/portage/P/"""
-        #TODO: Damn it. I wish we could cd to ${S}
         if not self.editing:
             return
         if not self.CheckUnpacked():
@@ -400,9 +403,18 @@ class MyFrame(wxFrame):
         else:
             c = os.getcwd()
             p = self.GetP()
-            os.chdir('%s/portage/%s/work' % (portage_tmpdir, p))
-            os.system('%s &' % self.pref['xterm'])
-            os.chdir(c)
+            mys = self.GetS()
+            if os.path.exists(self.s):
+                os.chdir(self.s)
+            elif os.path.exists(mys):
+                os.chdir(mys)
+            else:
+                os.chdir('%s/portage/%s/work/' % (portage_tmpdir, p))
+            if self.pref['xterm']:
+                os.system('%s &' % self.pref['xterm'])
+                os.chdir(c)
+            else:
+                self.MyMessage("Set xterm in preferences", "Error - no xterm", "error")
 
     def OnMnuNewVariable(self, event):
         """Dialog for adding new variable"""
@@ -436,36 +448,21 @@ class MyFrame(wxFrame):
         t += "%s\n" % command
         self.panelMain.stext.SetValue(t)
 
-    def OnMnuEdit(self, event):
+    def OnMnuEdit(self, event=None, save=1, filename=''):
         """Launch external editor then reload ebuild after editor exits"""
         if self.editing:
-            self.SaveEbuild()
+            if not self.pref['editor']:
+                self.MyMessage("No editor defined in perferences", "Error: no editor defined", "error")
+            if save:
+                self.SaveEbuild()
             self.ClearNotebook()
             wxSafeYield()
-            os.system('%s %s' % (self.pref['editor'], self.filename))
-            LoadEbuild(self, self.filename, portdir)
-
-    def OnMnuDiff(self, event):
-        """Run diff program on original vs. saved ebuild"""
-        #TODO Add error dialog if last opened wasn't same package, or is empty
-        if not self.editing:
-            return
-        if self.lastFile:
-            os.system("%s %s %s &" % (self.pref['diff'], self.lastFile, self.filename))
-
-    def OnMnuDiffCreate(self, event):
-        """Create diff file of original vs. saved ebuild"""
-        #TODO: Add error dialog if last opened wasn't same package, or is empty
-        # Add dialog telling them file is saved in ~/.abeni/diffFile
-        if not self.editing:
-            return
-
-        #No file to compare with
-        if not self.lastFile:
-            return
-        diffFile = string.replace(self.ebuild_file, '.ebuild', '.diff')
-        cmd = 'diff -u %s %s > ~/.abeni/%s' % (self.lastFile, self.filename, diffFile)
-        self.ExecuteInLog(cmd)
+            if not filename:
+                f = self.filename
+            else:
+                f = filename
+            os.system('%s %s' % (self.pref['editor'], f))
+            LoadEbuild(self, f, portdir)
 
     def OnMnuRepoman(self, event):
         """Run 'repoman-local-5.py' on this ebuild"""
@@ -550,11 +547,9 @@ class MyFrame(wxFrame):
 
     def PostUnpack(self):
         import popen2
-        ebuild = self.panelMain.EbuildFile.GetValue()
-        p = string.replace(ebuild, '.ebuild', '')
+        p = self.GetP()
         d = '%s/portage/%s/work' % (portage_tmpdir, p)
         lines = os.listdir(d)
-        print lines
         dirs = []
         self.logColor("RED")
         self.write("Unpacked these directory(s) into ${WORKDIR}:")
@@ -568,15 +563,21 @@ class MyFrame(wxFrame):
             p = dirs[0]
             if p == self.GetP():
                 self.write("S=${WORKDIR}/${P}")
+                self.SetS(p)
             else:
                 ep = self.panelMain.S.GetValue()
                 if ep == "${WORKDIR}/${P}":
                     self.panelMain.S.SetValue("${WORKDIR}/%s" % p)
+                    self.SetS(p)
         else:
-            self.write("More than one file unpacked, you get to guess what ${S} is.")
+            self.write("More than one directory unpacked, you get to guess what ${S} is.")
         self.logColor("BLACK")
         self.ViewConfigure()
         self.ViewMakefile()
+
+    def SetS(self, myp):
+        p = self.GetP()
+        self.s = "%s/portage/%s/work/%s" % (portage_tmpdir, p, myp)
 
     def ExecuteInLog(self, cmd):
         if self.running:
@@ -654,6 +655,13 @@ class MyFrame(wxFrame):
                     'Save ebuild?', wxYES_NO | wxCANCEL | wxICON_INFORMATION)
             val = dlg.ShowModal()
             if val == wxID_YES:
+                msg = self.checkEntries()
+                if msg:
+                    status = 1
+                    dlg.Destroy()
+                    msg = "Set your ebuild name and package name properly."
+                    self.MyMessage(msg, "Can't save", "error")
+                    return status
                 WriteEbuild(self)
                 self.saved = 1
                 status = 0
@@ -745,10 +753,8 @@ class MyFrame(wxFrame):
 
     def OnMnuEclassCVS(self, event):
         """Add Python distutils-related variables, inherit etc."""
-        print "Adding CVS skel\n"
         if not self.editing:
             return
-        self.write("Adding CVS skel\n")
         EclassCVS(self)
 
     def OnMnuEclassDistutils(self, event):
@@ -764,10 +770,8 @@ class MyFrame(wxFrame):
         EclassGames(self)
 
     def GetCat(self):
+        """Return value of category on main form"""
         return self.panelMain.Category.GetValue()
-
-    def GetPackage(self):
-        return self.panelMain.Package.GetValue()
 
     def OnMnuBugzilla(self, event):
         """Dialog to add bugzilla info"""
@@ -777,9 +781,8 @@ class MyFrame(wxFrame):
         dlg.CenterOnScreen()
         v = dlg.ShowModal()
         if v == wxID_OK:
-            self.write( "Saving.")
             r = dlg.SaveInfo()
-        dlg.Destroy()
+            dlg.Destroy()
 
     def OnMnuNewFunction(self, event):
         """Dialog to add new function"""
@@ -810,7 +813,7 @@ class MyFrame(wxFrame):
         self.NewPage(n, newFunction)
         n.edNewFun.SetText(val)
         n.edNewFun.SetSavePoint()
-        self.nb.SetSelection(self.nb.GetPageCount() -1)
+        #self.nb.SetSelection(self.nb.GetPageCount() -1)
 
     def OnMnuDelFunction(self, event):
         """Remove current function page"""
@@ -843,13 +846,17 @@ class MyFrame(wxFrame):
 
     def OnMnuHelpRef(self, event):
         """Display html help file"""
-        os.system(self.pref['browser'] + " 'http://abeni.sf.net/docs/ebuild-quick-reference.html' &")
+        if self.pref['browser']:
+            os.system(self.pref['browser'] + " 'http://abeni.sf.net/docs/ebuild-quick-reference.html' &")
+        else:
+            self.MyMessage("You need to define a browser in preferences.", "Error", "error")
 
     def OnMnuHelp(self, event):
         """Display html help file"""
-        #TODO:
-        #Add: PORTDIR/profiles/use.desc
-        os.system(self.pref['browser'] + " 'http://abeni.sf.net/docs/index.html' &")
+        if self.pref['browser']:
+            os.system(self.pref['browser'] + " 'http://abeni.sf.net/docs/index.html' &")
+        else:
+            self.MyMessage("You need to define a browser in preferences.", "Error", "error")
 
     def OnMnuSave(self, event):
         """Save ebuild file to disk"""
@@ -870,10 +877,12 @@ class MyFrame(wxFrame):
             self.MyMessage(msg, title, "error")
             return 0
 
+    def GetPackageName(self):
+        return self.panelMain.GetPackageName()
+
     def checkEntries(self):
         """Validate entries on forms"""
         # We're checking category and license now.
-        # TODO: Do sanity checking, like package, ebuild name ($P, $EBUILD)
         category = self.panelMain.Category.GetValue()
         categoryDir = self.GetCategory()
         valid_cat = os.path.join(portdir, category)
@@ -883,11 +892,28 @@ class MyFrame(wxFrame):
         if not os.path.exists(valid_cat):
             msg = category + " isn't a valid category."
             return msg
+        pn = self.panelMain.GetPackageName()
+        if not pn:
+            msg = "You need to set the Package Name"
+            return msg
+        e = self.panelMain.GetEbuildName()
+        if not e:
+            msg = "You need to set the Ebuild Name"
+            return msg
+        if e[-7:] != '.ebuild':
+            msg = "Ebuild file must end with '.ebuild'"
+            return msg
+        p = self.panelMain.GetPackage()
+        l = pkgsplit(p)
+        if not l:
+            msg = "You need to fix the Package Name and Ebuild Name"
+            return msg
+        if pn != l[0]:
+            msg = "Package Name does not match Ebuild Name"
+            return msg
 
     def OnMnuNew(self,event):
         """Creates a new ebuild from scratch"""
-        #TODO:
-        # Show dialog if URI isn't properly formed or can't determine package, filename, ebuild name
         if not self.VerifySaved():
             win = dialogs.GetURIDialog(self, -1, "Enter Package URI", \
                                 size=wxSize(350, 200), \
@@ -896,9 +922,7 @@ class MyFrame(wxFrame):
             win.CenterOnScreen()
             val = win.ShowModal()
             self.URI = win.URI.GetValue()
-            if self.URI == 'http://' or self.URI == '':
-                return
-            if val == wxID_OK and self.URI:
+            if val == wxID_OK:
                 self.ClearNotebook()
                 self.AddPages()
                 self.AddEditor("Output", "")
@@ -906,30 +930,32 @@ class MyFrame(wxFrame):
                     self.LogWindow()
                 self.panelMain.PopulateDefault()
                 self.write(self.URI)
-                if self.URI == "CVS" or self.URI == "cvs":
-                    #self.panelMain.SetURI("package-cvs-0.0.1")
-                    self.panelMain.SetName("package-cvs-0.0.1")
-                else:
-                    if self.URI.find('sourceforge') != -1:
-                        #http://umn.dl.sourceforge.net/sourceforge/tikiwiki/tiki161.zip
-                        #mirror://sourceforge/tikiwiki/tiki161.ip
-                        #a = urlparse.urlparse("http://umn.dl.sourceforge.net/sourceforge/tikiwiki/tiki161.zip")
-                        #('http', 'umn.dl.sourceforge.net', '/sourceforge/tikiwiki/tiki161.zip', '', '', '')
-                        a = urlparse.urlparse(self.URI)
-                        self.URI='mirror:/%s' % a[2]
-                    self.panelMain.SetURI(self.URI)
-                    self.panelMain.SetName(self.URI)
-                self.panelMain.SetPackage()
                 if self.URI.find('sourceforge') != -1:
-                    self.panelMain.Homepage.SetValue('"http://sourceforge.net/projects/%s"' % self.panelMain.GetPackage().lower())
+                    #http://umn.dl.sourceforge.net/sourceforge/tikiwiki/tiki161.zip
+                    #mirror://sourceforge/tikiwiki/tiki161.ip
+                    #a = urlparse.urlparse("http://umn.dl.sourceforge.net/sourceforge/tikiwiki/tiki161.zip")
+                    #('http', 'umn.dl.sourceforge.net', '/sourceforge/tikiwiki/tiki161.zip', '', '', '')
+                    a = urlparse.urlparse(self.URI)
+                    self.URI='mirror:/%s' % a[2]
+                self.panelMain.SetURI(self.URI)
+                self.panelMain.SetName(self.URI)
+                self.panelMain.SetPackageName()
+                n = self.panelMain.GetPackageName()
+                if not pkgsplit(n):
+                    self.logColor("RED")
+                    self.write("Warning: You need to set the Package Name and ebuild name properly.")
+                    self.logColor("BLACK")
+                    self.panelMain.Package.SetValue("")
+                    self.panelMain.EbuildFile.SetValue("")
+                #if self.URI.find('sourceforge') != -1:
+                #    self.panelMain.Homepage.SetValue('"http://sourceforge.net/projects/%s"' % \
+                #                                    self.panelMain.GetPackageName().lower())
                 self.panelChangelog.Populate("%s/skel.ChangeLog" % portdir, portdir)
                 self.editing = 1
                 self.saved = 0
                 if self.URI == "CVS" or self.URI == "cvs":
                     self.OnMnuEclassCVS(-1)
                 self.DoTitle()
-                if self.pref['log'] == 'window':
-                    self.nb.SetSelection(1)
 
     def DoTitle(self):
         if not self.saved:
@@ -961,7 +987,7 @@ class MyFrame(wxFrame):
                     l = string.strip(ebuild)
                     f.write(l + '\n')
             f.close()
-            print "Exited safely."
+            print "Abeni exited safely."
             self.Destroy()
 
     def OnMnuExit(self,event):
@@ -974,6 +1000,39 @@ class MyFrame(wxFrame):
         msg = open(f, "r").read()
         dlg = wxScrolledMessageDialog(self, msg, "USE descriptions")
         dlg.Show(True)
+
+        if not self.VerifySaved():
+            wildcard = "ebuild files (*.ebuild)|*.ebuild"
+            dlg = wxFileDialog(self, "Choose a file", portdir, "", \
+                                wildcard, wxOPEN)
+            if dlg.ShowModal() == wxID_OK:
+                filename = dlg.GetPath()
+                if os.path.exists(filename):
+                    if self.editing:
+                        self.ClearNotebook()
+                    LoadEbuild(self, filename, portdir)
+                    self.filehistory.AddFileToHistory(filename)
+            dlg.Destroy()
+
+    def OnMnuLoadFromOverlay(self, event):
+        """Load an ebuild from list of overlay ebuilds only"""
+        if not self.VerifySaved():
+            cmd = "find %s -name '*.ebuild'" % portdir_overlay
+            r, choices = RunExtProgram(cmd)
+            choices.sort()
+            out = []
+            for l in choices:
+                out.append(l.replace(('%s/' % portdir_overlay), ''))
+            dlg = wxSingleChoiceDialog(self, 'Load overlay ebuild:', 'Load overlay ebuild',
+                                       out, wxOK|wxCANCEL)
+            if dlg.ShowModal() == wxID_OK:
+                e = dlg.GetStringSelection()
+                if self.editing:
+                    self.ClearNotebook()
+                filename = "%s/%s" % (portdir_overlay, e)
+                LoadEbuild(self, filename, portdir)
+                self.filehistory.AddFileToHistory(filename)
+            dlg.Destroy()
 
     def OnMnuEclassHelp(self, event):
         """View an eclass file"""
@@ -993,8 +1052,6 @@ class MyFrame(wxFrame):
         else:
             dlg.Destroy()
             return
-
-
 
     def OnMnuPref(self, event):
         """Modify preferences"""
@@ -1207,7 +1264,6 @@ class MyFrame(wxFrame):
     def OnToolbarUnpack(self, event):
         if self.editing:
             if self.SaveEbuild():
-                #self.write("Unpacking %s " % self.filename)
                 self.action = 'unpack'
                 cmd = 'FEATURES="%s" USE="%s" /usr/sbin/ebuild %s unpack' % \
                     (self.pref['features'], self.pref['use'], self.filename)
@@ -1216,7 +1272,6 @@ class MyFrame(wxFrame):
     def OnToolbarCompile(self, event):
         if self.editing:
             if self.SaveEbuild():
-                #self.write("Compiling %s " % self.filename)
                 cmd = 'FEATURES="%s" USE="%s" /usr/sbin/ebuild %s compile' % \
                     (self.pref['features'], self.pref['use'], self.filename)
                 self.ExecuteInLog(cmd)
@@ -1224,9 +1279,17 @@ class MyFrame(wxFrame):
     def OnToolbarInstall(self, event):
         if self.editing:
             if self.SaveEbuild():
-                #self.write("Installing %s " % self.filename)
                 cmd = 'FEATURES="%s" USE="%s" /usr/sbin/ebuild %s install' % \
                     (self.pref['features'], self.pref['use'], self.filename)
+                self.ExecuteInLog(cmd)
+
+    def OnToolbarQmerge(self, event):
+        if self.editing:
+            if self.SaveEbuild():
+
+                cmd = 'FEATURES="%s" USE="%s" /usr/sbin/ebuild %s qmerge' % \
+                    (self.pref['features'], self.pref['use'], self.filename)
+                self.write(cmd)
                 self.ExecuteInLog(cmd)
 
     def OnMnuViewEnvironment(self, event):
@@ -1269,6 +1332,9 @@ class MyFrame(wxFrame):
         mnuLoadID=wxNewId()
         menu_file.Append(mnuLoadID, "&Load ebuild")
         EVT_MENU(self, mnuLoadID, self.OnMnuLoad)
+        mnuLoadOverlayID=wxNewId()
+        menu_file.Append(mnuLoadOverlayID, "&Load ebuild from overlay dir")
+        EVT_MENU(self, mnuLoadOverlayID, self.OnMnuLoadFromOverlay)
         mnuSaveID=wxNewId()
         menu_file.Append(mnuSaveID, "&Save ebuild")
         EVT_MENU(self, mnuSaveID, self.OnMnuSave)
@@ -1280,7 +1346,6 @@ class MyFrame(wxFrame):
         EVT_MENU_RANGE(self, wxID_FILE1, wxID_FILE9, self.OnFileHistory)
         self.filehistory = wxFileHistory()
         self.filehistory.UseMenu(self.menu)
-
         # Variable
         menu_variable = wxMenu()
         mnuNewVariableID = wxNewId()
@@ -1301,20 +1366,16 @@ class MyFrame(wxFrame):
         menubar.Append(menu_function, "Functio&n")
         # Eclass
         menu_eclass = wxMenu()
-
         mnuGamesID = wxNewId()
         menu_eclass.Append(mnuGamesID, "games")
         EVT_MENU(self, mnuGamesID, self.OnMnuEclassGames)
-
         mnuCVSID = wxNewId()
         menu_eclass.Append(mnuCVSID, "cvs")
         EVT_MENU(self, mnuCVSID, self.OnMnuEclassCVS)
-
         mnuDistutilsID = wxNewId()
         menu_eclass.Append(mnuDistutilsID, "distutils")
         EVT_MENU(self, mnuDistutilsID, self.OnMnuEclassDistutils)
-
-        menubar.Append(menu_eclass, "E&class")
+        menubar.Append(menu_eclass, "E&class templates")
         # Tools
         menu_tools = wxMenu()
         mnuEbuildID = wxNewId()
@@ -1324,12 +1385,10 @@ class MyFrame(wxFrame):
         menu_tools.Append(mnuEmergeID, "Run e&merge <args> <this ebuild>\tf5")
         EVT_MENU(self, mnuEmergeID, self.OnMnuEmerge)
         mnuLintoolID = wxNewId()
-
         mnuGetDepsID = wxNewId()
-        menu_tools.Append(mnuGetDepsID, "Fix lazy DEPEND")
+        menu_tools.Append(mnuGetDepsID, "Fix lazy R/DEPEND")
         EVT_MENU(self, mnuGetDepsID, self.OnMnuGetDeps)
         mnuGetDepsID = wxNewId()
-
         menu_tools.Append(mnuLintoolID, "Run &Lintool on this ebuild")
         EVT_MENU(self, mnuLintoolID, self.OnMnuLintool)
         mnuRepomanID = wxNewId()
@@ -1338,11 +1397,8 @@ class MyFrame(wxFrame):
         mnuDigestID = wxNewId()
         menu_tools.Append(mnuDigestID, "&Create Digest")
         EVT_MENU(self, mnuDigestID, self.OnMnuCreateDigest)
-        mnuDiffCreateID = wxNewId()
-        menu_tools.Append(mnuDiffCreateID, "Create diff &file")
-        EVT_MENU(self, mnuDiffCreateID, self.OnMnuDiffCreate)
         mnuClearLogID = wxNewId()
-        menu_tools.Append(mnuClearLogID, "Clear log &window\tf11")
+        menu_tools.Append(mnuClearLogID, "Clear log &window\tF11")
         EVT_MENU(self, mnuClearLogID, self.OnMnuClearLog)
         menubar.Append(menu_tools, "&Tools")
 
@@ -1367,9 +1423,6 @@ class MyFrame(wxFrame):
         mnuViewMakefileID = wxNewId()
         menu_view.Append(mnuViewMakefileID, "Makefile")
         EVT_MENU(self, mnuViewMakefileID, self.OnMnuViewMakefile)
-        mnuDiffID = wxNewId()
-        menu_view.Append(mnuDiffID, "&diff")
-        EVT_MENU(self, mnuDiffID, self.OnMnuDiff)
         mnuEditID = wxNewId()
         menu_view.Append(mnuEditID, "This ebuild in e&xternal editor\tf7")
         EVT_MENU(self, mnuEditID, self.OnMnuEdit)
@@ -1426,7 +1479,7 @@ class MyLog(wxPyLog):
         if self.tc:
             self.tc.AppendText(message + '\n')
 
-class MyApp(wxPySimpleApp):
+class oldMyApp(wxPySimpleApp):
 
     """ Main wxPython app class """
 
@@ -1440,6 +1493,35 @@ class MyApp(wxPySimpleApp):
         self.SetTopWindow(frame)
         return true
 
-app=MyApp(0)
-app.MainLoop()
 
+class MyApp(wxApp):
+    def OnInit(self):
+        """
+        Create and show the splash screen.  It will then create and show
+        the main frame when it is time to do so, or when you click on it.
+        """
+        wxInitAllImageHandlers()
+        splash = MySplashScreen()
+        splash.Show()
+        return True
+
+class MySplashScreen(wxSplashScreen):
+    def __init__(self):
+        bmp = wxImage("/usr/share/pixmaps/abeni/abeni_logo50.png").ConvertToBitmap()
+        wxSplashScreen.__init__(self, bmp,
+                                wxSPLASH_CENTRE_ON_SCREEN|wxSPLASH_TIMEOUT,
+                                2000, None, -1,
+                                style = wxSIMPLE_BORDER|wxFRAME_NO_TASKBAR|wxSTAY_ON_TOP)
+        EVT_CLOSE(self, self.OnClose)
+
+    def OnClose(self, evt):
+        """Set up the main frame"""
+        # Enable gif, jpg, bmp, png handling for wxHtml and icons
+
+        wxInitAllImageHandlers()
+        frame=MyFrame(None, -1, 'Abeni - The ebuild Builder ' + __version__)
+        frame.Show()
+        evt.Skip()  # Make sure the default handler runs too...
+
+app=MyApp()
+app.MainLoop()

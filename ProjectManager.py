@@ -4,23 +4,20 @@ from wxPython.grid import *
 import popen2, gadfly, os, string
 
 env = config().environ()
-portdir_overlay = env['PORTDIR_OVERLAY'].split(" ")[0]
+portdir_overlay = env['PORTDIR_OVERLAY'].split(":")[0]
 portdir = env['PORTDIR']
 
 
 #---------------------------------------------------------------------------
 
 class CustomDataTable(wxPyGridTableBase):
-    """
-    """
+
 
     def __init__(self):
         wxPyGridTableBase.__init__(self)
         loc = os.path.expanduser('~/.abeni/bugz')
         if not os.path.exists("%s/EBUILDS.grl" % loc):
-            print "Creating project database and tables..."
             self.createDB()
-            print "Database created."
         else:
             self.ConnectDB()
 
@@ -42,12 +39,16 @@ class CustomDataTable(wxPyGridTableBase):
         #    ]
 
         self.data = []
+        #Grab list of ebuilds in PORTDIR_OVERLAY
         ebuilds = self.GetEbuilds()
         ebuilds.sort()
+        #Grab all records in Gadfly SQL database
+        recs = self.FetchDB()
+        nbrRecs = len(recs)
         for e in ebuilds:
             portage = self.checkOverlay(e)
-            status = ""
-            res = ""
+            bzstatus = ""
+            bzresolution = ""
             mine = 0
             abenistatus = ''
             e = e.replace(portdir_overlay, "")
@@ -56,26 +57,29 @@ class CustomDataTable(wxPyGridTableBase):
             cat = catpack[0]
             p = catpack[2]
             e = "%s/%s" % (cat, p)
-            self.cursor.execute("SELECT p, package, cat, bug, bzstatus, bzresolution, \
-                                notes, mine, abenistatus FROM ebuilds WHERE p='%s'" % p)
-            mydata = self.cursor.fetchall()
             bug = ''
-            if mydata:
-                p, package, cat, bug, bzstatus, bzresolution, notes, mine, abenistatus = mydata[0]
-                if bzstatus:
-                    status = bzstatus
-                if bzresolution:
-                    res = bzresolution
-            my = [e, bug, status, res, mine, portage, abenistatus]
+            if recs:
+                for i in range(nbrRecs):
+                   if recs[i][0] == p:
+                        p, package, cat, bug, bzstatus, bzresolution, notes, mine, abenistatus = recs[i]
+            my = [e, bug, bzstatus, bzresolution, mine, portage, abenistatus]
             self.data.append(my)
 
+    def FetchDB(self):
+        """Fetch all records from database"""
+        self.cursor.execute("SELECT p, package, cat, bug, bzstatus, bzresolution, \
+                            notes, mine, abenistatus FROM ebuilds")
+        return self.cursor.fetchall()
+
+
     def ConnectDB(self):
+        """Connect to database"""
         loc = os.path.expanduser('~/.abeni/bugz')
         self.connection = gadfly.gadfly("bugzDB", loc)
         self.cursor = self.connection.cursor()
 
-    def UpdateRow(self, p, row, col):
-        """Reload data in row,c with data found by p"""
+    def UpdateRow(self, p, row):
+        """Reload data in row with data found by p"""
         #We need to reconnect the DB because another process updated it
         self.ConnectDB()
         self.cursor.execute("SELECT p, package, cat, bug, bzstatus, bzresolution, \
@@ -92,11 +96,13 @@ class CustomDataTable(wxPyGridTableBase):
         #                  'Mine', 'In Portage', ' Abeni Status ']
 
     def checkOverlay(self, n):
+        """See if an ebuild in PORTDIR_OVERLAY exists in PORTAGE"""
         o = n.replace(portdir_overlay, portdir).strip()
         if os.path.exists(o):
             return 1
 
     def createDB(self):
+        """Create Gadfly SQL database with ebuilds table"""
         self.connection = gadfly.gadfly()
         loc = os.path.expanduser('~/.abeni/bugz')
         self.connection.startup("bugzDB", loc)
@@ -116,6 +122,7 @@ class CustomDataTable(wxPyGridTableBase):
         self.connection.commit()
 
     def GetEbuilds(self):
+        """Grab list of ebuilds in PORTDIR_OVERLAY"""
         ebuilds = []
         cmd = "find %s -name '*.ebuild'" % portdir_overlay
         a = popen2.Popen4(cmd, 1)
@@ -166,6 +173,13 @@ class CustomDataTable(wxPyGridTableBase):
                                      1)                                # how many
 
             self.GetView().ProcessTableMessage(msg)
+
+    def DelRow(self, row):
+        del (self.data[row])
+        msg = wxGridTableMessage(self,                             # The table
+                                 wxGRIDTABLE_NOTIFY_ROWS_DELETED, # what we did to it
+                                 1)                                # how many
+        self.GetView().ProcessTableMessage(msg)
 
 
     def splitCSVLine(self, line):
@@ -219,12 +233,13 @@ class CustomDataTable(wxPyGridTableBase):
             if d:
                 for b in bugz:
                     if b[0] == d:
-                        print "Checking...", d, b[5], b[6]
+                        #print "Checking...", d, b[5], b[6]
                         self.SetValue(row, 2, b[5])
                         self.SetValue(row, 3, b[6])
-        print "Done updating"
+        #print "Done updating"
 
     def OnSaveButton(self):
+        self.ConnectDB()
         rs = self.GetNumberRows()
         cs = self.GetNumberCols()
         for row in range(rs-1):
@@ -319,9 +334,11 @@ class CustTableGrid(wxGrid):
         self.SetRowLabelSize(0)
         self.SetMargins(0,0)
         self.AutoSizeColumns(False)
-
-        EVT_GRID_CELL_LEFT_DCLICK(self, self.OnLeftDClick)
-        #EVT_GRID_SELECT_CELL(self, self.OnCellSelect)
+        nbrRows = self.table.GetNumberRows()
+        for r in range(nbrRows):
+            self.SetReadOnly(r, 0, True)
+        EVT_GRID_CELL_LEFT_DCLICK(self, self.OnEditInfo)
+        EVT_GRID_SELECT_CELL(self, self.OnCellSelect)
         # I do this because I don't like the default behaviour of not starting the
         # cell editor on double clicks, but only a second click.
 
@@ -337,7 +354,7 @@ class CustTableGrid(wxGrid):
     def GetCat(self):
         return self.cat
 
-    def GetPackage(self):
+    def GetPackageName(self):
         return self.package
 
     def PtoPackage(self, p):
@@ -354,33 +371,75 @@ class CustTableGrid(wxGrid):
             pn = string.join(pn, "-")
         return pn
 
-    def OnEditInfo(self):
+    def OnDeleteEbuild(self):
         r, c = self.GetCur()
         if c !=0:
             #You must select a cell with cat/package
+            return
+        f = self.GetFilename(r, c)
+        msg = "Are you sure you want to delete %s?" % f
+        dlg = wxMessageDialog(self, msg, "Delete this files?", wxOK | wxCANCEL |wxICON_INFORMATION)
+        v = dlg.ShowModal()
+        if v == wxID_OK:
+            catpack = self.GetCellValue(r, c)
+            p = catpack.split("/")[1]
+            os.unlink(f)
+            self.table.connection = None
+            self.table.ConnectDB()
+            self.table.cursor.execute("DELETE FROM ebuilds WHERE p='%s'" % p)
+            self.table.connection.commit()
+            self.table.DelRow(r)
+        dlg.Destroy()
+        d = os.path.dirname(f)
+        files = os.listdir(d)
+        haveEbuild = 0
+        for f in files:
+            #print f[-7:]
+            if f[-7:] == '.ebuild':
+                haveEbuild = 1
+                break
+        if not haveEbuild:
+            msg = "There are no more ebuilds in %s\n\n Delete directory and contents?" % d
+            dlg = wxMessageDialog(self, msg, "Delete this directory?", wxOK | wxCANCEL |wxICON_INFORMATION)
+            v = dlg.ShowModal()
+            if v == wxID_OK:
+                os.system("rm -rf %s" % d)
+            dlg.Destroy()
+
+    def GetFilename(self, r, c):
+        from portage import config
+        catpack = self.GetCellValue(r, c)
+        p = catpack.split("/")[1]
+        cat = catpack.split("/")[0]
+        package = self.PtoPackage(p)
+        return "%s/%s/%s/%s.ebuild" % (portdir_overlay, cat, package, p)
+
+    def OnEditInfo(self, evt=""):
+        """Open up ebuild information window if click on column 0"""
+        r, c = self.GetCur()
+        if c !=0:
+            if self.CanEnableCellControl():
+                self.EnableCellEditControl()
             return
         self.table.connection = None
         from dialogs import BugzillaDialog
         catpack = self.GetCellValue(r, c)
         self.p = catpack.split("/")[1]
-        self.cat = catpack.split("/")[1]
+        self.cat = catpack.split("/")[0]
         self.package = self.PtoPackage(self.p)
         dlg = BugzillaDialog(self)
         dlg.CenterOnScreen()
         v = dlg.ShowModal()
         if v == wxID_OK:
             res = dlg.SaveInfo()
-            self.table.UpdateRow(self.p, r, c)
+            self.table.UpdateRow(self.p, r)
         dlg.Destroy()
 
     def OnCellSelect(self, evt):
         evt.Skip()
 
-    def OnLeftDClick(self, evt):
-        if self.CanEnableCellControl():
-            self.EnableCellEditControl()
-
     def OnBugzFetchButton(self, l):
+        self.SaveEditControlValue()
         self.table.OnBugzFetchButton(l)
 
     def OnDelButton(self):
@@ -403,14 +462,14 @@ class MyFrame(wxFrame):
         EVT_BUTTON(self, b1.GetId(), self.OnSaveButton)
         b2 = wxButton(p, -1, "Edit Info")
         EVT_BUTTON(self, b2.GetId(), self.OnEditButton)
-        #b3 = wxButton(p, -1, "Delete")
-        #EVT_BUTTON(self, b3.GetId(), self.OnDelButton)
+        b3 = wxButton(p, -1, "Delete")
+        EVT_BUTTON(self, b3.GetId(), self.OnDelButton)
         b4 = wxButton(p, -1, "Get Bugzilla Stats")
         EVT_BUTTON(self, b4.GetId(), self.OnBugzFetchButton)
         b5 = wxButton(p, -1, "Cancel")
         EVT_BUTTON(self, b5.GetId(), self.OnCancelButton)
-        #b6 = wxButton(p, -1, "Query/Find Bug#")
-        #EVT_BUTTON(self, b6.GetId(), self.OnQueryButton)
+        b6 = wxButton(p, -1, "Query/Find Bug#")
+        EVT_BUTTON(self, b6.GetId(), self.OnQueryButton)
 
         bs = wxBoxSizer(wxVERTICAL)
         buts = wxBoxSizer(wxHORIZONTAL)
@@ -418,13 +477,13 @@ class MyFrame(wxFrame):
         buts.Add((6,6)) # Gap between buttons
         buts.Add(b2)
         buts.Add((6,6))
-        #buts.Add(b3)
-        #buts.Add((6,6))
+        buts.Add(b3)
+        buts.Add((6,6))
         buts.Add(b4)
         buts.Add((6,6))
         buts.Add(b5)
-        #buts.Add((60,6))
-        #buts.Add(b6)
+        buts.Add((60,6))
+        buts.Add(b6)
         bs.Add(self.grid, 2, wxGROW|wxALL, 5)
         bs.Add(buts,0, wxEXPAND|wxALL, 10)
         p.SetSizer(bs)
@@ -436,15 +495,17 @@ class MyFrame(wxFrame):
         self.Destroy()
 
     def OnQueryButton(self, evt):
-        pass
-        #t = self.QueryCtrl.GetValue()
+        from dialogs import BugzQuery
+        dlg = BugzQuery(self)
+        dlg.CenterOnScreen()
+        dlg.ShowModal()
 
     def OnSaveButton(self, evt):
         wxSafeYield()
         self.grid.OnSaveButton()
 
     def OnDelButton(self, evt):
-        self.grid.OnDelButton()
+        self.grid.OnDeleteEbuild()
 
     def OnEditButton(self, evt):
         self.grid.OnEditInfo()
@@ -456,17 +517,17 @@ class MyFrame(wxFrame):
         import urllib, options
         myOptions = options.Options()
         pref = myOptions.Prefs()
-        print "Fetching Info from bugs.gentoo.org..."
+        #print "Fetching your bug info from bugs.gentoo.org..."
         wxSafeYield()
         e = pref['email']
         if not e:
-            print "No email address specified"
+            msg = "No email address set in options."
+            dlg = wxMessageDialog(self, msg, "No email set", wxOK)
+            dlg.ShowModal()
             return
         uname = e.split("@")[0]
         host = e.split("@")[1]
         email = uname+"%40"+host
-        print email
-        #"http://bugs.gentoo.org/buglist.cgi?query_format=&short_desc_type=allwordssubstr&short_desc=&long_desc_type=substring&long_desc=&bug_file_loc_type=allwordssubstr&bug_file_loc=&keywords_type=allwords&keywords=&bug_status=UNCONFIRMED&bug_status=NEW&bug_status=ASSIGNED&bug_status=REOPENED&bug_status=RESOLVED&bug_status=VERIFIED&bug_status=CLOSED&emailassigned_to1=1&emailreporter1=1&emailqa_contact1=1&emailcc1=1&emaillongdesc1=1&emailtype1=exact&email1=robc%40myrealbox.com&emailtype2=substring&email2=&bugidtype=include&bug_id=&votes=&changedin=&chfieldfrom=&chfieldto=Now&chfieldvalue=&field0-0-0=noop&type0-0-0=noop&value0-0-0=&ctype=csv"
         addr1="http://bugs.gentoo.org/buglist.cgi?query_format=&short_desc_type=allwordssubstr&"
         addr2="short_desc=&long_desc_type=substring&long_desc=&bug_file_loc_type=allwordssubstr&bug_file_loc=&"
         addr3="keywords_type=allwords&keywords=&bug_status=UNCONFIRMED&bug_status=NEW&bug_status=ASSIGNED&bug_"

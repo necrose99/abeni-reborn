@@ -1,4 +1,4 @@
-browser = /usr/bin/firebird
+browser = /usr/bin/MozillaFirebird
 xterm = /usr/X11R6/bin/xterm
 diff = /usr/kde/3.1/bin/kompare
 editor = /usr/bin/gedit

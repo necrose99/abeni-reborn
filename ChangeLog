@@ -1,7 +1,25 @@
 Abeni ChangeLog
 
+0.0.8 -------------
+
+Aug 21, 2003 Made column 0 non-editable in Project Manager
+Much work on checking for sane ebuild name, package name before allowing to save
+
+Aug 20, 2003 New File menu choice that brings up list of cat/p from overlay
+Removed nulloutput from repoman-local since log windows now do color 
+
+Aug 19, 2003 Ebuilds are now checked before loading with "bash -n ebuild"
+If the ebuild contains a syntax error, Abeni will ask if you want to load
+it in your external editor so you can fix it.
+
+Aug 16, 2003 Added lazy RDEPEND resolver that was left out.
+
 
 0.0.7 -------------
+
+Aug 15, 2003 Removed sudo. You must run Abeni as root. Any complaints? Send em in.
+
+Aug 14, 2003 Added Project Manager. It shows all ebuilds in the overlay in a grid. You can add notes, update status by checking bugs.gentoo.org, mark your own status.
 
 Aug 11, 2003 Made generic MyMessage dialog
 

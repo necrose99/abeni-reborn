@@ -6,10 +6,108 @@ from wxPython.lib.buttons import *
 import os, gadfly
 
 
+[wxID_BUGZQUERY, wxID_BUGZQUERYBUGNBRBUTTON, wxID_BUGZQUERYBUGNBRSTATICBOX,
+ wxIDCANCEL, wxID_BUGZQUERYQUERYBUTTON,
+ wxID_BUGZQUERYQUERYSTATICBOX, wxID_BUGZQUERYQUERYSTATICTEXT,
+ wxID_BUGZQUERYQUERYTEXTCTRL, wxID_BUGZQUERYTEXTCTRL1,
+] = map(lambda _init_ctrls: wxNewId(), range(9))
+
+class BugzQuery(wxDialog):
+    def _init_utils(self):
+        # generated method, don't edit
+        pass
+
+    def _init_ctrls(self, prnt):
+        # generated method, don't edit
+        wxDialog.__init__(self, id=wxID_BUGZQUERY, name='BugzQuery',
+              parent=prnt, pos=wxPoint(254, 170), size=wxSize(330, 284),
+              style=wxDEFAULT_DIALOG_STYLE, title='Bugzilla Query')
+        self._init_utils()
+        self.SetClientSize(wxSize(330, 284))
+
+        self.BugNbrbutton = wxButton(id=wxID_BUGZQUERYBUGNBRBUTTON,
+              label='Fetch', name='BugNbrbutton', parent=self, pos=wxPoint(112,
+              48), size=wxSize(120, 22), style=0)
+        self.BugNbrbutton.SetToolTipString('')
+        EVT_BUTTON(self.BugNbrbutton, wxID_BUGZQUERYBUGNBRBUTTON,
+              self.OnBugnbrbuttonButton)
+
+        self.BugNbrstaticBox = wxStaticBox(id=wxID_BUGZQUERYBUGNBRSTATICBOX,
+              label='Search by Bug Nbr', name='BugNbrstaticBox', parent=self,
+              pos=wxPoint(8, 8), size=wxSize(312, 96), style=0)
+
+        self.textCtrl1 = wxTextCtrl(id=wxID_BUGZQUERYTEXTCTRL1,
+              name='textCtrl1', parent=self, pos=wxPoint(16, 48),
+              size=wxSize(80, 22), style=0, value='')
+
+        self.QuerystaticBox = wxStaticBox(id=wxID_BUGZQUERYQUERYSTATICBOX,
+              label='Query by Search Term', name='QuerystaticBox', parent=self,
+              pos=wxPoint(8, 120), size=wxSize(312, 152), style=0)
+
+        self.QuerystaticText = wxStaticText(id=wxID_BUGZQUERYQUERYSTATICTEXT,
+              label='Enter search criteria (contains all strings)',
+              name='QuerystaticText', parent=self, pos=wxPoint(24, 154),
+              size=wxSize(229, 16), style=0)
+
+        self.QuerytextCtrl = wxTextCtrl(id=wxID_BUGZQUERYQUERYTEXTCTRL,
+              name='QuerytextCtrl', parent=self, pos=wxPoint(24, 184),
+              size=wxSize(280, 22), style=0, value='')
+
+        self.Querybutton = wxButton(id=wxID_BUGZQUERYQUERYBUTTON,
+              label='Search', name='Querybutton', parent=self, pos=wxPoint(40,
+              232), size=wxSize(112, 22), style=0)
+        EVT_BUTTON(self.Querybutton, wxID_BUGZQUERYQUERYBUTTON,
+              self.OnQuerybuttonButton)
+
+        self.CancelButton = wxButton(id=wxID_CANCEL,
+              label='Cancel', name='CancelButton', parent=self, pos=wxPoint(184,
+              232), size=wxSize(104, 22), style=0)
+        #EVT_BUTTON(self.CancelButton, wxID_CANCEL, self.OnCancel)
+
+    def __init__(self, parent):
+        self._init_ctrls(parent)
+
+    def MyMessage(self, msg, title, type="info"):
+        """Simple informational dialog"""
+        if type == "info":
+            icon = wxICON_INFORMATION
+        elif type == "error":
+            icon = wxICON_ERROR
+
+        dlg = wxMessageDialog(self, msg, title, wxOK | icon)
+        dlg.ShowModal()
+        dlg.Destroy()
+
+    def OnBugnbrbuttonButton(self, event):
+        """Launches browser and searches bugzilla"""
+        myOptions = Options()
+        pref = myOptions.Prefs()
+        bugNbr = self.textCtrl1.GetValue()
+        if not bugNbr.isdigit():
+            self.MyMessage("Enter a number", "Error", "error")
+            return
+        URL = "http://bugs.gentoo.org/show_bug.cgi?id=%s" % bugNbr
+        if pref['browser']:
+            os.system("%s %s &" % (pref['browser'], URL))
+        else:
+            self.MyMessage("You need to define a browser in preferences.", "Error", "error")
+
+    def OnQuerybuttonButton(self, event):
+        """Launches browser and searches bugzilla for string(s)"""
+        import urllib
+        myOptions = Options()
+        pref = myOptions.Prefs()
+        t = self.QuerytextCtrl.GetValue()
+        t = urllib.quote_plus(t)
+        URL = "'http://bugs.gentoo.org/buglist.cgi?query_format=&short_desc_type=allwordssubstr&short_desc=%s'" % t
+        if pref['browser']:
+            os.system("%s %s &" % (pref['browser'], URL))
+        else:
+            self.MyMessage("You need to define a browser in preferences.", "Error", "error")
 
 [wxID_BUGZILLA, wxID_BUGZILLAABENICOMBOBOX, wxID_BUGZILLAABENISTATICBOX,
  wxID_BUGZILLABUGNBR, wxID_BUGZILLABUGNBRSTATICTEXT,
- wxID_BUGZILLABUZILLASTATICBOX, wxID_BUGZILLACANCEL, wxID_BUGZILLACHECKBOX1,
+ wxID_BUGZILLABUZILLASTATICBOX, wxIDCANCEL, wxID_BUGZILLACHECKBOX1,
  wxID_BUGZILLANOTESSTATICBOX, wxID_BUGZILLANOTESTEXTCTRL, wxID_BUGZILLAOK,
  wxID_BUGZILLAPACKAGETEXT, wxID_BUGZILLARESOLUTIONCOMBO,
  wxID_BUGZILLASEARCHBUTTON, wxID_BUGZILLASTATUSCOMBO,
@@ -51,10 +149,11 @@ class BugzillaDialog(wxDialog):
 
     def SaveInfo(self):
         cat = self.parent.GetCat()
-        package = self.parent.GetPackage()
+        package = self.parent.GetPackageName()
         p = self.parent.GetP()
         bug, notes, bzstatus, bzresolution, mine, abenistatus = self.GetValues()
-
+        if not bug.isdigit():
+            bug = ''
         if self.new:
             self.cursor.execute("INSERT INTO ebuilds(p, package, cat, bug, bzstatus, bzresolution, notes, mine, abenistatus) \
                 VALUES ('%s', '%s', '%s', '%s', '%s', '%s', '%s', %i, '%s')" \
@@ -69,7 +168,7 @@ class BugzillaDialog(wxDialog):
     def LoadInfo(self):
         P = self.parent.GetP()
         cat = self.parent.GetCat()
-        package = self.parent.GetPackage()
+        package = self.parent.GetPackageName()
         self.cursor.execute("SELECT p, package, cat, bug, bzstatus, bzresolution, notes, mine, abenistatus \
                                 FROM ebuilds WHERE p='%s'" % P)
         data = self.cursor.fetchall()
@@ -111,7 +210,7 @@ class BugzillaDialog(wxDialog):
               value='')
 
         self.SearchButton = wxButton(id=wxID_BUGZILLASEARCHBUTTON,
-              label='Get Bug# / Query', name='SearchButton', parent=self,
+              label='Get Bug#', name='SearchButton', parent=self,
               pos=wxPoint(226, 48), size=wxSize(126, 22), style=0)
         EVT_BUTTON(self, wxID_BUGZILLASEARCHBUTTON, self.OnSearchButton)
 
@@ -124,27 +223,26 @@ class BugzillaDialog(wxDialog):
         self.OK = wxGenButton(ID=wxID_OK, label='OK', name='OK',
               parent=self, pos=wxPoint(112, 512), size=wxSize(81, 27), style=0)
 
-        self.Cancel = wxGenButton(ID=wxID_CANCEL, label='Cancel',
-              name='Cancel', parent=self, pos=wxPoint(264, 512), size=wxSize(81,
-              27), style=0)
+        self.Cancel = wxGenButton(self, ID=wxID_CANCEL, label='Cancel',
+              pos=wxPoint(264, 512), size=wxSize(81, 27))
 
         self.BuzillaStaticBox = wxStaticBox(id=wxID_BUGZILLABUZILLASTATICBOX,
               label='Bugzilla Information', name='BuzillaStaticBox',
               parent=self, pos=wxPoint(10, 8), size=wxSize(448, 114), style=0)
 
-        statusList = ['NEW', 'UNCONFIRMED', 'ASSIGNED', 'REOPENED', 'RESOLVED', 'VERIFIED', 'CLOSED']
+        statusList = ['', 'NEW', 'UNCONFIRMED', 'ASSIGNED', 'REOPENED', 'RESOLVED', 'VERIFIED', 'CLOSED']
         self.StatusCombo = wxComboBox(choices=statusList, id=wxID_BUGZILLASTATUSCOMBO,
               name='StatusCombo', parent=self, pos=wxPoint(16, 88),
               size=wxSize(200, 22), style=0, validator=wxDefaultValidator,
-              value='NEW')
-        self.StatusCombo.SetLabel('')
+              value='')
+        #self.StatusCombo.SetLabel('')
 
-        resolutionList = ['FIXED', 'INVALID', 'WONTFIX', 'LATER', 'REMIND', 'DUPLICATE', 'WORKSFORME']
+        resolutionList = ['', 'FIXED', 'INVALID', 'WONTFIX', 'LATER', 'REMIND', 'DUPLICATE', 'WORKSFORME']
         self.ResolutionCombo = wxComboBox(choices=resolutionList,
               id=wxID_BUGZILLARESOLUTIONCOMBO, name='ResolutionCombo',
               parent=self, pos=wxPoint(224, 88), size=wxSize(224, 22), style=0,
-              validator=wxDefaultValidator, value='FIXED')
-        self.ResolutionCombo.SetLabel('')
+              validator=wxDefaultValidator, value='')
+        #self.ResolutionCombo.SetLabel('')
 
         self.NotesStaticBox = wxStaticBox(id=wxID_BUGZILLANOTESSTATICBOX,
               label='Notes', name='NotesStaticBox', parent=self, pos=wxPoint(8,
@@ -158,78 +256,42 @@ class BugzillaDialog(wxDialog):
               label='Ebuild Package', name='PackageText', parent=self,
               pos=wxPoint(228, 20), size=wxSize(88, 16), style=0)
 
-        abeniList = ['FIXED', 'INVALID', 'WONTFIX', 'LATER', 'REMIND', 'OBSOLETE', 'SUBMITTED']
+        abeniList = ['', 'FIXED', 'INVALID', 'WONTFIX', 'LATER', 'REMIND', 'OBSOLETE', 'SUBMITTED']
         self.AbeniComboBox = wxComboBox(choices=abeniList,
               id=wxID_BUGZILLAABENICOMBOBOX, name='AbeniComboBox', parent=self,
               pos=wxPoint(224, 160), size=wxSize(224, 22), style=0,
-              validator=wxDefaultValidator, value='FIXED')
-        self.AbeniComboBox.SetLabel('')
+              validator=wxDefaultValidator, value='')
+        #self.AbeniComboBox.SetLabel('')
 
         self.checkBox1 = wxCheckBox(id=wxID_BUGZILLACHECKBOX1,
               label='Ebuild is Mine', name='checkBox1', parent=self,
               pos=wxPoint(24, 160), size=wxSize(144, 24), style=0)
         self.checkBox1.SetValue(False)
 
+    def MyMessage(self, msg, title, type="info"):
+        """Simple informational dialog"""
+        if type == "info":
+            icon = wxICON_INFORMATION
+        elif type == "error":
+            icon = wxICON_ERROR
 
-        '''
-        wxDialog.__init__(self, id=wxID_BUGZILLA, name='Bugzilla', parent=prnt,
-              pos=wxPoint(278, 137), size=wxSize(462, 493),
-              style=wxDEFAULT_DIALOG_STYLE, title='Bugzilla Info & Notes')
-        self.SetClientSize(wxSize(462, 493))
-
-        self.BugNbrstaticText = wxStaticText(id=wxID_BUGZILLABUGNBRSTATICTEXT,
-              label='Bug Number', name='BugNbrstaticText', parent=self,
-              pos=wxPoint(16, 48), size=wxSize(88, 24), style=0)
-
-        self.BugNbr = wxTextCtrl(id=wxID_BUGZILLABUGNBR, name='BugNbr',
-              parent=self, pos=wxPoint(96, 48), size=wxSize(120, 22), style=0,
-              value='')
-
-        self.SearchButton = wxButton(id=wxID_BUGZILLASEARCHBUTTON,
-              label='Search', name='SearchButton', parent=self, pos=wxPoint(226,
-              48), size=wxSize(80, 22), style=0)
-        self.SearchButton.SetToolTipString('Launch browser, bugs.gentoo.org, find bug')
-        EVT_BUTTON(self, wxID_BUGZILLASEARCHBUTTON, self.OnSearchButton)
-
-        self.NotestextCtrl = wxTextCtrl(id=wxID_BUGZILLANOTESTEXTCTRL,
-              name='NotestextCtrl', parent=self, pos=wxPoint(16, 168),
-              size=wxSize(432, 248), style=wxTAB_TRAVERSAL | wxTE_MULTILINE,
-              value='')
-        #self.NotestextCtrl.SetToolTipString('Notes')
-
-        self.OK = wxGenButton(ID=wxID_OK, label='OK', name='OK',
-              parent=self, pos=wxPoint(112, 432), size=wxSize(81, 27), style=0)
-
-        self.Cancel = wxGenButton(ID=wxID_CANCEL, label='Cancel',
-              name='Cancel', parent=self, pos=wxPoint(272, 432), size=wxSize(81,
-              27), style=0)
-
-        self.BuzillaStaticBox = wxStaticBox(id=wxID_BUGZILLABUZILLASTATICBOX,
-              label='Bugzilla Information', name='BuzillaStaticBox',
-              parent=self, pos=wxPoint(8, 8), size=wxSize(448, 128), style=0)
-
-        statusList = ['NEW', 'UNCONFIRMED', 'ASSIGNED', 'REOPENED', 'RESOLVED', 'VERIFIED', 'CLOSED']
-        self.StatusCombo = wxComboBox(id=wxID_BUGZILLASTATUSCOMBO,
-              name='StatusCombo', parent=self, pos=wxPoint(16, 88),
-              size=wxSize(200, 22), style=0, validator=wxDefaultValidator, choices=statusList)
-        self.StatusCombo.SetLabel('')
-
-        resolutionList = ['FIXED', 'INVALID', 'WONTFIX', 'LATER', 'REMIND', 'DUPLICATE', 'WORKSFORME']
-        self.ResolutionCombo = wxComboBox(
-              id=wxID_BUGZILLARESOLUTIONCOMBO, name='ResolutionCombo',
-              parent=self, pos=wxPoint(224, 88), size=wxSize(224, 22), style=0,
-              validator=wxDefaultValidator, choices=resolutionList)
-        self.ResolutionCombo.SetLabel('')
-
-        self.NotesStaticBox = wxStaticBox(id=wxID_BUGZILLANOTESSTATICBOX,
-              label='Notes', name='NotesStaticBox', parent=self, pos=wxPoint(8,
-              144), size=wxSize(448, 280), style=0)
-        '''
+        dlg = wxMessageDialog(self, msg, title, wxOK | icon)
+        dlg.ShowModal()
+        dlg.Destroy()
 
     def OnSearchButton(self, event):
+        """Launches browser and searches bugzilla"""
+        myOptions = Options()
+        pref = myOptions.Prefs()
         bugNbr, foo, foo, foo, foo, foo = self.GetValues()
-        URL = "http://bugs.gentoo.org/show_bug.cgi?id=%s" % bugNbr
-        os.system("%s %s &" % (self.parent.pref['browser'], URL))
+        if bugNbr.isdigit():
+            URL = "http://bugs.gentoo.org/show_bug.cgi?id=%s" % bugNbr
+            if pref['browser']:
+                os.system("%s %s &" % (pref['browser'], URL))
+            else:
+                self.MyMessage("You need to set your browser in preferences", "Error", "error")
+        else:
+            self.MyMessage("Enter a number", "Error", "error")
 
     def GetValues(self):
         bug = self.BugNbr.GetValue()
@@ -242,7 +304,6 @@ class BugzillaDialog(wxDialog):
         else:
             mine = 0
         abenistatus = self.AbeniComboBox.GetStringSelection()
-        print "mine, ab", mine, abenistatus
         return bug, notes, status, resolution, mine, abenistatus
 
 class GetURIDialog(wxDialog):
@@ -348,7 +409,6 @@ class EmergeDialog(wxDialog):
         self.emerge.SetHelpText("Enter any options for the emerge command.")
         box.Add(self.emerge, 1, wxALIGN_CENTRE|wxALL, 5)
         sizer.AddSizer(box, 0, wxGROW|wxALIGN_CENTER_VERTICAL|wxALL, 5)
-
         box = wxBoxSizer(wxHORIZONTAL)
         sizer.AddSizer(box, 0, wxGROW|wxALIGN_CENTER_VERTICAL|wxALL, 5)
         line = wxStaticLine(self, -1, size=(20,-1), style=wxLI_HORIZONTAL)

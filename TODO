@@ -1,9 +1,14 @@
-Abeni 0.0.5
+Abeni 0.0.8
 
-Check syntax of ebuild before loading. A badly formed ebuild can cause Abeni's parser to loop forever. Example: SRC_URI="unlosed
+When you inherit an eclass, scan the functions and add them to Scintilla's keyword list for highlighting and auto-completion
 
-Don't run pkg_setup when opening an ebuild if the function exists.
-We run pkg_setup to get the environment
+Proj Man can get tweaked if ebuilds aren't in proper cat/pack/dir
+
+The preference menu's fields are not in order when you 'tab through' them
+
+recent.txt file has dups
+
+When user cancels download, popup dialog letting them know there is a bug in ebuild command and they must cancel wget manually. Verify this?
 
 Make New Function descripts more clear i.e. 
  src_compile ./configure && make

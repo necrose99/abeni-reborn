@@ -1,8 +1,7 @@
 
+Abeni was written by Rob Cakebread <robc@myrealbox.com>
 
 repoman-local.py is a modified version of repoman.py, which is copyright Gentoo, Inc. Genone, e97_far@e.kth.se, created repoman-local.py
-
-nulloutput.py is drobbins' output.py with the color taken out
 
 I snarfed a few functions from liquidx@gentoo.org's excellent etcat
 
