@@ -35,7 +35,7 @@ class GetURIDialog(wxDialog):
         box = wxBoxSizer(wxHORIZONTAL)
         sizer.AddSizer(box, 0, wxGROW|wxALIGN_CENTER_VERTICAL|wxALL, 5)
         line = wxStaticLine(self, -1, size=(20,-1), style=wxLI_HORIZONTAL)
-        text = wxStaticText(self, -1, "Leave blank for CVS eclass template.")
+        text = wxStaticText(self, -1, "Enter CVS for CVS eclass template.")
         sizer.Add(text, 0, wxALIGN_CENTER|wxALL, 5)
         sizer.Add(line, 0, wxGROW|wxALIGN_CENTER_VERTICAL|wxRIGHT|wxTOP, 5)
         box = wxBoxSizer(wxHORIZONTAL)

@@ -191,7 +191,7 @@ class main(wxPanel):
     def PopulateDefault(self):
         """Set default variables in new ebuild"""
         self.Desc.SetValue('""')
-        self.S.SetValue('""')
+        self.S.SetValue('"${WORKDIR}/${P}"')
         self.USE.SetValue('""')
         self.Keywords.SetValue('"~x86"')
         self.Slot.SetValue('"0"')
@@ -204,9 +204,12 @@ class main(wxPanel):
 
     def SetName(self, uri):
         """Set ebuild name"""
+        print 'uri ', uri
         path = urlparse.urlparse(uri)[2]
+        print 'path ', path
         path = string.split(path, '/')
         file = path[len(path)-1]
+        print 'file ', file
         file = string.replace(file, ".tgz", "")
         file = string.replace(file, ".tar.gz", "")
         file = string.replace(file, ".tar.bz2", "")

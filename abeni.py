@@ -109,18 +109,13 @@ class MyFrame(wxFrame):
         menubar.Append(menu_edit, "&Edit")
         # Eclass
         menu_eclass = wxMenu()
-
         mnuDistutilsID = wxNewId()
         menu_eclass.Append(mnuDistutilsID, "distutils")
         EVT_MENU(self, mnuDistutilsID, self.OnMnuEclassDistutils)
-
         mnuCVSID = wxNewId()
         menu_eclass.Append(mnuCVSID, "cvs")
         EVT_MENU(self, mnuCVSID, self.OnMnuEclassCVS)
-
-
         menubar.Append(menu_eclass, "E&class")
-
         # Tools
         menu_tools = wxMenu()
         mnuEbuildID = wxNewId()
@@ -335,7 +330,10 @@ class MyFrame(wxFrame):
         if opts == '-p' or opts == '--pretend':
             cmd = '"emerge ' + opts + ' ' + self.filename + ' ; echo Done"'
         else:
-            cmd = 'su -c "emerge ' + opts + ' ' + self.filename + ' ; echo Done"'
+            if opts == 'unmerge' or opts == '-C':
+                cmd = 'su -c "emerge ' + opts + ' ' + self.package + ' ; echo Done"'
+            else:
+                cmd = 'su -c "emerge ' + opts + ' ' + self.filename + ' ; echo Done"'
         cmd2 = self.pref['xterm'] + ' -T "emerge" -hold -e ' + cmd + ' &'
         os.system(cmd2)
 
@@ -429,6 +427,7 @@ class MyFrame(wxFrame):
 
         #Indenting shoud be done with tabs, not spaces
         badSpaces = re.compile('^ +')
+        badComments = re.compile('^#+')
 
         while 1:
             l = f.readline()
@@ -438,14 +437,14 @@ class MyFrame(wxFrame):
                 l = string.strip(l)
 
             # Variables always start a line with all caps
-            varTest = re.search('^[A-Z]', l)
+            varTest = re.search('^[A-Z]+.*= ?', l)
 
             # Match any of these:
             #  mine() {
             #  mine () {   # I hate when people use this one.
             #  my_func() {
             #  my_func () {
-            funcTest = re.search('^[a-z]*(_[a-z]*)? ?\(\) {', l)
+            funcTest = re.search('^[a-zA-Z]*(_[a-zA-Z]*)?(_[a-zA-Z]*)? ?\(\) {', l)
 
             if varTest:
                 s = string.split(l, "=")
@@ -474,9 +473,10 @@ class MyFrame(wxFrame):
                 while 1:
                     l = f.readline()
                     #replace spaces with tabs
-                    fixed = badSpaces.sub('\t', l)
-                    tempf.append(fixed)
-                    if fixed[0] == "}":
+                    l = badSpaces.sub('\t', l)
+                    l = badComments.sub('\t#', l)
+                    tempf.append(l)
+                    if l[0] == "}":
                         s = ""
                         for ls in tempf:
                             s += ls
@@ -511,6 +511,7 @@ class MyFrame(wxFrame):
 
         self.editing = 1
         self.AddPages()
+
         self.PopulateForms(myData)
         clog = string.replace(filename, self.ebuild_file, '') + 'ChangeLog'
         self.ebuildDir = string.replace(filename, self.ebuild_file, '')
@@ -589,6 +590,7 @@ class MyFrame(wxFrame):
     def PopulateForms(self, myData):
         """Fill forms with saved data"""
         self.panelMain.Ebuild.SetValue(myData['ebuild'])
+        self.package = myData['ebuild']
         self.panelMain.EbuildFile.SetValue(myData['ebuild_file'])
         self.panelMain.Category.SetValue(myData['category'])
         self.panelMain.URI.SetValue(myData['SRC_URI'])
@@ -734,7 +736,7 @@ class MyFrame(wxFrame):
     def OnMnuHelp(self, event):
         """Display html help file"""
         #TODO:
-        #Add: /usr/portage/profiles/use.desc
+        #Add: PORTDIR/profiles/use.desc
         os.system(self.pref['browser'] + " 'http://abeni.sf.net/docs/index.html' &")
 
     def OnMnuSave(self, event):
@@ -754,6 +756,7 @@ class MyFrame(wxFrame):
     def OnMnuNew(self,event):
         """Creates a new ebuild from scratch"""
         #TODO: Add an "Are you sure?" dialog
+        # Show dialog if URI isn't properly formed or can't determine package, filename, ebuild name
         if self.editing:
             self.ClearNotebook()
         win = dialogs.GetURIDialog(self, -1, "Enter Package URI", \
@@ -763,20 +766,26 @@ class MyFrame(wxFrame):
         win.CenterOnScreen()
         val = win.ShowModal()
         self.URI = win.URI.GetValue()
-        if self.URI == "" or self.URI == "http://":
+        if self.URI == 'http://' or self.URI == '':
+            return
+        if self.URI == "CVS" or self.URI == "cvs":
             self.URI = "package-cvs-n.n.n"
         # If they click OK and filled out URI entry, create notebook
         if val == wxID_OK and self.URI:
             self.AddPages()
             self.panelMain.PopulateDefault()
             self.panelMain.SetURI(self.URI)
+            print 'seturi'
             self.panelMain.SetName(self.URI)
+            print 'setname'
             self.panelMain.SetEbuild()
+            print 'setebuild'
             self.panelChangelog.Populate(filename= portdir + '/skel.ChangeLog')
             #We are in the middle of createing an ebuild. Should probably check for
             #presence of wxNotebook instead
             self.editing = 1
-            self.OnMnuEclassCVS(-1)
+            if self.URI == "CVS" or self.URI == "cvs":
+                self.OnMnuEclassCVS(-1)
             # Set titlebar of app to ebuild name
             self.SetTitle(self.panelMain.GetEbuildName() + " | Abeni " + __version__)
 
@@ -887,14 +896,20 @@ class MyFrame(wxFrame):
         f.write('IUSE=' + self.panelMain.USE.GetValue() + '\n')
 
         dlist = self.panelDepend.elb1.GetStrings()
+        depFirst = 1 # Do we write DEPEND or RDEPEND first?
         d = 'DEPEND="'
         for ds in dlist:
+            if ds == '${RDEPEND}':
+                depFirst = 0
             if d == 'DEPEND="':
                 d += ds + "\n"
             else:
                 d += '\t' + ds + "\n"
         d = string.strip(d)
         d += '"'
+        if d == 'DEPEND=""':
+            d = ''
+            f.write('\n')
         rdlist = self.panelDepend.elb2.GetStrings()
         rd = 'RDEPEND="'
         for ds in rdlist:
@@ -904,10 +919,19 @@ class MyFrame(wxFrame):
                 rd += "\t" + ds + "\n"
         rd = string.strip(rd)
         rd += '"'
-        f.write(d + '\n\n')
-        if rd != 'RDEPEND=""':
-            #rd = 'RDEPEND="{$DEPEND}"'
-            f.write(rd + '\n\n')
+        if rd == 'RDEPEND=""':
+            rd = ''
+        if depFirst:
+            if d:
+                f.write(d + '\n')
+            if rd:
+                f.write(rd + '\n')
+        else:
+            if rd and d:
+                f.write(rd + '\n')
+                f.write(d + '\n')
+
+        f.write('\n')
 
         #Write functions:
         for fun in self.funcList:

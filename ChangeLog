@@ -2,9 +2,21 @@ Abeni
 
 0.0.4 -------------
 
+
+Fixed 'emerge unmerge' to use package instead of full path to filename
+
+Fixed bug where it was creating CVS type ebuild when you did New ebuild
+
+Places DEPEND/RDEPEND in proper order if DEPEND=${RDEPEND}
+
+Detects functions that start with capital letters, or has combinations like in glibc:
+KV_to_int(), get_KHV() etc.
+
+Indents comments to the proper level when ebuild is imported.
+
 Convert spaces to tabs during import. Works good, but not perfect if
 they use retarted space tab space etc. combo. Are there any shell script
-tabify-ers out there?
+tabify-ers/beautifiers out there?
 
 Open ebuild if you pass filename on command line
 
