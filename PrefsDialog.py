@@ -39,13 +39,14 @@ class MyDialog(wx.Dialog):
         self.checkbox_external_control = wx.CheckBox(self.noteboo_pane_general, -1, "Allow control from vim or gvim")
         self.checkbox_logfile = wx.CheckBox(self.noteboo_pane_general, -1, "Log output to file")
         self.text_ctrl_logfile = wx.TextCtrl(self.noteboo_pane_general, -1, "")
+        self.radio_box_log = wx.RadioBox(self.noteboo_pane_general, -1, "Log placement", choices=["Middle", "Top Left", "Top Right", "Bottom in Notebook"], majorDimension=0, style=wx.RA_SPECIFY_ROWS)
         self.button_font = wx.Button(self.noteboo_pane_editor, -1, "Font")
         self.text_ctrl_font = wx.TextCtrl(self.noteboo_pane_editor, -1, "", style=wx.TE_READONLY)
         self.checkbox_highlight = wx.CheckBox(self.noteboo_pane_editor, -1, "Sourcecode highlighting (color)")
-        self.checkbox_gentoo_highlighting = wx.CheckBox(self.noteboo_pane_editor, -1, "Highlight Gentoo keywords/functions/variables")
         self.checkbox_whitespace = wx.CheckBox(self.noteboo_pane_editor, -1, "Show whitespace")
         self.label_tabsize = wx.StaticText(self.noteboo_pane_editor, -1, "Spaces per tab char:")
         self.text_ctrl_1 = wx.TextCtrl(self.noteboo_pane_editor, -1, "4")
+        self.radio_box_tab = wx.RadioBox(self.noteboo_pane_editor, -1, "Tab placement", choices=["Top", "Left", "Right"], majorDimension=0, style=wx.RA_SPECIFY_COLS)
         self.label_cvs_root = wx.StaticText(self.noteboo_pane_dev, -1, "Enter directory for CVS root (e.g. ~/gentoo-x86)")
         self.text_ctrl_cvs_root = wx.TextCtrl(self.noteboo_pane_dev, -1, "")
         self.label_cvs_warn = wx.StaticText(self.noteboo_pane_dev, -1, "Only applies to official Gentoo developers")
@@ -74,6 +75,8 @@ class MyDialog(wx.Dialog):
         self.SetIcon(_icon)
         self.Hide()
         self.checkbox_external_control.Enable(False)
+        self.radio_box_log.SetSelection(0)
+        self.radio_box_tab.SetSelection(0)
         self.label_cvs_warn.SetForegroundColour(wx.Colour(255, 0, 0))
         self.radio_box_database.SetSelection(0)
         self.label_msg.SetForegroundColour(wx.Colour(0, 0, 255))
@@ -134,19 +137,20 @@ class MyDialog(wx.Dialog):
         sizer_10.Add(self.text_ctrl_logfile, 1, wx.ALL, 8)
         sizer_9.Add(sizer_10, 1, wx.EXPAND, 0)
         sizer_8.Add(sizer_9, 0, wx.EXPAND, 0)
+        sizer_8.Add(self.radio_box_log, 0, wx.ADJUST_MINSIZE, 0)
         self.noteboo_pane_general.SetAutoLayout(True)
         self.noteboo_pane_general.SetSizer(sizer_8)
         sizer_8.Fit(self.noteboo_pane_general)
         sizer_8.SetSizeHints(self.noteboo_pane_general)
         sizer_12.Add(self.button_font, 0, wx.ALL, 8)
         sizer_12.Add(self.text_ctrl_font, 1, wx.ALL, 8)
-        sizer_11.Add(sizer_12, 0, wx.ALL|wx.EXPAND, 12)
-        sizer_11.Add(self.checkbox_highlight, 0, wx.ALL|wx.EXPAND, 12)
-        sizer_11.Add(self.checkbox_gentoo_highlighting, 0, wx.ALL|wx.EXPAND, 12)
-        sizer_11.Add(self.checkbox_whitespace, 0, wx.ALL|wx.EXPAND, 12)
-        sizer_3.Add(self.label_tabsize, 0, wx.LEFT|wx.RIGHT, 12)
+        sizer_11.Add(sizer_12, 0, wx.ALL|wx.EXPAND, 6)
+        sizer_11.Add(self.checkbox_highlight, 0, wx.ALL|wx.EXPAND, 6)
+        sizer_11.Add(self.checkbox_whitespace, 0, wx.ALL|wx.EXPAND, 6)
+        sizer_3.Add(self.label_tabsize, 0, wx.LEFT|wx.RIGHT, 6)
         sizer_3.Add(self.text_ctrl_1, 0, 0, 0)
-        sizer_11.Add(sizer_3, 1, wx.EXPAND, 0)
+        sizer_11.Add(sizer_3, 0, wx.EXPAND, 0)
+        sizer_11.Add(self.radio_box_tab, 0, wx.TOP|wx.ADJUST_MINSIZE, 10)
         self.noteboo_pane_editor.SetAutoLayout(True)
         self.noteboo_pane_editor.SetSizer(sizer_11)
         sizer_11.Fit(self.noteboo_pane_editor)
@@ -191,7 +195,7 @@ class MyDialog(wx.Dialog):
         self.notebook.AddPage(self.noteboo_pane_dev, "CVS")
         self.notebook.AddPage(self.noteboo_pane_emerge, "Emerge")
         self.notebook.AddPage(self.notebook_pane_6, "Database")
-        sizer_1.Add(wx.NotebookSizer(self.notebook), 1, wx.ALL|wx.EXPAND, 4)
+        sizer_1.Add(self.notebook, 1, wx.ALL|wx.EXPAND, 4)
         sizer_2.Add(self.button_save, 0, wx.LEFT, 20)
         sizer_2.Add(self.button_cancel, 0, wx.LEFT, 20)
         sizer_1.Add(sizer_2, 0, wx.ALL|wx.EXPAND, 12)
@@ -203,7 +207,6 @@ class MyDialog(wx.Dialog):
         # end wxGlade
 
         self.checkbox_highlight.Disable()
-        self.checkbox_gentoo_highlighting.Disable()
 
         myOptions = Options()
         p = myOptions.Prefs()
@@ -225,7 +228,6 @@ class MyDialog(wx.Dialog):
         #Editor
         self.text_ctrl_font.SetValue(p['font'])
         self.checkbox_highlight.SetValue(int(p['highlighting']))
-        self.checkbox_gentoo_highlighting.SetValue(int(p['gentooHighlight']))
         self.checkbox_whitespace.SetValue(int(p['show_whitespace']))
         #spaces per tab
         #TODO: change in wxlade
@@ -241,6 +243,14 @@ class MyDialog(wx.Dialog):
         self.text_ctrl_FEATURES.SetValue(p['features'])
 
         self.radio_box_database.SetSelection(p['db'])
+        try:
+            self.radio_box_tab.SetSelection(p['tabPlacement'])
+        except KeyError:
+            self.radio_box_tab.SetSelection(0)
+        try:
+            self.radio_box_log.SetSelection(p['logPlacement'])
+        except KeyError:
+            self.radio_box_log.SetSelection(0)
         wx.EVT_BUTTON(self, self.button_font.GetId(), self.OnFont)
         self.Bind(wx.EVT_RADIOBOX, self.on_radio_db, self.radio_box_database)
         self.on_radio_db()
