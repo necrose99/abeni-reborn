@@ -1463,7 +1463,7 @@ class MyFrame(wxFrame):
         menubar = wxMenuBar()
         menubar.Append(menu_file, "&File")
         EVT_MENU_RANGE(self, wxID_FILE1, wxID_FILE9, self.OnFileHistory)
-        self.filehistory = wxFileHistory(12)
+        self.filehistory = wxFileHistory(9)
         self.filehistory.UseMenu(self.menu)
         # Variable
         menu_variable = wxMenu()
