@@ -51,11 +51,17 @@ class ebuild:
 		self.filename = s[len(s)-1]
 		self.package = s[len(s)-2]
 		self.category = s[len(s)-3]
+		self.version = portage.catpkgsplit(self.category+"/"+self.filename.replace(".ebuild", ""))
+		if self.version[3] == "r0":
+			self.version = self.version[2]
+		else:
+			self.version = self.version[2]+"-"+self.version[3]
 
 
 # test code
 sc = ebuild("/usr/portage/local/net-mail/sylpheed-claws-cvs/sylpheed-claws-cvs-0.9.4.ebuild")
 print sc.location
 print sc.filename
-print sc.package
 print sc.category
+print sc.package
+print sc.version
