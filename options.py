@@ -7,7 +7,7 @@ class Options:
     def Read_apprc(self):
         import string, sys, os
         appdir = os.path.abspath(os.path.join(os.getcwd(), sys.path[0]))
-        f = open('%s/../share/abeni/abenirc' % appdir)
+        f = open('/usr/share/abeni/abenirc')
         line = f.readline()
         while line:
             if string.find(line, 'debug') != -1:
