@@ -3,7 +3,7 @@
 """
 gui.py
 
-Contains main frame class
+ This is Abeni's gui frame class.
 
 """
 
@@ -21,8 +21,8 @@ import wx.stc
 from wx.lib.dialogs import MultipleChoiceDialog, ScrolledMessageDialog
 from portage import config, settings, pkgsplit
 
-import utils
 import __version__ 
+import utils
 import AboutDialog
 import AddFunctionDialog
 import EmergeDialog
@@ -36,12 +36,14 @@ from GentooSTC import GentooSTC
 from GetURIDialog import GetURIDialog
 from URI_Link import MyURILink
 from FileBrowser import MyBrowser
+from MyLog import MyLog
 import MyDatabase
 import pyipc
 import abeniCVS
+import enamer
 
 
-__revision__ = "$Id: gui.py,v 1.35 2004/12/26 03:24:57 robc Exp $"
+__revision__ = "$Id: MyFrame.py,v 1.1 2005/01/08 03:10:00 robc Exp $"
 
 env = config(clone=settings).environ()
 PORTDIR_OVERLAY = env['PORTDIR_OVERLAY'].split(" ")[0]
@@ -423,9 +425,9 @@ class MyFrame(wx.Frame):
         self.Layout()
         self.Centre()
         # end wxGlade
-        self.my_layout()
+        self.__my_layout()
 
-    def my_layout(self):
+    def __my_layout(self):
         """Local changes to __do_layout()"""
         if os.getuid() == 0:
             utils.my_message(self, "You no longer need run Abeni as root.\nSetup your regular user to use sudo.\nSee http://abeni.sf.net/ if you need\nhelp setting up sudo.",\
@@ -436,10 +438,10 @@ class MyFrame(wx.Frame):
                            "sudo test failed", "error")
             sys.exit(1)
 
-        wx.EVT_BUTTON(self, self.button_bugzilla.GetId(), self.LaunchBugz) 
-        wx.EVT_BUTTON(self, self.button_env_refresh.GetId(), self.ViewEnvironment)
+        wx.EVT_BUTTON(self, self.button_bugzilla.GetId(), self.OnLaunchBugz) 
+        wx.EVT_BUTTON(self, self.button_env_refresh.GetId(), self.OnViewEnvironment)
         wx.EVT_BUTTON(self, self.button_Category.GetId(), self.OnCatButton)
-
+        #FILESDIR browser
         wx.EVT_BUTTON(self, self.button_filesdir_download.GetId(), self.OnFilesdirDownload)
         wx.EVT_BUTTON(self, self.button_filesdir_new.GetId(), self.OnFilesdirNew)
         wx.EVT_BUTTON(self, self.button_filesdir_rename.GetId(), self.OnFilesdirRename)
@@ -447,10 +449,16 @@ class MyFrame(wx.Frame):
         wx.EVT_BUTTON(self, self.button_filesdir_view.GetId(), self.OnFilesdirView)
         wx.EVT_BUTTON(self, self.button_filesdir_edit.GetId(), self.OnFilesdirEdit)
         wx.EVT_BUTTON(self, self.button_filesdir_refresh.GetId(), self.OnFilesdirRefresh)
+        #${S} browser:
         wx.EVT_BUTTON(self, self.button_s_refresh.GetId(), self.OnSRefresh)
+        wx.EVT_BUTTON(self, self.button_s_view.GetId(), self.OnSView)
+        wx.EVT_BUTTON(self, self.button_s_edit.GetId(), self.OnSEdit)
+        #wx.EVT_BUTTON(self, self.button_s_patch.GetId(), self.OnSEdit)
+        wx.EVT_BUTTON(self, self.button_s_patch.GetId(), self.OnPatchButton)
+
+        #${D} browser:
         wx.EVT_BUTTON(self, self.button_d_refresh.GetId(), self.OnDRefresh)
 
-        wx.EVT_BUTTON(self, self.button_s_patch.GetId(), self.OnPatchButton)
 
         wx.EVT_TOOL(self, TB_NEW_ID, self.OnMnuNew)
         wx.EVT_TOOL(self, TB_OPEN_ID, self.OnMnuLoad)
@@ -459,7 +467,7 @@ class MyFrame(wx.Frame):
         wx.EVT_TOOL(self, TB_EDIT_ID, self.OnMnuEdit)
 
         #Insert
-        wx.EVT_TOOL(self, mnuLicenseID, self.InsertLicense)
+        wx.EVT_TOOL(self, mnuLicenseID, self.OnInsertLicense)
         wx.EVT_TOOL(self, TB_FUNC_ID, self.OnMnuNewFunction)
         wx.EVT_TOOL(self, mnuAddFuncID, self.OnMnuNewFunction)
         #Tool
@@ -534,16 +542,16 @@ class MyFrame(wx.Frame):
         wx.EVT_MENU(self, mnuCVS_ID, self.OnMnuHelpCVS)
         wx.EVT_MENU(self, mnuAboutID, self.OnMnuAbout)
 
-        wx.EVT_RADIOBOX(self, self.radio_box_env.GetId(), self.EvtRadioBox)
+        wx.EVT_RADIOBOX(self, self.radio_box_env.GetId(), self.OnEnvRadioBox)
+
+        self.Bind(wx.EVT_TOGGLEBUTTON, self.OnNoauto, self.button_1)
+        self.toolbar.EnableTool(TB_STOP_ID, False)
 
         wx.EVT_CLOSE(self, self.OnClose)
         wx.EVT_END_PROCESS(self, -1, self.OnProcessEnded)
-        self.Bind(wx.EVT_TOGGLEBUTTON, self.OnNoauto, self.button_1)
         self.noauto = "FEATURES='noauto'"
         self.database = None
         self.process = None
-
-        self.toolbar.EnableTool(TB_STOP_ID, False)
 
         #TODO: Add option to save current screen size when exiting
         self.SetSize((882, 696))
@@ -553,8 +561,6 @@ class MyFrame(wx.Frame):
         #Prevent splitter windows from becoming un-split
         self.splitter.SetMinimumPaneSize(20)
         self.splitter_2.SetMinimumPaneSize(20)
-        #SashPosition(230)
-        #SashPosition(370)
 
         # Are we in the process of editing an ebuild?
         self.editing = 0
@@ -608,7 +614,7 @@ class MyFrame(wx.Frame):
         #wx.EVT_MENU_RANGE(self, wx.ID_FILE1, wx.ID_FILE9, self.OnFileHistory)
 
         self.SetTitle("Abeni - The ebuild Builder " + __version__.version)
-        self.finddata = wx.FindReplaceData()
+        self.FindReplaceData = wx.FindReplaceData()
         #self.ExternalControlListen()
         self.ApplyPrefs()
         if self.pref['db'] == 0:
@@ -739,7 +745,7 @@ class MyFrame(wx.Frame):
             return
         utils.export_ebuild(self)
 
-    def InsertLicense(self, evt):
+    def OnInsertLicense(self, evt):
         """Choose license(s) overwrite any existing license(s)"""
         if not self.editing:
             return
@@ -760,20 +766,17 @@ class MyFrame(wx.Frame):
                     l = ('%s | %s' % (l, s.strip()))
                     self.FindReplace("LICENSE", 'LICENSE="%s"' % l[2:].strip())
 
-    def OnFileSelect(self, evt):
-        #t = self.explorer.GetTreeCtrl().GetItemText(evt.GetItem())
-        t = self.explorer.GetPath()
-        self.statusbar.SetStatusText(t, 0)
-
     def OnHelpFind(self, event):
-        self.finddlg = wx.FindReplaceDialog(self, self.finddata, "Find")
+        """Display find/replace dialog for editor"""
+        self.finddlg = wx.FindReplaceDialog(self, self.FindReplaceData, "Find")
         self.finddlg.Show(True)
 
     def OnFind(self, event):
+        """Find text in editor"""
         end = self.STCeditor.GetLength()
         textstring = self.STCeditor.GetTextRange(0, end).lower()
         start = self.STCeditor.GetSelection()[1]
-        findstring = self.finddata.GetFindString().lower()
+        findstring = self.FindReplaceData.GetFindString().lower()
         loc = textstring.find(findstring, start)
         if loc == -1 and start != 0:
             # string not found, start at beginning
@@ -795,15 +798,17 @@ class MyFrame(wx.Frame):
         self.STCeditor.SetSelection(loc, loc + len(findstring))
 
     def OnFindNext(self, event):
-        if self.finddata.GetFindString():
+        """Find previous text in editor"""
+        if self.FindReplaceData.GetFindString():
             self.OnFind(event)
         else:
             self.OnHelpFind(event)
 
     def OnFindClose(self, event):
+        """Close find/replace dialog"""
         event.GetDialog().Destroy()
 
-    def EvtRadioBox(self, event):
+    def OnEnvRadioBox(self, event):
         """set either full or brief mode for enviornment tab"""
         self.envView = event.GetInt()
 
@@ -822,28 +827,42 @@ class MyFrame(wx.Frame):
         dlg.Destroy()
 
     def OnPatchButton(self, evt):
-        """patch file in ${S}, copy to ${FILESDIR}"""
-        f = self.filesDir.getFilename()
+        """patch file in ${S}, copy patch to ${FILESDIR}"""
+        f = self.sDir.getFilename()
         if not os.path.isfile(f):
             return
         self.CreatePatch([f])
 
+    def OnSView(self, evt):
+        """View selected file in explorer"""
+        f = self.sDir.getFilename()
+        if not os.path.isfile(f):
+            return
+        self.ViewFile(f)
+    
     def OnFilesdirView(self, evt):
-        """View file in explorer"""
+        """View selected file in explorer"""
         f = self.filesDir.getFilename()
         if not os.path.isfile(f):
             return
         self.ViewFile(f)
     
+    def OnSEdit(self, evt):
+        """Edit selected file in external editor"""
+        f = self.sDir.getFilename()
+        if not os.path.isfile(f):
+            return
+        self.EditFile(f)
+
     def OnFilesdirEdit(self, evt):
-        """Edit file in external editor"""
+        """Edit selected file in external editor"""
         f = self.filesDir.getFilename()
         if not os.path.isfile(f):
             return
         self.EditFile(f)
 
     def OnFilesdirRename(self, evt):
-        """Rename file in ${FILESDIR}"""
+        """Rename selected file in ${FILESDIR}"""
         f = self.filesDir.getFilename()
 
         if not os.path.isfile(f):
@@ -857,7 +876,7 @@ class MyFrame(wx.Frame):
         try:
             os.rename(f, new_name)
         except OSError, msg:
-            print "Nerf: %s" % msg
+            print "!!! Error: %s" % msg
         
         self.filesDir.onRefresh(-1)
 
@@ -937,7 +956,7 @@ class MyFrame(wx.Frame):
         self.filesDir.onRefresh(-1)
 
     def OnFilesdirDelete(self, evt):
-        """delete file in explorer"""
+        """delete selected file in explorer"""
         f = self.filesDir.getFilename()
         if not os.path.isfile(f):
             return
@@ -973,6 +992,7 @@ class MyFrame(wx.Frame):
             opt = dlg.GetStringSelection()
             #Mark all games stable: Bugzilla #25708
             self.text_ctrl_Category.SetValue(opt)
+            #TODO: games can be marked stable
             #if opt == 'app-games':
                 #self.Keywords.SetValue(self.Keywords.GetValue().replace('~', ''))
 
@@ -981,6 +1001,7 @@ class MyFrame(wx.Frame):
         self.HandleIdle()
 
     def HandleIdle(self):
+        """Keep GUI fresh while executing async commands"""
         if self.process is not None:
             stream = self.process.GetInputStream()
             if stream.CanRead():
@@ -1015,54 +1036,22 @@ class MyFrame(wx.Frame):
                 self.filehistory.AddFileToHistory(filename)
             dlg.Destroy()
 
-    def __del__(self):
-        if self.process is not None:
-            self.process.Detach()
-            self.process.CloseOutput()
-            self.process = None
-
     def OnMnuHelpRef(self, event):
         """Display html help file"""
-        self.LaunchBrowser("http://abeni.sf.net/docs/ebuild-quick-reference.html")
+        utils.launch_browser(self, "http://abeni.sf.net/docs/ebuild-quick-reference.html")
 
-    def LaunchBugz(self, event):
+    def OnLaunchBugz(self, event):
         """Launch browser to bugzilla nbr in Notes tab"""
         bugz = self.text_ctrl_bugz.GetValue()
         if bugz:
             uri = "http://bugs.gentoo.org/show_bug.cgi?id=%s" % bugz
         else:
             uri = "http://bugs.gentoo.org/query.cgi"
-        self.LaunchBrowser(uri)
+        utils.launch_browser(self, uri)
         
-    def StripOpts(self, cmd):
-        """Strip any options from commands"""
-        return cmd.split(" ")[0]
-     
-    def CommandExists(self, cmd):
-        """Return True if command exists"""
-        if not cmd:
-            return
-        cmd = self.StripOpts(cmd)
-        if cmd[0] == "/":
-            if os.path.exists(cmd):
-                return True
-        else:
-            o = commands.getoutput("which %s" % cmd)
-            if o[0:6] != "which:":
-                return True
-
-    def LaunchBrowser(self, url):
-        """launch web browser"""
-        if not self.CommandExists(self.pref['browser']):
-            utils.my_message(self, "You need to define a browser in preferences.", \
-              "Error", "error")
-            return
-        cmd = self.pref['browser'] + " " + url
-        os.system("%s &" % cmd)
-
     def OnMnuHelp(self, event):
         """Display html help file"""
-        self.LaunchBrowser("http://abeni.sf.net/docs/index.html")
+        utils.launch_browser(self, "http://abeni.sf.net/docs/index.html")
 
     def OnMnuDeleteEbuild(self, event):
         """Delete ebuild from disk in overlay"""
@@ -1090,26 +1079,16 @@ class MyFrame(wx.Frame):
             return
         utils.save_ebuild(self)
 
-    def GetName(self, uri):
-        """return file name minus extension from src_uri"""
-        path = urlparse.urlparse(uri)[2]
-        path = string.split(path, '/')
-        file = self.StripExt(path[len(path)-1])
-        return file
-
-    def StripExt(self, file):
-        file = string.replace(file, ".zip", "")
-        file = string.replace(file, ".tgz", "")
-        file = string.replace(file, ".tar.gz", "")
-        file = string.replace(file, ".tar.bz2", "")
-        file = string.replace(file, ".tbz2", "")
-        return file
-
     def FindReplace(self, target, replace):
-        """Replace line containing text in STCeditor. return length of str replaced if found"""
+        """Replace entire line containing target in STCeditor. return length
+           of str replaced if found"""
         #Note: If we replace string with "" this will return 0
         #so don't use the length to determine if we matched anything
-        s = self.STCeditor.FindText(0, self.LastPos(), '^%s' % target, wx.stc.STC_FIND_REGEXP)
+        s = self.STCeditor.FindText(0,
+                                    self.LastPos(),
+                                    '^%s' % target,
+                                    wx.stc.STC_FIND_REGEXP
+                                    )
         e = self.STCeditor.GetLineEndPosition(self.STCeditor.LineFromPosition(s))
         if s != -1:
             self.STCeditor.SetTargetStart(s)
@@ -1129,44 +1108,48 @@ class MyFrame(wx.Frame):
             val = win.ShowModal()
             uri = win.URI.GetValue()
             template = win.GetTemplate()
-            psplit = ''
+            win.Destroy()
+            homepage, uri_out, my_p, pn, pv = "", "", "", "", ""
             if uri.find('sourceforge') != -1:
-                a = urlparse.urlparse(uri)
-                if a[2].find('sourceforge') != -1:
-                    uri = 'mirror:/%s' % a[2]
-                    #This is in case we want to automatically set the 
-                    #SourceForge homepage:self.panelMain.Homepage.SetValue(
-                    #'"http://sourceforge.net/projects/%s"' % \
-                    #utils.GetPN(self).lower())
-            if val == wx.ID_OK and uri:
-                # foo-1.0.tgz
-                p = self.GetName(uri)
-                if not p:
-                    return
-                psplit = pkgsplit(p)
-
-                if psplit:
-                    uri = uri.replace(p, "${P}") 
+                tst_uri = urlparse.urlparse(uri)
+                if tst_uri[2].find('sourceforge') != -1:
+                    uri = 'mirror:/%s' % tst_uri[2]
+                    homepage = "http://sourceforge.net/projects/%s" % \
+                               tst_uri[2].split("/")[2]
                 else:
-                    uri = uri.replace(p, "${MY_P}") 
+                    self.Write("))) Couldn't convert URI to mirror://sourceforge/ format.")
             utils.reset(self) 
-            if psplit:
-                self.text_ctrl_PN.SetValue(psplit[0].lower())
-                self.text_ctrl_PVR.SetValue(psplit[1])
-            if uri:
+            if val == wx.ID_OK and uri:
+                if enamer.is_good_filename(uri):
+                    uri_out, pn, pv = enamer.get_components(uri)
+                else:
+                    uri_out, my_p = enamer.get_myp(uri)
+                    pn, pv = enamer.guess_components(my_p)
+                    if pn and pv:
+                        my_p = my_p.replace(pn, "${PN}")
+                        my_p = my_p.replace(pv, "${PV}")
+                self.text_ctrl_PN.SetValue(pn)
+                self.text_ctrl_PVR.SetValue(pv)
                 self.Write('))) Pkg URI="%s"' % uri)
-            if val == wx.ID_OK:
+                self.Write('))) I will try to determine ${S} when you unpack.')
                 self.STCeditor.SetText(open("/usr/share/abeni/templates/%s" % template, 'r').read())
+
+                if homepage:
+                    self.FindReplace('HOMEPAGE', 'HOMEPAGE="%s"' % homepage)
+                if my_p:
+                    self.FindReplace('DESCRIPTION=""',
+                                     'MY_P="%s"\nDESCRIPTION=""' % my_p)
             self.STCeditor.EmptyUndoBuffer()
             self.STCeditor.SetSavePoint()
             self.STCeditor.Show()
             self.editing = 1
             self.saved = 0
-            self.FindReplace("SRC_URI", 'SRC_URI="%s"' % uri)
+            self.FindReplace("SRC_URI", 'SRC_URI="%s"' % uri_out)
             self.SetTitle("Abeni * The ebuild Builder " + __version__.version)
+            self.text_ctrl_Category.SetFocus()
 
     def OnClose(self, event):
-        """Called when trying to close application"""
+        """Do clean shutdown"""
         if self.running:
             self.Write("!!! You're executing %s" % self.running)
             return
@@ -1188,14 +1171,19 @@ class MyFrame(wx.Frame):
         f.close()
 
     def OnMnuExit(self,event):
-        """Exits and closes application"""
+        """Exit application sanely"""
         self.OnClose(-1)
 
     def ViewFile(self, f):
         """View file in dialog"""
         msg = open(f, "r").read()
-        dlg = ScrolledMessageDialog(self, msg, f)
-        dlg.Show(True)
+        try:
+            #CRITICAL
+            #TODO: Hmm. Segfaults on files with unicode?
+            dlg = ScrolledMessageDialog(self, msg, f)
+            dlg.Show(True)
+        except:
+            print "Error: Couldn't display %s" % f
 
     def OnMnuUseHelp(self, event):
         """View PORTDIR/profiles/use.desc file"""
@@ -1217,7 +1205,8 @@ class MyFrame(wx.Frame):
             return
 
         if not utils.is_overlay(self.filename):
-            utils.my_message(self, "You need to save the ebuild first.", "error")
+            utils.my_message(self, "You need to save the ebuild first.\n" +
+                             "I won't write to PORTDIR.", "error")
             return 0
 
         if not utils.verify_saved(self):
@@ -1251,7 +1240,7 @@ class MyFrame(wx.Frame):
         self.ExecuteInLog(cmd, logMsg)
 
     def OnToolbarEdit(self, event):
-        """Edit this ebuild in external editor"""
+        """Edit ebuild in editor buffer in external editor"""
         self.OnMnuEdit()
 
     def OnToolbarUnpack(self, event): 
@@ -1296,15 +1285,8 @@ class MyFrame(wx.Frame):
             if not utils.verify_saved(self):
                 self.action = 'qmerge'
                 logMsg = '))) Qmerging...'
-                #cmd = 'FEATURES="%s" USE="%s" sudo /usr/sbin/ebuild %s qmerge' % \
-                #    (self.pref['features'], self.pref['use'], self.filename)
                 cmd = '''xterm -e "sudo sh -c 'export %s;export USE='%s';sudo ebuild %s qmerge 2>&1|tee /var/tmp/abeni/emerge_log'"''' \
                          % (self.noauto, self.pref['use'], self.filename)
-
-                #cmd = """sudo sh -c 'export USE='%s';sudo ebuild %s qmerge 2>&1|\
-                #         tee /var/tmp/abeni/emerge_log'""" \
-                #         % (self.pref['use'], self.filename)
-                #cmd = 'sudo /usr/sbin/ebuild %s qmerge' % self.filename
                 self.Write(cmd)
                 self.ExecuteInLog(cmd, logMsg)
 
@@ -1565,7 +1547,7 @@ class MyFrame(wx.Frame):
                 f.write(t)
                 f.close()
 
-    def ViewEnvironment(self, event=None):
+    def OnViewEnvironment(self, event=None):
         """Show environment file in editor window"""
         if not self.editing:
             return
@@ -1882,21 +1864,6 @@ class MyFrame(wx.Frame):
         self.action = None
         utils.post_action(self, action)
 
-    def GetCVScatPN(self):
-        """returns CVSroot/category/PN"""
-        cvs_dir = self.pref['cvsRoot']
-        if not cvs_dir:
-            return 0
-        cat = utils.get_category_name(self)
-        if not cat:
-            return 0
-        pn = utils.get_pn(self)
-        if not pn:
-            return 0
-        cvs_path = "%s/%s/%s" % (cvs_dir, cat, pn)
-        if os.path.exists(cvs_path):
-            return cvs_path
-  
     def OnXtermInCVS(self, event):
         """Launch xterm in CVS dir"""
         if not self.editing:
@@ -2022,7 +1989,7 @@ class MyFrame(wx.Frame):
     def OnMnuEdit(self, event=None, save=1, filename=''):
         """Launch external editor then reload ebuild after editor exits"""
         if self.editing:
-            if not self.CommandExists(self.pref['editor']):
+            if not utils.cmd_exists(self.pref['editor']):
                 utils.my_message(self, "You need to define an editor in preferences.", \
                   "Error", "error")
                 return
@@ -2100,17 +2067,4 @@ class MyFrame(wx.Frame):
 
 
 # end of class MyFrame
-
-class MyLog(wx.PyLog):
-    def __init__(self, textCtrl, logTime=0):
-        wx.PyLog.__init__(self)
-        self.tc = textCtrl
-        self.logTime = logTime
-
-    def DoLogString(self, message, timeStamp):
-        #TODO: Add option in Global prefs:
-        #if self.logTime:
-        #    message = time.strftime("%X", time.localtime(timeStamp)) + \
-        if self.tc:
-            self.tc.AppendText(message + '\n')
 
