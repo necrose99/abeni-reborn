@@ -2,6 +2,11 @@ Abeni ChangeLog
 
 0.0.9 -------------
 
+Aug 27, 2003:
+
+ProjMan will fetch status for any bug nbr, not just ones with the
+email address specified in preferences.
+
 Aug 26, 2003:
 
 Better support for detecting proper Source Forge URI's
@@ -10,7 +15,7 @@ Added "browse ${D} with file manager" in view menu
 
 make the abeni status list configurable
 
-Aug 25, 2003 
+Aug 25, 2003
 
 Changed File menu/Load from overlay hotkey to 'o'
 
@@ -34,7 +39,7 @@ Aug 21, 2003 Made column 0 non-editable in Project Manager
 Much work on checking for sane ebuild name, package name before allowing to save
 
 Aug 20, 2003 New File menu choice that brings up list of cat/p from overlay
-Removed nulloutput from repoman-local since log windows now do color 
+Removed nulloutput from repoman-local since log windows now do color
 
 Aug 19, 2003 Ebuilds are now checked before loading with "bash -n ebuild"
 If the ebuild contains a syntax error, Abeni will ask if you want to load
@@ -57,7 +62,7 @@ Icons on generic message dialogs show info or error icons
 
 Only launch xterm if package has been unpacked
 
-Aug 9, 2003 Much improved finding of Makefile and configure. Show them if they exist after unpacking or upon loading. 
+Aug 9, 2003 Much improved finding of Makefile and configure. Show them if they exist after unpacking or upon loading.
 
 We now find S in PORTAGE_TMPDIR/portage/package/temp/environment
 
@@ -91,7 +96,7 @@ View any eclass
 
 Aug 1, 2003 Log in separate window.
 
-Jul 28, 2003 Fixed problems when opening old versions of abenirc 
+Jul 28, 2003 Fixed problems when opening old versions of abenirc
 
 Jul 24, 2003
 
@@ -100,7 +105,7 @@ will convert it to mirror://sourceforce/package/... and guess the HOMEPAGE.
 
 Fixed stop button to work with wxProcess
 
-It now shows the log at the bottom, rathter than top when switching between tabbed/bottom log. 
+It now shows the log at the bottom, rathter than top when switching between tabbed/bottom log.
 
 Jul 23, 2003
 
