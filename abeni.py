@@ -25,6 +25,16 @@ class MyFrame(wxFrame):
         self.SetAutoLayout(true)
         # Are we in the process of editing an ebuild?
         self.editing = 0
+        if not os.path.exists(os.path.expanduser('~/.abeni')):
+            print "Creating directory " + os.path.expanduser('~/.abeni')
+            os.mkdir(os.path.expanduser('~/.abeni'))
+        bookmarks = os.path.expanduser('~/.abeni/recent.txt')
+        print "Loading ebuild bookmarks: " + bookmarks
+        if os.path.exists(bookmarks):
+            self.recentList = open(bookmarks, 'r').readlines()
+        else:
+            self.recentList = []
+
         # Get options from ~/.abeni/abenirc file
         #TODO: Its in /usr/share/abeni/abenirc, need to copy it to ~/ when first run
         self.GetOptions()
@@ -53,7 +63,7 @@ class MyFrame(wxFrame):
         # File
         menu_file = wxMenu()
         mnuNewID=wxNewId()
-        menu_file.Append(mnuNewID, "&New")
+        menu_file.Append(mnuNewID, "&New ebuild")
         mnuLoadID=wxNewId()
         menu_file.Append(mnuLoadID, "&Load ebuild")
         EVT_MENU(self, mnuLoadID, self.OnMnuLoad)
@@ -61,7 +71,7 @@ class MyFrame(wxFrame):
         menu_file.Append(mnuSaveID, "&Save ebuild")
         EVT_MENU(self, mnuSaveID, self.OnMnuSave)
         mnuExitID=wxNewId()
-        menu_file.Append(mnuExitID, "E&xit")
+        menu_file.Append(mnuExitID, "E&xit  (Alt-x)")
         EVT_MENU(self, mnuExitID, self.OnMnuExit)
         menubar = wxMenuBar()
         menubar.Append(menu_file, "&File")
@@ -90,7 +100,6 @@ class MyFrame(wxFrame):
         menu_tools.Append(mnuDigestID, "&Create Digest")
         EVT_MENU(self, mnuDigestID, self.OnMnuCreateDigest)
         menubar.Append(menu_tools, "&Tools")
-
         # Options
         menu_options = wxMenu()
         mnuPrefID = wxNewId()
@@ -111,52 +120,83 @@ class MyFrame(wxFrame):
         menubar.Append(menu_help,"&Help")
         self.SetMenuBar(menubar)
         # Keyboard accelerators
-        # TODO: Add for accelerator for each item in menu
-        # Alt-X to exit
-        aTable = wxAcceleratorTable([(wxACCEL_ALT,  ord('X'), mnuExitID)])
+        # Alt-x to exit
+        #BUG: This doesn't work when you first open Abeni. You have to be editting an ebuild:
+        aTable = wxAcceleratorTable([(wxACCEL_ALT,  ord('x'), mnuExitID)])
         self.SetAcceleratorTable(aTable)
         #Create Toolbar with icons
+
+        self.tb = self.CreateToolBar(wxTB_HORIZONTAL|wxNO_BORDER|wxTB_FLAT) #wxTB_3DBUTTONS
+        #self.tb.SetToolSeparation(10)
         newID = wxNewId()
-        #closeID = wxNewId()
-        openID = wxNewId()
-        saveID = wxNewId()
-        newVarID = wxNewId()
-        newFunID = wxNewId()
-        helpID = wxNewId()
-        self.tb = self.CreateToolBar(wxTB_HORIZONTAL|wxNO_BORDER|wxTB_FLAT)
+        #TODO: Use only png, convert from bmp
         newBmp = ('/usr/share/bitmaps/abeni/new.bmp')
-        saveBmp = ('/usr/share/bitmaps/abeni/save.bmp')
-        openBmp = ('/usr/share/bitmaps/abeni/open.bmp')
-        #closeBmp = ('/usr/share/bitmaps/abeni/close.bmp' % appdir)
-        #newVarBmp = ('/usr/share/bitmaps/abeni/new_var.bmp')
-        newVarBmp = ('/usr/share/bitmaps/abeni/x.png')
-        #newFunBmp = ('/usr/share/bitmaps/abeni/new_fun.bmp')
-        newFunBmp = ('/usr/share/bitmaps/abeni/fx.png')
-        helpBmp = ('/usr/share/bitmaps/abeni/help.bmp')
         self.tb.AddSimpleTool(newID, wxBitmap(newBmp, wxBITMAP_TYPE_BMP), \
                                 "Create new ebuild", "Create New ebuild")
         EVT_TOOL(self, newID, self.OnMnuNew)
+
+        openID = wxNewId()
+        openBmp = ('/usr/share/bitmaps/abeni/open.bmp')
         self.tb.AddSimpleTool(openID, wxBitmap(openBmp, wxBITMAP_TYPE_BMP), \
                                 "Open ebuild", "Open ebuild")
         EVT_TOOL(self, openID, self.OnMnuLoad)
+        saveID = wxNewId()
+        saveBmp = ('/usr/share/bitmaps/abeni/save.bmp')
         self.tb.AddSimpleTool(saveID, wxBitmap(saveBmp, wxBITMAP_TYPE_BMP), \
                                 "Save ebuild", "Save ebuild")
         EVT_TOOL(self, saveID, self.OnMnuSave)
-        #self.tb.AddSimpleTool(closeID, wxBitmap(closeBmp, wxBITMAP_TYPE_BMP), \
-        #                        "Close ebuild", "Close ebuild")
+        self.tb.AddSeparator()
+        self.tb.AddSeparator()
+        newVarID = wxNewId()
+        newVarBmp = ('/usr/share/bitmaps/abeni/x.png')
         self.tb.AddSimpleTool(newVarID, wxBitmap(newVarBmp, wxBITMAP_TYPE_PNG), \
                                 "New Variable", "New Variable")
         EVT_TOOL(self, newVarID, self.OnMnuNewVariable)
+        newFunID = wxNewId()
+        newFunBmp = ('/usr/share/bitmaps/abeni/fx.png')
         self.tb.AddSimpleTool(newFunID, wxBitmap(newFunBmp, wxBITMAP_TYPE_PNG), \
                                 "New Function", "New Function")
         EVT_TOOL(self, newFunID, self.OnMnuNewFunction)
+        self.tb.AddSeparator()
+        lintoolID = wxNewId()
+        lintoolBmp = ('/usr/share/bitmaps/abeni/lintool.png')
+        self.tb.AddSimpleTool(lintoolID, wxBitmap(lintoolBmp, wxBITMAP_TYPE_PNG), \
+                                "Lintool", "Run Lintool on this ebuild")
+        EVT_TOOL(self, lintoolID, self.OnMnuLintool)
+        toolDigestID = wxNewId()
+        digestBmp = ('/usr/share/bitmaps/abeni/digest.png')
+        self.tb.AddSimpleTool(toolDigestID, wxBitmap(digestBmp, wxBITMAP_TYPE_PNG), \
+                                "Create digest for this ebuild", "Create digest for this ebuild")
+        EVT_TOOL(self, toolDigestID, self.OnMnuCreateDigest)
+        self.tb.AddSeparator()
+        helpID = wxNewId()
+        helpBmp = ('/usr/share/bitmaps/abeni/help.bmp')
         self.tb.AddSimpleTool(helpID, wxBitmap(helpBmp, wxBITMAP_TYPE_BMP ), \
                                 "Help", "Abeni Help")
         EVT_TOOL(self, helpID, self.OnMnuHelp)
+        self.tb.AddSeparator()
+        cbID = wxNewId()
+        self.tb.AddControl(wxStaticText(self.tb, -1, " Recent Ebuilds:"))
+        self.tb.AddSeparator()
+        self.cb =wxComboBox(self.tb, cbID, "", size=(350,-1), style=wxCB_DROPDOWN)
+        self.tb.AddControl(self.cb)
+        for ebuild in self.recentList:
+            self.cb.Append(string.strip(ebuild))
+        self.cb.SetValue("")
+        EVT_COMBOBOX(self, cbID, self.OnCombo)
+
         self.tb.Realize()
         EVT_TOOL_ENTER(self, -1, self.OnToolZone)
         EVT_TIMER(self, -1, self.OnClearSB)
         self.timer = None
+
+    def OnCombo(self, event):
+        filename = self.cb.GetStringSelection()
+        if filename:
+            if os.path.exists(filename):
+                if self.editing:
+                    self.ClearNotebook()
+                self.LoadEbuild(filename)
 
     def OnMnuDelVariable(self, event):
         """Delete custom variable"""
@@ -236,6 +276,95 @@ class MyFrame(wxFrame):
         """Get the full path and filename of ebuild"""
         return self.filename
 
+    def LoadEbuild(self, filename):
+        self.SetFilename(filename)
+        vars = {}
+        funcs = {}
+        statements = []
+        f = open(filename, 'r')
+        while 1:
+            l = f.readline()
+            if not l: #End of file
+                break
+            if len(l) > 1:
+                l = string.strip(l)
+            # Variables always start a line with all caps
+            varTest = re.search('^[A-Z]', l)
+            # Function like: mine() {   or mine ()
+            funcTest1 = re.search('^[a-z]*\(\) {', l)
+            funcTest2 = re.search('^[a-z]* \(\) {', l)
+            # Function like: my_func() {   or  my_func ()
+            funcTest3 = re.search('^[a-z]*_[a-z]*\(\) {', l)
+            funcTest4 = re.search('^[a-z]*_[a-z]* \(\) {', l)
+            if varTest:
+                s = string.split(l, "=")
+                if len(s) > 2:  # RDEPEND = ">=foolib2"   (has two equal signs)
+                    s[1] = s[1] + "=" + s[2] + "\n"
+                #Multi-line variables
+                if l.count('"') == 1:
+                    v = s[1] + '\n'
+                    while 1:
+                        l = f.readline()
+                        v += l
+                        if l.count('"') == 1:
+                            #print s[0], v
+                            s[1] = v.replace('\t', '')
+                            s[1] = s[1].replace('\n\n', '\n')
+                            break
+
+                vars[s[0]] = string.replace(s[1], '"', '')
+                continue
+            if funcTest1 or funcTest2 or funcTest3 or funcTest4:
+                tempf = []
+                fname = string.replace(l, "{", "")
+                tempf.append(l + "\n")
+                while 1:
+                    l = f.readline()
+                    tempf.append(l)
+                    if l[0] == "}":
+                        s = ""
+                        for ls in tempf:
+                            s += ls
+                        funcs[fname] = s
+                        break
+                continue
+            # Command like 'inherit cvs'
+            if re.search('^[a-z]', l):
+                self.statementList.append(l)
+        f.close()
+
+        #DEBUG
+        #print "Statements: ", self.statementList
+
+        s = string.split(filename, "/")
+        ebuild_file = s[len(s)-1]
+        ebuild = s[len(s)-2]
+        category = s[len(s)-3]
+        clog = string.replace(filename, ebuild_file, '') + 'ChangeLog'
+        myData = {}
+        otherVars = {}
+        myData, otherVars = self.SeparateVars(vars)
+        myData['ebuild'] = ebuild
+        myData['ebuild_file'] = ebuild_file
+        myData['category'] = category
+        self.editing = 1
+        self.AddPages()
+        self.PopulateForms(myData)
+        self.panelChangelog.Populate(clog)
+        #Add custom variables to Main panel
+        for v in otherVars:
+            self.AddNewVar(v, otherVars[v])
+        # Add function pages to notebook
+        for fname in funcs:
+            self.AddFunc(fname, funcs[fname])
+        for s in self.statementList:
+            self.panelMain.AddStatement(s)
+        # Add original ebuild file:
+        self.AddEditor('Original File', open(filename, 'r').read())
+        self.nb.SetSelection(0)
+        # Set titlebar of app to ebuild name
+        self.SetTitle('Abeni ' + __version__ + ': ' + ebuild_file)
+
     def OnMnuLoad(self, event):
         """Load ebuild file"""
         #TODO: Add an "Are you sure?" dialog
@@ -243,100 +372,15 @@ class MyFrame(wxFrame):
         # Comments: This is going to need a lot of work. I'll need to break up the
         #   ebuild into a tree, by vars, statements and functions, so I can put the
         #   comments back in the right place.
-        if self.editing:
-            self.ClearNotebook()
         wildcard = "ebuild files (*.ebuild)|*.ebuild"
         dlg = wxFileDialog(self, "Choose a file", "/usr/portage/", "", \
                             wildcard, wxOPEN)
         if dlg.ShowModal() == wxID_OK:
             filename = dlg.GetPath()
-            self.SetFilename(filename)
-            vars = {}
-            funcs = {}
-            statements = []
-            f = open(filename, 'r')
-            while 1:
-                l = f.readline()
-                if not l: #End of file
-                    break
-                if len(l) > 1:
-                    l = string.strip(l)
-                # Variables always start a line with all caps
-                varTest = re.search('^[A-Z]', l)
-                # Function like: mine() {   or mine ()
-                funcTest1 = re.search('^[a-z]*\(\) {', l)
-                funcTest2 = re.search('^[a-z]* \(\) {', l)
-                # Function like: my_func() {   or  my_func ()
-                funcTest3 = re.search('^[a-z]*_[a-z]*\(\) {', l)
-                funcTest4 = re.search('^[a-z]*_[a-z]* \(\) {', l)
-                if varTest:
-                    s = string.split(l, "=")
-                    if len(s) > 2:  # RDEPEND = ">=foolib2"   (has two equal signs)
-                        s[1] = s[1] + "=" + s[2] + "\n"
-                    #Multi-line variables
-                    if l.count('"') == 1:
-                        v = s[1] + '\n'
-                        while 1:
-                            l = f.readline()
-                            v += l
-                            if l.count('"') == 1:
-                                #print s[0], v
-                                s[1] = v.replace('\t', '')
-                                s[1] = s[1].replace('\n\n', '\n')
-                                break
-
-                    vars[s[0]] = string.replace(s[1], '"', '')
-                    continue
-                if funcTest1 or funcTest2 or funcTest3 or funcTest4:
-                    tempf = []
-                    fname = string.replace(l, "{", "")
-                    tempf.append(l + "\n")
-                    while 1:
-                        l = f.readline()
-                        tempf.append(l)
-                        if l[0] == "}":
-                            s = ""
-                            for ls in tempf:
-                                s += ls
-                            funcs[fname] = s
-                            break
-                    continue
-                # Command like 'inherit cvs'
-                if re.search('^[a-z]', l):
-                    self.statementList.append(l)
-            f.close()
-
-            #DEBUG
-            #print "Statements: ", self.statementList
-
-            s = string.split(filename, "/")
-            ebuild_file = s[len(s)-1]
-            ebuild = s[len(s)-2]
-            category = s[len(s)-3]
-            clog = string.replace(filename, ebuild_file, '') + 'ChangeLog'
-            myData = {}
-            otherVars = {}
-            myData, otherVars = self.SeparateVars(vars)
-            myData['ebuild'] = ebuild
-            myData['ebuild_file'] = ebuild_file
-            myData['category'] = category
-            self.editing = 1
-            self.AddPages()
-            self.PopulateForms(myData)
-            self.panelChangelog.Populate(clog)
-            #Add custom variables to Main panel
-            for v in otherVars:
-                self.AddNewVar(v, otherVars[v])
-            # Add function pages to notebook
-            for fname in funcs:
-                self.AddFunc(fname, funcs[fname])
-            for s in self.statementList:
-                self.panelMain.AddStatement(s)
-            # Add original ebuild file:
-            self.AddEditor('Original File', open(filename, 'r').read())
-            self.nb.SetSelection(0)
-            # Set titlebar of app to ebuild name
-            self.SetTitle('Abeni ' + __version__ + ': ' + ebuild_file)
+            if self.editing:
+                self.ClearNotebook()
+            if os.path.exists(filename):
+                self.LoadEbuild(filename)
         dlg.Destroy()
 
     def PopulateForms(self, myData):
@@ -543,6 +587,7 @@ class MyFrame(wxFrame):
 
     def OnMnuExit(self,event):
         """Exits and closes application"""
+
         self.Close()
 
     def OnMnuPref(self, event):
@@ -594,7 +639,7 @@ class MyFrame(wxFrame):
 
         f.write('# Copyright 1999-2003 Gentoo Technologies, Inc.\n')
         f.write('# Distributed under the terms of the GNU General Public License v2\n')
-        f.write('# $Header: /cvsroot/abeni/abeni/Attic/abeni.py,v 1.22 2003/06/05 08:08:06 robc Exp $\n\n')
+        f.write('# $Header: /cvsroot/abeni/abeni/Attic/abeni.py,v 1.23 2003/06/06 00:00:42 robc Exp $\n\n')
 
         f.write(self.panelMain.stext.GetValue() + '\n')
         varList = self.panelMain.GetVars()

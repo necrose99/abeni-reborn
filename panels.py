@@ -1,5 +1,6 @@
 from wxPython.wx import *
 import urlparse, string
+import os
 from wxPython.gizmos import *
 from wxPython.lib.editor import wxEditor # REMOVE
 from wxPython.stc import *
@@ -145,8 +146,9 @@ class main(wxPanel):
         self.stext.SetInsertionPoint(0)
 
     def AddStatement(self, statement):
+        """Add command/statement"""
         txt = self.stext.GetValue()
-        txt += '\n' + statement
+        txt += statement + '\n'
         self.stext.SetValue(txt)
 
 
@@ -179,17 +181,21 @@ class main(wxPanel):
         dlg.Destroy()
 
     def GetVars(self):
+        """Return dictionary of variable controls"""
         return self.varList
 
     def PopulateDefault(self):
+        """Set default variables in new ebuild"""
         self.Keywords.SetValue("~x86")
         self.Slot.SetValue("0")
         self.Homepage.SetValue("http://")
 
     def SetURI(self, uri):
+        """Set URI"""
         self.URI.SetValue(uri)
 
     def SetName(self, uri):
+        """Set ebuild name"""
         path = urlparse.urlparse(uri)[2]
         path = string.split(path, '/')
         file = path[len(path)-1]
@@ -200,12 +206,15 @@ class main(wxPanel):
         self.SetEbuildName(file)
 
     def SetEbuildName(self, file):
+        """Set name of ebuild from filename"""
         self.ebuildName = file + ".ebuild"
 
     def GetEbuildName(self):
+        """Return name of ebuild"""
         return self.ebuildName
 
     def SetEbuild(self):
+        """Set ebuild package name"""
         self.EbuildFile.SetValue(self.ebuildName)
         ebuild = string.split(self.ebuildName, '-')
         self.Ebuild.SetValue(ebuild[0])
@@ -232,6 +241,7 @@ class changelog(wxPanel):
     """This class is for viewing the Changelog file"""
 
     #TODO: Switch to generic Editor class
+    # Add option to add ChangeLog template
     def __init__(self, parent, statusbar, pref):
         wxPanel.__init__(self, parent, -1)
         self.statusbar = statusbar
@@ -250,7 +260,12 @@ class changelog(wxPanel):
 
     def Populate(self, filename):
         """Add Changelog template for new ebuilds"""
-        self.edChangelog.SetText(open(filename).read())
+
+        if os.path.exists(filename):
+            self.edChangelog.SetText(open(filename).read())
+        else:
+            filename='/usr/portage/skel.ChangeLog'
+            self.edChangelog.SetText(open(filename).read())
 
 
 class NewFunction(wxPanel):
