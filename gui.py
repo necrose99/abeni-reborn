@@ -634,7 +634,7 @@ class MyFrame(wxFrame):
         #self.STCeditor.SetCursor(wxSTC_CURSORNORMAL)
         #self.saved = 0
         dlg.Destroy()
-        self.GrabEditor()
+        #self.GrabEditor()
 
     def OnViewButton(self, evt):
         """View file in explorer"""
@@ -1029,6 +1029,7 @@ class MyFrame(wxFrame):
         """ebuild <this ebuild> qmerge"""
         if self.editing:
             if not utils.VerifySaved(self):
+                self.action = 'qmerge'
                 logMsg = '))) Qmerging...'
                 cmd = 'FEATURES="%s" USE="%s" /usr/sbin/ebuild %s qmerge' % \
                     (self.pref['features'], self.pref['use'], self.filename)

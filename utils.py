@@ -271,8 +271,8 @@ def PostAction(parent, action):
         parent.statusbar.SetStatusText("%s done." % action, 0)
     #this may cause -gtk2 to segfault. If I don't have it, the log
     #window won't scroll properly after wxExecuteInLog ends with gtk2
-    if parent.pref['gtk'] == 2:
-        wxYield()
+    #if parent.pref['gtk'] == 2:
+        #wxYield()
 
 def ExportEbuild(parent):
     ''' Export ebuild directory to tar file '''
@@ -393,7 +393,7 @@ def ExecuteInLog(parent, cmd, logMsg=''):
     ID_Timer = wxNewId()
     parent.timer = wxTimer(parent, ID_Timer)
     EVT_TIMER(parent,  ID_Timer, parent.OnTimer)
-    parent.timer.Start(100)
+    parent.timer.Start(50)
 
 def Reset(parent):
     """Reset abeni for new/loaded ebuild"""
@@ -843,7 +843,7 @@ def WriteEbuild(parent, temp=0):
     SetFilename(parent, filename)
     parent.filehistory.AddFileToHistory(filename.strip())
     if parent.pref['stripHeader'] == 1:
-        parent.FindReplace("# $Header", '# $Header: /cvsroot/abeni/abeni/utils.py,v 1.32 2004/08/18 06:43:53 robc Exp $')
+        parent.FindReplace("# $Header", '# $Header: /cvsroot/abeni/abeni/utils.py,v 1.33 2004/08/25 06:35:01 robc Exp $')
     txt = parent.STCeditor.GetText()
     # strip trailing whitespace
     out = '\n'.join([t.rstrip() for t in txt.splitlines() if t != '\n'])
