@@ -1,5 +1,21 @@
 Abeni ChangeLog
 
+0.0.9 -------------
+
+
+Aug 25, 2003 Changed File menu/Load from overlay hotkey to 'o'
+
+Added Marius Mauch to credits
+
+Given a URI with a "good" filename/version like:
+http://foo.com/cartman-0.1.tgz
+new ebuilds will automatically have:
+SRC_URI=http://foo.com/${P}.tgz
+
+Upped max nbr of filehistory from 9 to 12, fixed bug where recent.txt kept growning with multiple entries of MRU
+
+Aug 24, 2003 Added customizable templates in ~/.abeni/templates/Templates.py
+
 0.0.8 -------------
 
 Aug 21, 2003 Made column 0 non-editable in Project Manager
