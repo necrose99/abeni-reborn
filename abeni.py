@@ -6,13 +6,14 @@ Released under the terms of the GNU Public License v2
 
 __author__ = 'Rob Cakebread'
 __version__ = '0.0.2'
+
 from wxPython.wx import *
 from wxPython.help import *
 from wxPython.lib.dialogs import wxScrolledMessageDialog
 import os, os.path, string, sys, re, urlparse
 import panels, options
 
-#Find directory Abeni was started from
+#Directory Abeni was started from
 appdir = os.path.abspath(os.path.join(os.getcwd(), sys.path[0]))
 
 class MyFrame(wxFrame):
@@ -27,11 +28,11 @@ class MyFrame(wxFrame):
         # Get options from ~/.abeni/abenirc file
         #TODO: Its in /usr/share/abeni/abenirc, need to copy it to ~/ when first run
         self.GetOptions()
-        # Custom functions added
+        # Custom functions added instances
         self.funcList = []
-        #Misc editor tabs
+        #Misc editor tab instances
         self.editorList = []
-        #Misc statements/commands
+        #Misc statements/commands instances
         self.statementList = []
         #application icon
         iconFile = ('/usr/share/bitmaps/abeni/mocha.png')
@@ -55,34 +56,41 @@ class MyFrame(wxFrame):
         menu_file.Append(mnuNewID, "&New")
         mnuLoadID=wxNewId()
         menu_file.Append(mnuLoadID, "&Load ebuild")
+        EVT_MENU(self, mnuLoadID, self.OnMnuLoad)
         mnuSaveID=wxNewId()
         menu_file.Append(mnuSaveID, "&Save ebuild")
+        EVT_MENU(self, mnuSaveID, self.OnMnuSave)
         mnuExitID=wxNewId()
         menu_file.Append(mnuExitID, "E&xit")
+        EVT_MENU(self, mnuExitID, self.OnMnuExit)
         menubar = wxMenuBar()
         menubar.Append(menu_file, "&File")
-        EVT_MENU(self, mnuExitID, self.OnMnuExit)
-        EVT_MENU(self, mnuSaveID, self.OnMnuSave)
-        EVT_MENU(self, mnuLoadID, self.OnMnuLoad)
         EVT_MENU(self, mnuNewID, self.OnMnuNew)
         # Edit
         menu_edit = wxMenu()
         mnuNewVariableID = wxNewId()
-        mnuNewFunctionID = wxNewId()
-        mnuDelFunctionID = wxNewId()
         menu_edit.Append(mnuNewVariableID, "New &Variable")
-        menu_edit.Append(mnuNewFunctionID, "New &Function")
-        menu_edit.Append(mnuDelFunctionID, "&Delete Function")
-        menubar.Append(menu_edit, "&Edit")
         EVT_MENU(self, mnuNewVariableID, self.OnMnuNewVariable)
+        mnuNewFunctionID = wxNewId()
+        menu_edit.Append(mnuNewFunctionID, "New &Function")
         EVT_MENU(self, mnuNewFunctionID, self.OnMnuNewFunction)
+        mnuDelVariableID = wxNewId()
+        menu_edit.Append(mnuDelVariableID, "De&lete Variable")
+        EVT_MENU(self, mnuDelVariableID, self.OnMnuDelVariable)
+        mnuDelFunctionID = wxNewId()
+        menu_edit.Append(mnuDelFunctionID, "&Delete Function")
         EVT_MENU(self, mnuDelFunctionID, self.OnMnuDelFunction)
+        menubar.Append(menu_edit, "&Edit")
         # Tools
         menu_tools = wxMenu()
         mnuLintoolID = wxNewId()
-        menu_tools.Append(mnuLintoolID, "&lintool")
-        menubar.Append(menu_tools, "&Tools")
+        menu_tools.Append(mnuLintoolID, "Run &Lintool on this ebuild")
         EVT_MENU(self, mnuLintoolID, self.OnMnuLintool)
+        mnuDigestID = wxNewId()
+        menu_tools.Append(mnuDigestID, "&Create Digest")
+        EVT_MENU(self, mnuDigestID, self.OnMnuCreateDigest)
+        menubar.Append(menu_tools, "&Tools")
+
         # Options
         menu_options = wxMenu()
         mnuPrefID = wxNewId()
@@ -102,8 +110,6 @@ class MyFrame(wxFrame):
         EVT_MENU(self, mnuAboutID, self.OnMnuAbout)
         menubar.Append(menu_help,"&Help")
         self.SetMenuBar(menubar)
-
-
         # Keyboard accelerators
         # TODO: Add for accelerator for each item in menu
         # Alt-X to exit
@@ -152,13 +158,61 @@ class MyFrame(wxFrame):
         EVT_TIMER(self, -1, self.OnClearSB)
         self.timer = None
 
+    def OnMnuDelVariable(self, event):
+        """Delete custom variable"""
+        if not self.editing:
+            return
+        varList = self.panelMain.GetVars()
+        l = []
+        for key in varList:
+            l.append(key.GetLabel())
+
+        dlg = wxSingleChoiceDialog(self, 'Choose variable to DELETE:', 'Delete Variable',
+                            l, wxOK|wxCANCEL)
+        if dlg.ShowModal() == wxID_OK:
+            f = dlg.GetStringSelection()
+            print f
+            for key in varList:
+                if key.GetLabel() == f:
+                    key.Destroy()
+                    varList[key].Destroy()
+                    del varList[key]
+                    break
+            #TODO: We need to redraw the variables on the GUI, it just leaves a
+            # blank as it is now. Sizers don't seem to work if you destroy/rebuild them.
+            # Or, more likely, I just don't know sizers yet.
+        dlg.Destroy()
+
+    def OnMnuCreateDigest(self, event):
+        """Run 'ebuild filename digest' on this ebuild"""
+        if not self.editing:
+            return
+
+        # I did this in an xterm because it has colored output.
+        #TODO: Strip escape codes so we can put in a text widget
+
+        cmd = '"ebuild ' + self.filename + ' digest' \
+                  + ' && echo You can close this window now."'
+        os.system('xterm -T "Creating Digest" -hold -e ' + cmd + ' &')
+
+
     def OnMnuLintool(self, event):
         """Run 'lintool' on this ebuild"""
+        if not self.editing:
+            return
+
+        cmd = '"/usr/bin/lintool ' + self.filename \
+                  + ' && echo You can close this window now."'
+        os.system('xterm -T "Lintool" -hold -e ' + cmd + ' &')
+
         #TODO use the Python tempfile module
-        tmp = '/tmp/lintool.txt'
-        os.system('lintool ' + self.filename + ' > ' + tmp)
-        l = open(tmp, 'r').read()
-        self.AddEditor('Lintool', l)
+        # This works, but need fixed width fonts:
+        #tmp = '/tmp/lintool.txt'
+        #os.system('lintool ' + self.filename + ' > ' + tmp)
+        #l = open(tmp, 'r').read()
+        # self.AddEditor('Lintool', l)
+
+
         #Can show in a dialog, but it might be annoying:
         #dlg = wxScrolledMessageDialog(self, l, "Lintool Results:")
         #dlg.ShowModal()
@@ -389,7 +443,8 @@ class MyFrame(wxFrame):
         """Display html help file"""
         #TODO: Fix index. Doesn't die when you exit.
         #Add: /usr/portage/profiles/use.desc
-        os.system("netscape '/usr/share/abeni/ebuild-quick-reference.html' &")
+        #os.system("netscape '/usr/share/abeni/ebuild-quick-reference.html' &")
+        os.system("netscape 'http://abeni.sf.net/docs/ebuild-quick-reference.html' &")
 
     def OnMnuHelp(self, event):
         """Display html help file"""
@@ -539,12 +594,13 @@ class MyFrame(wxFrame):
 
         f.write('# Copyright 1999-2003 Gentoo Technologies, Inc.\n')
         f.write('# Distributed under the terms of the GNU General Public License v2\n')
-        f.write('# $Header: /cvsroot/abeni/abeni/Attic/abeni.py,v 1.21 2003/06/05 00:03:17 robc Exp $\n\n')
+        f.write('# $Header: /cvsroot/abeni/abeni/Attic/abeni.py,v 1.22 2003/06/05 08:08:06 robc Exp $\n\n')
 
         f.write(self.panelMain.stext.GetValue() + '\n')
-        textList, varList = self.panelMain.GetVars()
-        for i in range(0, len(varList)):
-            f.write(textList[i] + '="' + varList[i].GetValue() + '"\n')
+        varList = self.panelMain.GetVars()
+        for key in varList.keys():
+            #f.write(textList[i] + '="' + varList[i].GetValue() + '"\n')
+            f.write(key.GetLabel() + '="' + varList[key].GetValue() + '"\n')
 
         #f.write("S=${WORKDIR}/${P}\n\n")
         f.write('DESCRIPTION="' + self.panelMain.Desc.GetValue() + '"\n')
@@ -560,7 +616,7 @@ class MyFrame(wxFrame):
             if d == 'DEPEND="':
                 d += ds + "\n"
             else:
-                d += '   ' + ds + "\n"
+                d += '\t' + ds + "\n"
         d = string.strip(d)
         d += '"'
         rdlist = self.panelDepend.elb2.GetStrings()
@@ -569,7 +625,7 @@ class MyFrame(wxFrame):
             if rd == 'RDEPEND="':
                 rd += ds + "\n"
             else:
-                rd += "   " + ds + "\n"
+                rd += "\t" + ds + "\n"
         rd = string.strip(rd)
         rd += '"'
         f.write(d + '\n\n')

@@ -15,7 +15,7 @@ faces = { 'times': 'Times',
 
 class main(wxPanel):
 
-    """Main panel for entering info"""
+    """Main panel - contains ebuild info, variables and statements"""
 
     def __init__(self, parent, sb, pref):
         wxPanel.__init__(self, parent, -1)
@@ -24,8 +24,7 @@ class main(wxPanel):
         self.sb = sb
 
         #Custom variable globals
-        self.textList = []
-        self.varList = []
+        self.varList = {}
         self.vrow = 30
 
         row = 20
@@ -126,13 +125,15 @@ class main(wxPanel):
         self.stext.SetInsertionPoint(0)
         #EVT_TEXT(self, stext.GetId(), self.EvtText)
 
+
     def AddVar(self, var, val):
-        t = wxStaticText(self, -1, var, wxPoint(410, self.vrow))
-        self.textList.append(var)
+        """Add custom variable"""
+        #TODO: This needs to be replaced with sizers. It leaves 'holes' in the GUI when you delete variables.
+        t = wxStaticText(self, wxNewId(), var, wxPoint(410, self.vrow))
         v = wxTextCtrl(self, wxNewId(), val, wxPoint(525, self.vrow), wxSize(250, 20))
+        self.varList[t] = v
         v.SetFocus()
-        self.varList.append(v)
-        self.vrow += 30
+        self.vrow +=30
         st = self.stext.GetValue()
         self.boxv.Destroy()
         self.boxs.Destroy()
@@ -178,7 +179,7 @@ class main(wxPanel):
         dlg.Destroy()
 
     def GetVars(self):
-        return self.textList, self.varList
+        return self.varList
 
     def PopulateDefault(self):
         self.Keywords.SetValue("~x86")
