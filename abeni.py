@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+ #!/usr/bin/env python
 
 """Abeni - Gentoo Linux Ebuild Editor/Syntax Checker
 Released under the terms of the GNU Public License v2
@@ -23,13 +23,15 @@ class MyFrame(wxFrame):
     def __init__(self, parent, id, title):
         wxFrame.__init__(self, parent, -1, title, size=wxSize(800,480))
         self.SetAutoLayout(true)
+        #Catch the close event so we can clean up nicely.
+        EVT_CLOSE(self,self.OnClose)
         # Are we in the process of editing an ebuild?
         self.editing = 0
+        #Load recently accessed ebuilds
         if not os.path.exists(os.path.expanduser('~/.abeni')):
             print "Creating directory " + os.path.expanduser('~/.abeni')
             os.mkdir(os.path.expanduser('~/.abeni'))
         bookmarks = os.path.expanduser('~/.abeni/recent.txt')
-        print "Loading ebuild bookmarks: " + bookmarks
         if os.path.exists(bookmarks):
             self.recentList = open(bookmarks, 'r').readlines()
         else:
@@ -99,6 +101,12 @@ class MyFrame(wxFrame):
         mnuDigestID = wxNewId()
         menu_tools.Append(mnuDigestID, "&Create Digest")
         EVT_MENU(self, mnuDigestID, self.OnMnuCreateDigest)
+
+        mnuDiffID = wxNewId()
+        menu_tools.Append(mnuDiffID, "Observe &diff")
+        EVT_MENU(self, mnuDiffID, self.OnMnuDiff)
+
+
         menubar.Append(menu_tools, "&Tools")
         # Options
         menu_options = wxMenu()
@@ -161,7 +169,7 @@ class MyFrame(wxFrame):
         lintoolID = wxNewId()
         lintoolBmp = ('/usr/share/bitmaps/abeni/lintool.png')
         self.tb.AddSimpleTool(lintoolID, wxBitmap(lintoolBmp, wxBITMAP_TYPE_PNG), \
-                                "Lintool", "Run Lintool on this ebuild")
+                                "Lintool - check syntax of ebuild", "Run Lintool on this ebuild")
         EVT_TOOL(self, lintoolID, self.OnMnuLintool)
         toolDigestID = wxNewId()
         digestBmp = ('/usr/share/bitmaps/abeni/digest.png')
@@ -178,20 +186,22 @@ class MyFrame(wxFrame):
         cbID = wxNewId()
         self.tb.AddControl(wxStaticText(self.tb, -1, " Recent Ebuilds:"))
         self.tb.AddSeparator()
-        self.cb =wxComboBox(self.tb, cbID, "", size=(350,-1), style=wxCB_DROPDOWN)
+        self.cb = wxComboBox(self.tb, cbID, "", size=(350,-1), style=wxCB_DROPDOWN|wxCB_READONLY)
         self.tb.AddControl(self.cb)
         for ebuild in self.recentList:
-            self.cb.Append(string.strip(ebuild))
-        self.cb.SetValue("")
+            if ebuild != '\n':
+                self.cb.Append(string.strip(ebuild))
+        self.cb.Append('')
+        self.cb.SetSelection(self.cb.Number() -1)
+        #self.cb.SetValue("")
         EVT_COMBOBOX(self, cbID, self.OnCombo)
-
         self.tb.Realize()
         EVT_TOOL_ENTER(self, -1, self.OnToolZone)
         EVT_TIMER(self, -1, self.OnClearSB)
         self.timer = None
 
     def OnCombo(self, event):
-        filename = self.cb.GetStringSelection()
+        filename = event.GetString()
         if filename:
             if os.path.exists(filename):
                 if self.editing:
@@ -223,18 +233,28 @@ class MyFrame(wxFrame):
             # Or, more likely, I just don't know sizers yet.
         dlg.Destroy()
 
+    def OnMnuDiff(self, event):
+        """Run diff program on original vs. saved ebuild"""
+        #TODO: Total hack. Just for debugging Abeni at this point
+
+        if not self.editing:
+            return
+
+        orgFile = string.replace(self.filename, 'local/', '')
+        os.system('kompare ' + orgFile + ' ' + self.filename + ' &')
+
+
     def OnMnuCreateDigest(self, event):
         """Run 'ebuild filename digest' on this ebuild"""
         if not self.editing:
             return
 
-        # I did this in an xterm because it has colored output.
-        #TODO: Strip escape codes so we can put in a text widget
+        # I did this in an xterm because we need to be root and it has colored output.
+        #TODO: Strip escape codes so we can put in a text widget for those who use sudo
 
-        cmd = '"ebuild ' + self.filename + ' digest' \
-                  + ' && echo You can close this window now."'
+        cmd = 'su -c "ebuild ' + self.filename + ' digest' \
+                  + ' && echo \nYou can close this window now."'
         os.system('xterm -T "Creating Digest" -hold -e ' + cmd + ' &')
-
 
     def OnMnuLintool(self, event):
         """Run 'lintool' on this ebuild"""
@@ -251,7 +271,6 @@ class MyFrame(wxFrame):
         #os.system('lintool ' + self.filename + ' > ' + tmp)
         #l = open(tmp, 'r').read()
         # self.AddEditor('Lintool', l)
-
 
         #Can show in a dialog, but it might be annoying:
         #dlg = wxScrolledMessageDialog(self, l, "Lintool Results:")
@@ -277,7 +296,17 @@ class MyFrame(wxFrame):
         return self.filename
 
     def LoadEbuild(self, filename):
+        filename = string.strip(filename)
         self.SetFilename(filename)
+
+        # Add to recent list
+        if self.cb.FindString(filename) == -1:
+            self.cb.Append(filename)
+            #TODO: Add max nbr of recent to config file
+            if self.cb.Number() > 13:
+                self.cb.Delete(0)
+            self.recentList.append(filename)
+
         vars = {}
         funcs = {}
         statements = []
@@ -312,7 +341,10 @@ class MyFrame(wxFrame):
                             s[1] = s[1].replace('\n\n', '\n')
                             break
 
-                vars[s[0]] = string.replace(s[1], '"', '')
+                #vars[s[0]] = string.replace(s[1], '"', '')
+                #Lets leave "$VAR-foo" alone
+                vars[s[0]] = s[1]
+
                 continue
             if funcTest1 or funcTest2 or funcTest3 or funcTest4:
                 tempf = []
@@ -332,9 +364,6 @@ class MyFrame(wxFrame):
             if re.search('^[a-z]', l):
                 self.statementList.append(l)
         f.close()
-
-        #DEBUG
-        #print "Statements: ", self.statementList
 
         s = string.split(filename, "/")
         ebuild_file = s[len(s)-1]
@@ -395,9 +424,19 @@ class MyFrame(wxFrame):
         self.panelMain.Slot.SetValue(myData['SLOT'])
         self.panelMain.Keywords.SetValue(myData['KEYWORDS'])
         self.panelMain.License.SetValue(myData['LICENSE'])
-        depends = string.split(myData['DEPEND'], '\n')
+        d = string.split(myData['DEPEND'], '\n')
+        depends = []
+        for s in d:
+            s = s.replace('"', '')
+            depends.append(s)
         self.panelDepend.elb1.SetStrings(depends)
-        rdepends = string.split(myData['RDEPEND'], '\n')
+
+        r = string.split(myData['RDEPEND'], '\n')
+        rdepends = []
+        for s in r:
+            s = s.replace('"', '')
+            rdepends.append(s)
+
         self.panelDepend.elb2.SetStrings(rdepends)
 
     def SeparateVars(self, vars):
@@ -585,10 +624,20 @@ class MyFrame(wxFrame):
         self.nb.AddPage(self.panelDepend, "Dependencies")
         self.nb.AddPage(self.panelChangelog, "ChangeLog")
 
+    def OnClose(self, event):
+        bookmarks = os.path.expanduser('~/.abeni/recent.txt')
+        f = open(bookmarks, 'w')
+        for ebuild in self.recentList:
+            if ebuild != '\n':
+                l = string.strip(ebuild)
+                f.write(l + '\n')
+        f.close()
+        print "Exited safely."
+        self.Destroy()
+
     def OnMnuExit(self,event):
         """Exits and closes application"""
-
-        self.Close()
+        self.OnClose(-1)
 
     def OnMnuPref(self, event):
         """Global preferences entry dialog"""
@@ -639,15 +688,24 @@ class MyFrame(wxFrame):
 
         f.write('# Copyright 1999-2003 Gentoo Technologies, Inc.\n')
         f.write('# Distributed under the terms of the GNU General Public License v2\n')
-        f.write('# $Header: /cvsroot/abeni/abeni/Attic/abeni.py,v 1.23 2003/06/06 00:00:42 robc Exp $\n\n')
+        f.write('# $Header: /cvsroot/abeni/abeni/Attic/abeni.py,v 1.24 2003/06/08 01:19:30 robc Exp $\n')
 
         f.write(self.panelMain.stext.GetValue() + '\n')
         varList = self.panelMain.GetVars()
         for key in varList.keys():
-            #f.write(textList[i] + '="' + varList[i].GetValue() + '"\n')
-            f.write(key.GetLabel() + '="' + varList[key].GetValue() + '"\n')
+            #f.write(key.GetLabel() + '="' + varList[key].GetValue() + '"\n')
+            f.write(key.GetLabel() + '=' + varList[key].GetValue() + '\n')
+            '''k = key.GetLabel()
+            v = varList[key].GetValue()
+            #We don't add quotes around values with env variables
+            if v.find('$') == -1:
+                f.write(k + '="' + v + '"\n')
+            else:
+                f.write(k + '=' + v + '\n')
+            '''
 
         #f.write("S=${WORKDIR}/${P}\n\n")
+        '''
         f.write('DESCRIPTION="' + self.panelMain.Desc.GetValue() + '"\n')
         f.write('HOMEPAGE="' + self.panelMain.Homepage.GetValue() + '"\n')
         f.write('SRC_URI="' + self.panelMain.URI.GetValue() + '"\n')
@@ -655,6 +713,15 @@ class MyFrame(wxFrame):
         f.write('SLOT="' + self.panelMain.Slot.GetValue() + '"\n')
         f.write('KEYWORDS="' + self.panelMain.Keywords.GetValue() + '"\n')
         f.write('IUSE="' + self.panelMain.USE.GetValue() + '"\n')
+        '''
+        f.write('DESCRIPTION=' + self.panelMain.Desc.GetValue() + '\n')
+        f.write('HOMEPAGE=' + self.panelMain.Homepage.GetValue() + '\n')
+        f.write('SRC_URI=' + self.panelMain.URI.GetValue() + '\n')
+        f.write('LICENSE=' + self.panelMain.License.GetValue() + '\n')
+        f.write('SLOT=' + self.panelMain.Slot.GetValue() + '\n')
+        f.write('KEYWORDS=' + self.panelMain.Keywords.GetValue() + '\n')
+        f.write('IUSE=' + self.panelMain.USE.GetValue() + '\n')
+
         dlist = self.panelDepend.elb1.GetStrings()
         d = 'DEPEND="'
         for ds in dlist:
@@ -733,8 +800,8 @@ class GetURIDialog(wxDialog):
         self.SetAutoLayout(True)
         sizer.Fit(self)
 
-
-class MyApp(wxApp):
+#)wxApp)
+class MyApp(wxPySimpleApp):
 
     """ Main wxPython app class """
 
