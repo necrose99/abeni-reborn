@@ -22,6 +22,7 @@ import AddFunctionDialog
 import FileCopyDialog
 import HelpFkeysDialog
 import HelpCVSDialog
+import HelpStyleGuide
 
 env = config(clone=settings).environ()
 portdir_overlay = env['PORTDIR_OVERLAY'].split(" ")[0]
@@ -128,7 +129,7 @@ class MyFrame(wxFrame):
         p = Logo(self.nb)
         self.nb.AddPage(p, "Abeni %s" % __version__.version)
         self.sashPosition = 400
-        utils.write(self, ">>> PORTDIR_OVERLAY=%s" % portdir_overlay)
+        utils.write(self, " * PORTDIR_OVERLAY=%s" % portdir_overlay)
         EVT_MENU_RANGE(self, wxID_FILE1, wxID_FILE9, self.OnFileHistory)
         EVT_IDLE(self, self.OnIdle)
         #Load ebuild if specified on command line, by filename or by
@@ -674,6 +675,33 @@ class MyFrame(wxFrame):
             dlg.Destroy()
             return
 
+    def OnMnuDiff(self, event):
+        """diff against original ebuild in PORTDIR"""
+        if not self.editing:
+            return
+
+        cat = utils.GetCategoryName(self)
+        pn = utils.GetPackageName(self)
+        ebuild = "%s.ebuild" % utils.GetP(self)
+        orig_ebuild = "%s/%s/%s/%s" % (portdir, cat, pn, ebuild)
+        this_ebuild = utils.GetFilename(self)
+
+        if not os.path.exists(orig_ebuild):
+            utils.MyMessage(self, "No matching ebuild in PORTDIR found.", "Error", "error")
+            return
+
+        if orig_ebuild == this_ebuild:
+            utils.MyMessage(self, "Can't diff. Save this ebuild first.", "Error", "error")
+            return
+
+        if not os.path.exists(this_ebuild):
+            utils.MyMessage(self, "Can't diff. Save this ebuild first.", "Error", "error")
+            return
+
+        import options
+        app = options.Options().Prefs()['diff']
+        os.system("%s %s %s &" % (app, orig_ebuild, this_ebuild))
+
     def OnMnuFileCopy(self, event):
         """Copy from PORTDIR FILESDIR to PORTDIR_OVERLAY FILESDIR"""
         if self.editing:
@@ -726,6 +754,12 @@ class MyFrame(wxFrame):
             for v in self.pref.keys():
                 f.write('%s = %s\n' % (v, self.pref[v]))
             f.close()
+
+    def OnMnuHelpStyle(self, event):
+        """Abeni ebuild Style Guide"""
+        about = HelpStyleGuide.MyHelpStyle(self)
+        about.ShowModal()
+        about.Destroy()
 
     def OnMnuHelpFkeys(self, event):
         """List fkeys"""
@@ -1145,6 +1179,10 @@ class MyFrame(wxFrame):
         menu_tools.Append(mnuRepoScanID, "Run repoman --pretend &scan")
         EVT_MENU(self, mnuRepoScanID, self.OnMnuRepomanScan)
 
+        mnuDiffID = wxNewId()
+        menu_tools.Append(mnuDiffID, "diff against PORTDIR version")
+        EVT_MENU(self, mnuDiffID, self.OnMnuDiff)
+
         mnuRepoFullID = wxNewId()
         menu_tools.Append(mnuRepoFullID, "Run repoman --pretend &full")
         EVT_MENU(self, mnuRepoFullID, self.OnMnuRepomanFull)
@@ -1300,6 +1338,10 @@ class MyFrame(wxFrame):
         mnuFKEYS_ID = wxNewId()
         menu_help.Append(mnuFKEYS_ID,"List &F-keys")
         EVT_MENU(self, mnuFKEYS_ID, self.OnMnuHelpFkeys)
+
+        mnuStyle_ID = wxNewId()
+        menu_help.Append(mnuStyle_ID,"Abeni ebuild &Style Guide")
+        EVT_MENU(self, mnuStyle_ID, self.OnMnuHelpStyle)
 
         mnuCVS_ID = wxNewId()
         menu_help.Append(mnuCVS_ID,"repoman C&VS commit")

@@ -179,6 +179,7 @@ def WriteText(frame, text):
         text = text[:-1]
     color = ''
     reset = "\x1b[0m"
+    text = string.replace(text, '\b\b', '')
     if string.find(text, reset) != -1:
         text = string.replace(text, reset, '')
         for c in codes:
@@ -211,6 +212,10 @@ def WriteText(frame, text):
         logColor(frame, "BLACK")
     else:
         if text[0:3] == ">>>" or text[0:3] == "<<<":
+            logColor(frame, "BLUE")
+            wxLogMessage(text)
+            logColor(frame, "BLACK")
+        elif text[0:3] == " * ":
             logColor(frame, "BLUE")
             wxLogMessage(text)
             logColor(frame, "BLACK")
@@ -968,7 +973,6 @@ def WriteEbuild(parent, temp=0):
     categoryDir = GetCategoryPath(parent)
     if not os.path.exists(categoryDir):
         os.mkdir(categoryDir)
-    #TODO: Hmmm:
     parent.ebuildDir = GetEbuildDir(parent)
     if not os.path.exists(parent.ebuildDir):
         os.mkdir(parent.ebuildDir)
@@ -987,22 +991,30 @@ def WriteEbuild(parent, temp=0):
             if not parent.isDefault(parent.varOrder[n]):
                 f.write(parent.varOrder[n] + '=' + varDict[parent.varOrder[n]][1].GetValue() + '\n')
 
-    #Misc statements
-    sta = parent.panelMain.stext.GetValue()
-    if sta:
-        f.write(sta + '\n')
-        f.write('\n')
+    # Get misc statements but only print inherit line
+    misc = parent.panelMain.stext.GetValue().split("\n")
+    if len(misc[0]) > 1:
+        add_nl = 0
+        for l in misc: 
+            if l[:7] == "inherit":
+                add_nl = 1
+                f.write(l + '\n')
+        if add_nl:
+            f.write('\n')
 
     #We write the misc variables, then misc statements such as 'inherit cvs'
     #because some eclasses need variables set ahead of time
     #Misc variables
     if not parent.CVS:
         varDict = parent.panelMain.GetVars()
+        add_nl = 0
         for n in range(len(parent.varOrder)):
             if not isDefault(parent, parent.varOrder[n]):
-                f.write(parent.varOrder[n] + '=' + varDict[parent.varOrder[n]][1].GetValue() + '\n')
-
-    f.write('\n')
+                if parent.varOrder[n][:3] == "MY_":
+                    f.write(parent.varOrder[n] + '=' + varDict[parent.varOrder[n]][1].GetValue() + '\n')
+                    add_nl = 1
+        if add_nl:
+            f.write('\n')
 
     # This would print them in original order imported:
     #for n in range(len(parent.varOrder)):
@@ -1012,42 +1024,48 @@ def WriteEbuild(parent, temp=0):
     #Default variables
     f.write('DESCRIPTION=' + parent.panelMain.Desc.GetValue() + '\n')
     f.write('HOMEPAGE=' + parent.panelMain.Homepage.GetValue() + '\n')
-    f.write('SRC_URI=' + parent.panelMain.URI.GetValue() + '\n')
+    f.write('SRC_URI=' + parent.panelMain.URI.GetValue() + '\n\n')
+
     f.write('LICENSE=' + parent.panelMain.License.GetValue() + '\n')
     f.write('SLOT=' + parent.panelMain.Slot.GetValue() + '\n')
     f.write('KEYWORDS=' + parent.panelMain.Keywords.GetValue() + '\n')
-    f.write('IUSE=' + parent.panelMain.USE.GetValue() + '\n')
-    my_s = parent.panelMain.S.GetValue().strip()
-    # Never write S= ${WORKDIR}/${P} because its the default. Bugzilla #25708
-    if my_s != "${WORKDIR}/${P}" and my_s != '"${WORKDIR}/${P}"' and my_s != "'${WORKDIR}/${P}'":
-        f.write('S=' + parent.panelMain.S.GetValue() + '\n')
+    f.write('IUSE=' + parent.panelMain.USE.GetValue() + '\n\n')
 
     dlist = parent.panelDepend.elb1.GetStrings()
     depFirst = 1 # Do we write DEPEND or RDEPEND first?
     d = 'DEPEND="'
+    add_d_nl = 0
     for ds in dlist:
-        if ds == '${RDEPEND}':
+        if string.find(ds, '${RDEPEND}') != -1:
             depFirst = 0
+            add_d_nl = 1
         if d == 'DEPEND="':
             d += ds + "\n"
+            add_d_nl = 1
         else:
             d += '\t' + ds + "\n"
+
     d = string.strip(d)
     d += '"'
     if d == 'DEPEND=""':
         d = ''
-        f.write('\n')
+        add_d_nl = 0
+
     rdlist = parent.panelDepend.elb2.GetStrings()
     rd = 'RDEPEND="'
+    add_rd_nl = 0
     for ds in rdlist:
         if rd == 'RDEPEND="':
             rd += ds + "\n"
+            add_rd_nl = 1
         else:
             rd += "\t" + ds + "\n"
     rd = string.strip(rd)
     rd += '"'
     if rd == 'RDEPEND=""':
         rd = ''
+        add_rd_nl = 0
+
     if depFirst:
         if d:
             f.write(d + '\n')
@@ -1057,7 +1075,32 @@ def WriteEbuild(parent, temp=0):
         if rd and d:
             f.write(rd + '\n')
             f.write(d + '\n')
-    f.write('\n')
+    if add_d_nl or add_rd_nl:
+        f.write('\n')
+            
+    my_s = parent.panelMain.S.GetValue().strip()
+    # Never write S= ${WORKDIR}/${P} because its the default. Bugzilla #25708
+    if my_s != "${WORKDIR}/${P}" and my_s != '"${WORKDIR}/${P}"' and my_s != "'${WORKDIR}/${P}'":
+        f.write('S=' + parent.panelMain.S.GetValue() + '\n')
+
+    if not parent.CVS:
+        varDict = parent.panelMain.GetVars()
+        for n in range(len(parent.varOrder)):
+            if not isDefault(parent, parent.varOrder[n]):
+                if parent.varOrder[n][:3] != "MY_":
+                    f.write(parent.varOrder[n] + '=' + varDict[parent.varOrder[n]][1].GetValue() + '\n')
+
+
+    # All misc statements except inherit
+    if len(misc[0]) >1:
+        #print "misc", misc
+        add_nl = 0
+        for l in misc: 
+            if l[:7] != "inherit":
+                add_nl = 1
+                f.write(l + '\n')
+        if add_nl:
+            f.write('\n')
 
     #Write functions:
     #TODO: write in logical order: src_unpack, src_compile etc.
@@ -1070,23 +1113,16 @@ def WriteEbuild(parent, temp=0):
     for fns in parent.funcList:
         fns.edNewFun.SetSavePoint()
 
-    #changelog = os.path.join(parent.ebuildDir, 'ChangeLog')
-    #f = open(changelog, 'w')
-    #f.write(parent.panelChangelog.edChangelog.GetText())
-    #f.close()
     parent.recentList.append(filename)
     parent.sb.SetStatusText("Saved", 0)
+    #TODO: Add option in prefs to show this:
     #parent.write("Saved %s" % filename)
     #TODO: Kludgy? It doesn't work on first save of new ebuild.
     try:
         parent.ebuildfile.edNewFun.SetReadOnly(0)
     except:
         pass
-    #try:
     parent.ebuildfile.edNewFun.SetText(open(filename, 'r').read())
-    #except:
-    #    print "Couldn't write to Output"
-    #    pass
     try:
         parent.ebuildfile.edNewFun.SetReadOnly(1)
     except:
