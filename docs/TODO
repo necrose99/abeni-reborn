@@ -2,7 +2,12 @@ This is the TODO file for Abeni.
 
 Immediate:
 
-CVS tab
+When opening ebuild, if unpacked etc, refresh appropriate
+file explorer tabs
+
+Add widget to explorer showing ${S}=/whatever
+
+CVS tab to explorer, fix CVS
 
 When copying ebuild from PORTDIR to PORTDIR_OVERLAY, check if non-digest files 
 in PORTDIR/FILESDIR and warn, tell them to press F8 to copy them if needed.
@@ -14,6 +19,7 @@ vanilla text viewer.
 
 On notebook page change to Notes or save, update HOMEPAGE
 
+New icons for unpack-qmerge with fkeys displayed
 _____________________________________________________________________________
 If you are interested in working on any of these, please
 email pythonhead AT gentoo DOT org

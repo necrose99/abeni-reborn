@@ -1,0 +1,5 @@
+
+These *.wxg files are not necessary for running Abeni.
+They are provided for customizing the GUI and dialogs
+with wxglade.
+

@@ -22,7 +22,7 @@ import gentoolkit
 
 import sudo
 import options
-
+from Dialogs import ScrolledDialog
 
 try:
     env = config(clone=settings).environ()
@@ -56,6 +56,10 @@ def launch_browser(parent, url):
     cmd = parent.pref['browser'] + " " + url
     os.system("%s &" % cmd)
 
+def scroll_text_dlg(parent, filename, title):
+    """Display text of filename in scrolled dialog"""
+    dlg = ScrolledDialog.MyScrolledDialog(parent, filename, title)
+    
 def my_message(parent, msg, title, icon_type="info", cancel=0):
     """Simple informational dialog"""
     if icon_type == "info":
@@ -71,6 +75,20 @@ def my_message(parent, msg, title, icon_type="info", cancel=0):
     else:
         dlg.Destroy()
         return 0
+
+def refresh_d(parent):
+    """Refresh ${D} file browser"""
+    d_dir = get_d(parent)
+    if d_dir:
+        if os.path.exists(d_dir):
+            #parent.sDir.onRefresh(-1)
+            parent.dDir.populate(d_dir)
+        else:
+            parent.dDir.clearList()
+        parent.button_d_view.Enable(True)
+        parent.button_d_refresh.Enable(True)
+    else:
+        parent.dDir.clearList()
 
 def refresh_s(parent):
     """Refresh ${S} file browser"""
@@ -112,15 +130,16 @@ def post_action(parent, action):
         post_install(parent)
         log_to_output(parent)
         refresh_s(parent)
+        refresh_d(parent)
         parent.Write("))) install finished")
     if action == 'qmerge':
         refresh_s(parent)
+        refresh_d(parent)
         log_to_output(parent)
         parent.Write("))) qmerge finished")
-        parent.button_d_view.Enable(True)
-        parent.button_d_refresh.Enable(True)
     if action == 'emerge':
         refresh_s(parent)
+        refresh_d(parent)
         parent.filesDir.onRefresh(-1)
         log_to_output(parent)
         parent.Write("))) emerge finished")
@@ -596,6 +615,13 @@ def validate_syntax(parent, filename):
     else:
         return 1
 
+def get_portdir_path(parent):
+    cat_dir = os.path.join (PORTDIR, get_category_name(parent))
+    try:
+        return os.path.join(cat_dir, get_pn(parent))
+    except:
+        return None
+
 def load_ebuild(parent, filename):
     """Load ebuild from filename"""
     filename = filename.strip()
@@ -636,14 +662,22 @@ def load_ebuild(parent, filename):
     parent.filesDir.clearList()
     f = "%s/files/" % os.path.split(filename)[0]
     parent.filesDir.populate(f)
-    s = get_s(parent)
-    if s:
-        if os.path.exists(s):
-            parent.sDir.populate(s)
+    s_dir = get_s(parent)
+    if s_dir:
+        if os.path.exists(s_dir):
+            parent.sDir.populate(s_dir)
+            try:
+                d_dir = get_d(parent)
+                parent.dDir.populate(d_dir)
+                parent.button_d_view.Enable(True)
+                parent.button_d_refresh.Enable(True)
+            except:
+                pass
         else:
             parent.sDir.clearList()
     else:
         parent.sDir.clearList()
+        parent.dDir.clearList()
     enable_browser_olay(parent, filename)
 
 def enable_browser_olay(parent, filename):

@@ -1,4 +1,4 @@
-__all__ = ["PrefsDialog", "AboutDialog", "AddFunctionDialog", "EmergeDialog",
-            "FileCopyDialog", "HelpCVSDialog", "HelpFkeysDialog",
-            "MetadataDialog", "PortageFuncsDialog", "GetURIDialog"
+__all__ = ["AboutDialog", "AddFunctionDialog", "EmergeDialog",
+            "FileCopyDialog",  "GetURIDialog", "HelpCVSDialog", "HelpFkeysDialog",
+            "MetadataDialog", "ScrolledDialog", "PortageFuncsDialog", "PrefsDialog"
             ]

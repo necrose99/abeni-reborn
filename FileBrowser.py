@@ -119,7 +119,7 @@ class AbstractFileWindow(wx.Panel):
 
     def getFileSize(self, file):
         index = self.list.FindItem(-1, file)
-        return file_utils.getColumnText(self.list, index, 2)
+        return file_utils.get_column_text(self.list, index, 2)
 
 class MyBrowser(AbstractFileWindow):
 
@@ -139,9 +139,6 @@ class MyBrowser(AbstractFileWindow):
         self.headers = [ "Filename", "Size", "Date", "Perms" ]
         AbstractFileWindow.__init__(self, parent, self.headers)
 
-        # Set the date alignment
-        #file_utils.setListColumnAlignment(self.list, 2, wx.LIST_FORMAT_RIGHT)
-
         # Set the headings sizes accordingly
         for i in range(len(self.headers)):
             self.list.SetColumnWidth(i, 100)
@@ -157,7 +154,7 @@ class MyBrowser(AbstractFileWindow):
     def onDoubleClick(self, event):
         item = self.list.GetNextItem(-1, wx.LIST_NEXT_ALL, wx.LIST_STATE_SELECTED)
         if item != -1:
-            selected = file_utils.getColumnText(self.list, item, 0)
+            selected = file_utils.get_column_text(self.list, item, 0)
             self.updateListing(selected)
 
     def onRightClick(self, event):
@@ -179,34 +176,34 @@ class MyBrowser(AbstractFileWindow):
 
     def getFilename(self):
         """Return full path to selected files"""
-        selected = file_utils.getSelected(self.list)
-        file = file_utils.getColumnText(self.list, selected[0], 0)
+        selected = file_utils.get_selected(self.list)
+        file = file_utils.get_column_text(self.list, selected[0], 0)
         return os.path.join(self.getDir(), file)
 
     def onDelete(self, event):
         """Delete selected files"""
-        selected = file_utils.getSelected(self.list)
+        selected = file_utils.get_selected(self.list)
         for item in selected:
-            file = file_utils.getColumnText(self.list, item, 0)
+            file = file_utils.get_column_text(self.list, item, 0)
             type = self.last_listing[self.list.GetItemData(item)][3]
             path = os.path.join(self.getDir(), file)
             if type[0] in '-lf':
                 try:
                     os.remove(path)
                 except OSError, strerror:
-                    print "Error removing file: " + strerror
+                    print "Error removing file: %s" % strerror
             else:
                 try:
                     os.rmdir(path)
                 except OSError, strerror:
-                    print "Error removing directory: " + strerror
+                    print "Error removing directory: %s" % strerror
             self.list.SetItemState(item, 0, wx.LIST_STATE_SELECTED)
         self.updateListing(self.getDir())
 
     def onChmod(self, event):
-        selected = file_utils.getSelected(self.list)
+        selected = file_utils.get_selected(self.list)
         for item in selected:
-            file = file_utils.getColumnText(self.list, item, 0)
+            file = file_utils.get_column_text(self.list, item, 0)
             path = os.path.join(self.getDir(), file)
             try:
                 info = os.stat(path)
@@ -303,7 +300,7 @@ class MyBrowser(AbstractFileWindow):
                 st_mtime = 0
 
             # Beautify the size string
-            size = file_utils.beautifySize(st_size)
+            size = file_utils.beautify_size(st_size)
 
             # Beautify the time
             match = self.time_re.match(time.ctime(st_mtime))

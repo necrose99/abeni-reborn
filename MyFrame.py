@@ -17,7 +17,7 @@ import urlparse
 
 import wx
 import wx.stc
-from wx.lib.dialogs import MultipleChoiceDialog, ScrolledMessageDialog
+from wx.lib.dialogs import MultipleChoiceDialog
 from portage import config, settings
 
 import __version__ 
@@ -33,7 +33,7 @@ import abeniCVS
 import enamer
 
 
-__revision__ = "$Id: MyFrame.py,v 1.3 2005/01/10 18:56:59 robc Exp $"
+__revision__ = "$Id: MyFrame.py,v 1.4 2005/01/11 01:12:13 robc Exp $"
 
 env = config(clone=settings).environ()
 PORTDIR_OVERLAY = env['PORTDIR_OVERLAY'].split(" ")[0]
@@ -467,7 +467,8 @@ class MyFrame(wx.Frame):
 
         #${D} browser:
         wx.EVT_BUTTON(self, self.button_d_refresh.GetId(), self.OnDRefresh)
-
+        wx.EVT_BUTTON(self, self.button_d_view.GetId(),
+                      self.OnDView)
 
         wx.EVT_TOOL(self, TB_NEW_ID, self.OnMnuNew)
         wx.EVT_TOOL(self, TB_OPEN_ID, self.OnMnuLoad)
@@ -655,6 +656,8 @@ class MyFrame(wx.Frame):
         if self.pref.has_key('frameSize'):
             x, y = self.pref['frameSize'].split(" ")
             self.SetSize((int(x), int(y)))
+        #Focus on Notes tab
+        self.notebook_1.SetSelection(1)
 
     def Write(self, txt):
         """Send text to log window"""
@@ -858,19 +861,20 @@ class MyFrame(wx.Frame):
             return
         self.CreatePatch([f])
 
+    def OnDView(self, evt):
+        """View selected file in explorer"""
+        utils.scroll_text_dlg(self, self.dDir.getFilename(),
+                              self.dDir.getFilename())
+    
     def OnSView(self, evt):
         """View selected file in explorer"""
-        f = self.sDir.getFilename()
-        if not os.path.isfile(f):
-            return
-        self.ViewFile(f)
+        utils.scroll_text_dlg(self, self.sDir.getFilename(),
+                              self.sDir.getFilename())
     
     def OnFilesdirView(self, evt):
         """View selected file in explorer"""
-        f = self.filesDir.getFilename()
-        if not os.path.isfile(f):
-            return
-        self.ViewFile(f)
+        utils.scroll_text_dlg(self, self.filesDir.getFilename(),
+                              self.filesDir.getFilename())
     
     def OnSEdit(self, evt):
         """Edit selected file in external editor"""
@@ -1202,30 +1206,15 @@ class MyFrame(wx.Frame):
         """Exit application sanely"""
         self.OnClose(-1)
 
-    def ViewFile(self, f):
-        """View file in dialog"""
-        msg = open(f, "r").read()
-        try:
-            #CRITICAL
-            #TODO: Hmm. Segfaults on files with unicode?
-            dlg = ScrolledMessageDialog(self, msg, f)
-            dlg.Show(True)
-        except:
-            print "Error: Couldn't display %s" % f
-
     def OnMnuUseHelp(self, event):
         """View PORTDIR/profiles/use.desc file"""
-        f = "%s/profiles/use.desc" % PORTDIR
-        msg = open(f, "r").read()
-        dlg = ScrolledMessageDialog(self, msg, "USE descriptions")
-        dlg.Show(True)
+        utils.scroll_text_dlg(self, "%s/profiles/use.desc" % PORTDIR, 
+                              "use.desc")
 
     def OnMnuLocalUseHelp(self, event):
         """View PORTDIR/profiles/use.local.desc file"""
-        f = "%s/profiles/use.local.desc" % PORTDIR
-        msg = open(f, "r").read()
-        dlg = ScrolledMessageDialog(self, msg, "local USE descriptions")
-        dlg.Show(True)
+        utils.scroll_text_dlg(self, "%s/profiles/use.local.desc" % PORTDIR,
+                              "use.local.desc")
 
     def OnMnuCreateDigest(self, event):
         """Run 'ebuild filename digest' on this ebuild"""
@@ -1602,14 +1591,7 @@ class MyFrame(wx.Frame):
 
         p = utils.get_portdir_path(self)
         if p:
-            f = '%s/metadata.xml' % p
-            if os.path.exists(f):
-                c = open(f, 'r').read()
-                dlg = ScrolledMessageDialog(self, c, "metadata.xml")
-                dlg.Show(True)
-            else:
-                utils.my_message(self, "No metadata.xml exists in PORTDIR",
-                                 "Error", "error")
+            utils.scroll_text_dlg(self, '%s/metadata.xml' % p, "metadata.xml")
         else:
             utils.my_message(self, "No metadata.xml exists in PORTDIR",
                              "Error", "error")
@@ -1620,18 +1602,8 @@ class MyFrame(wx.Frame):
             return
         p = utils.get_portdir_path(self)
         if p:
-            f = '%s/ChangeLog' % p
-            if os.path.exists(f):
-                c = open(f, 'r').read()
-                #TODO: CRITICAL segfaults here... hmmm
-                dlg = ScrolledMessageDialog(self, c, "ChangeLog")
-                dlg.ShowModal()
-            else:
-                utils.my_message(self, "No ChangeLog exists in PORTDIR",
-                                 "Error", "error")
-        else:
-            utils.my_message(self, "No ChangeLog exists in PORTDIR",
-                             "Error", "error")
+            filename = '%s/ChangeLog' % p
+            utils.scroll_text_dlg(self, filename, "ChangeLog")
              
     def OnMnuLoadFromOverlay(self, event):
         """Load an ebuild from list of overlay ebuilds only"""
@@ -1666,19 +1638,15 @@ class MyFrame(wx.Frame):
 
     def OnMnuEclassHelp(self, event):
         """View an eclass file"""
-        d = "%s/eclass/" % PORTDIR
-        c = os.listdir(d)
-        c.sort()
+        eclass_dir = "%s/eclass/" % PORTDIR
+        choices = os.listdir(eclass_dir)
+        choices.sort()
         dlg = wx.SingleChoiceDialog(self, 'View an Eclass', 'Eclass',
-                                    c, wx.OK|wx.CANCEL
+                                    choices, wx.OK|wx.CANCEL
                                     )
         if dlg.ShowModal() == wx.ID_OK:
-            opt = dlg.GetStringSelection()
-            my_file = "%s/%s" % (d, opt)
-            msg = open(my_file, "r").read()
-            dlg.Destroy()
-            dlg = ScrolledMessageDialog(self, msg, opt)
-            dlg.Show(True)
+            eclass = dlg.GetStringSelection()
+            utils.scroll_text_dlg(self, "%s/%s" % (eclass_dir, eclass), eclass)
         else:
             dlg.Destroy()
             return
