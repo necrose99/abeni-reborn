@@ -153,13 +153,26 @@ def WriteText(parent, text):
 
     if text[-1:] == '\n':
         text = text[:-1]
+    #Remove color and other esc codes
+    text = text.replace('\b', '')
+    text = text.replace("\x1b[0m" , '')
+    text = text.replace("\x1b[01m", '')
+    text = text.replace("\x1b[32;01m" , '')
+    text = text.replace("\x1b[32;06m" , '')
+    text = text.replace("\x1b[31;06m", '')
+    text = text.replace("\x1b[31;01m", '')
+    text = text.replace("\x1b[33;06m", '')
+    text = text.replace("\x1b[33;01m", '')
+    text = text.replace("\x1b[32;06m", '')
+    text = text.replace("\x1b[32;01m", '')
+    text = text.replace("\x1b[34;06m", '')
+    text = text.replace("\x1b[35;06m", '')
+    text = text.replace("\x1b[34;01m", '')
+    text = text.replace("\x1b[35;01m", '')
+    text = text.replace("\x1b[36;01m", '')
+    text = text.replace("\x1b[36;06m", '')
 
     pref = text[0:3]
-    reset = "\x1b[0m"
-    text = string.replace(text, '\b\b', '')
-    if string.find(text, reset) != -1:
-        text = string.replace(text, reset, '')
-
     if pref == ">>>" or pref == "<<<" or pref == "---" \
          or pref == ")))" or  pref == " * ":
         log_color(parent, "BLUE")
