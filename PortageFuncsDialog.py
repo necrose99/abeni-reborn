@@ -85,7 +85,7 @@ class MyDialog(wxDialog):
             self.text_ctrl_function_contents.SetValue(msg)
         else:
             self.text_ctrl_function_contents.SetValue('')
-        d = "/usr/share/doc/abeni-0.0.18/priv_funcs"
+        d = "/usr/share/abeni/priv_funcs"
         file = "%s/%s" % (d, func)
         if os.path.exists(file):
             msg = open(file, "r").read()
