@@ -890,10 +890,14 @@ class MyFrame(wxFrame):
             
             filelist = [f.replace(self.GetCategory()+"/", "") for f in filelist]
 			
-            # TODO: let the user select a name/location for the tarball
-            tarballname = "/tmp/"+self.GetP()+".tar.bz2"
+            # TODO: let the user select different compression formats
+            tarballname = self.GetP()+".tar.bz2"
+            filedlg = wxFileDialog(self, "Export ebuild to tarball", "", tarballname, "BZipped tarball (*.tar.bz2)|*.tar.bz2|All files|*", wxSAVE|wxOVERWRITE_PROMPT)
+            if filedlg.ShowModal() == wxID_OK:
+                tarballname = filedlg.GetPath()
+            filedlg.Destroy()
 			
-            tarcmd = "tar -cjf " + tarballname + " -C " + self.GetCategory() + " " + reduce(lambda a,b: a+" "+b, filelist)
+            tarcmd = "tar -cvjf " + tarballname + " -C " + self.GetCategory() + " " + reduce(lambda a,b: a+" "+b, filelist)
             self.ExecuteInLog(tarcmd)
             
             # FUTURE: once we have python-2.3 we can use the following:
