@@ -4,7 +4,6 @@ from wxPython.gizmos import *
 #from wxPython.lib.editor import wxEditor # REMOVE
 from wxPython.stc import *
 
-
 faces = { 'times': 'Times',
         'mono' : 'Courier',
         'helv' : 'Helvetica',
@@ -23,7 +22,6 @@ class main(wxPanel):
         self.parent=parent
         self.sb = sb
         #Custom variables
-        #self.varDict['MY_P'] = [wxStaticText instance, wxTextCtrl instance]
         self.varDict = {}
         self.vrow = 160
         row = 20
@@ -121,10 +119,10 @@ class main(wxPanel):
         vs.Fit(self)
         #self.SetSizer(vs2)
         #vs2.Fit(self)
-        self.boxs = wxStaticBox( self, -1, "Misc. Statements", wxPoint(400, 5), wxSize(390, 117))
-        self.stext = wxTextCtrl(self, -1, "", size=(360, 70), pos=(410,30), style=wxTE_MULTILINE)
+        self.boxs = wxStaticBox( self, -1, "Misc. Statements", wxPoint(400, 5), wxSize(480, 117))
+        self.stext = wxTextCtrl(self, -1, "", size=(450, 70), pos=(410,30), style=wxTE_MULTILINE)
         self.stext.SetInsertionPoint(0)
-        self.boxv = wxStaticBox( self, -1, "Other Variables", wxPoint(400, 132), wxSize(390, 40))
+        self.boxv = wxStaticBox( self, -1, "Other Variables", wxPoint(400, 132), wxSize(480, 40))
         #EVT_TEXT(self, stext.GetId(), self.EvtText)
 
     def DeleteVars(self):
@@ -134,13 +132,13 @@ class main(wxPanel):
     def AddVar(self, var, val):
         """Add custom variable"""
         t = wxStaticText(self, wxNewId(), var, wxPoint(410, self.vrow))
-        v = wxTextCtrl(self, wxNewId(), val, wxPoint(525, self.vrow), wxSize(250, 20))
+        v = wxTextCtrl(self, wxNewId(), val, wxPoint(525, self.vrow), wxSize(310, 20))
         self.varDict[var] = [t, v]
         v.SetFocus()
         v.SetInsertionPoint(1)
         self.vrow +=30
         self.boxv.Destroy()
-        self.boxv = wxStaticBox( self, -1, "Other Variables", wxPoint(400, 132), wxSize(390, self.vrow -120))
+        self.boxv = wxStaticBox( self, -1, "Other Variables", wxPoint(400, 132), wxSize(480, self.vrow -120))
 
     def AddStatement(self, statement):
         """Add command/statement"""
@@ -153,29 +151,42 @@ class main(wxPanel):
 
 
     def OnCatButton(self, event):
-        dlg = wxDirDialog(self, "Choose a Category:", '/usr/portage',
-                    style=wxDD_DEFAULT_STYLE)
+        """Choose ebuild category"""
+        c = open('%s/profiles/categories' % self.parent.portdir).readlines()
+        def strp(s): return s.strip()
+        c = map(strp, c)
+        c = filter(None, c)
+        c.sort()
+        dlg = wxSingleChoiceDialog(self, 'Category', 'Category:',
+                                   c, wxOK|wxCANCEL)
         if dlg.ShowModal() == wxID_OK:
-            c = dlg.GetPath()
-            c = string.split(c, '/')
-            c = c[len(c)-1]
-            self.Category.SetValue(c)
-        dlg.Destroy()
+            opt = dlg.GetStringSelection()
+            self.Category.SetValue(opt)
+            dlg.Destroy()
+        else:
+            dlg.Destroy()
+            return
 
     def OnLicButton(self, event):
-        ldir = '/usr/portage/licenses'
-        dlg = wxFileDialog(self, "Choose a file", ldir, "", "All files (*)|*", wxOPEN|wxMULTIPLE)
+        """Pick a license, any license"""
+        from wxPython.lib.dialogs import wxMultipleChoiceDialog
+        c = os.listdir('%s/licenses' % self.parent.portdir)
+        def strp(s): return s.strip()
+        c = map(strp, c)
+        c = filter(None, c)
+        c.sort()
+        dlg = wxMultipleChoiceDialog(self, 'Choose one or more:', 'License', c)
         if dlg.ShowModal() == wxID_OK:
-            paths = dlg.GetPaths()
-            # We can have more than one license, so this mess:
-            l = ''
-            for path in paths:
-                l += path + ' '
-                l = string.split(l, '/')
-                l = l[len(l)-1]
-            l = string.strip(l)
-            self.License.SetValue(l)
-        dlg.Destroy()
+            opt = dlg.GetValueString()
+            l = ""
+            for s in opt:
+                print s
+                l = ('%s %s' % (l, s.strip()))
+            self.License.SetValue('"%s"' % l.strip())
+            dlg.Destroy()
+        else:
+            dlg.Destroy()
+            return
 
     def GetVars(self):
         """Return dictionary of variable controls"""
@@ -345,7 +356,7 @@ class PythonSTC(wxStyledTextCtrl):
         self.CmdKeyAssign(ord('B'), wxSTC_SCMOD_CTRL, wxSTC_CMD_ZOOMIN)
         self.CmdKeyAssign(ord('N'), wxSTC_SCMOD_CTRL, wxSTC_CMD_ZOOMOUT)
 
-        gentooKeywords = 'inherit pkg_postinst pkg_postrm pkg_preinst pkg_setup src_unpack src_install \
+        gentooKeywords = 'insinto docinto glibc_version ewarn replace-flags env-update filter-flags inherit pkg_postinst pkg_postrm pkg_preinst pkg_setup src_unpack src_install \
         pkg_prerm pkg_nofetch pkg_config unpack src_compile dodir pkg_mv_plugins src_mv_plugins einfo epatch \
         use has_version best_version use_with use_enable doexe exeinto econf emake dodoc dohtml dobin dosym \
         einstall check_KV keepdir die einfo eerror into dohard doinfo doins dolib dolib.a dolib.so doman domo \

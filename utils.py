@@ -139,7 +139,9 @@ def LoadEbuild(parent, filename, __version__, portdir):
         for v in otherVars:
             if v == parent.varOrder[n]:
                 parent.AddNewVar(v, otherVars[v])
-
+    parent.ViewEnvironment()
+    parent.ViewConfigure()
+    parent.ViewMakefile()
     #Add functions in order they were in in ebuild:
     for n in range(len(parent.funcOrder)):
         parent.AddFunc(parent.funcOrder[n], funcs[parent.funcOrder[n]])
@@ -149,7 +151,7 @@ def LoadEbuild(parent, filename, __version__, portdir):
     # Set titlebar of app to ebuild name
     parent.SetTitle(parent.ebuild_file + ' | Abeni ' + __version__)
 
-def WriteEbuild(parent):
+def WriteEbuild(parent, temp=0):
     """Format data into fields and output to ebuild file"""
     categoryDir = parent.GetCategory()
     if not os.path.exists(categoryDir):
@@ -324,7 +326,7 @@ def AddMenu(parent):
     menu_file.Append(mnuSaveID, "&Save ebuild")
     EVT_MENU(parent, mnuSaveID, parent.OnMnuSave)
     mnuExitID=wxNewId()
-    menu_file.Append(mnuExitID, "E&xit\tAlt-X", "Scram.")
+    menu_file.Append(mnuExitID, "E&xit\tAlt-X")
     EVT_MENU(parent, mnuExitID, parent.OnMnuExit)
     menubar = wxMenuBar()
     menubar.Append(menu_file, "&File")
@@ -332,7 +334,7 @@ def AddMenu(parent):
     EVT_MENU_RANGE(parent, wxID_FILE1, wxID_FILE9, parent.OnFileHistory)
     parent.filehistory = wxFileHistory()
     parent.filehistory.UseMenu(parent.menu)
-    EVT_WINDOW_DESTROY(parent, parent.Cleanup)
+
     # Variable
     menu_variable = wxMenu()
     mnuNewVariableID = wxNewId()
@@ -385,13 +387,25 @@ def AddMenu(parent):
     menu_view = wxMenu()
     mnuViewID = wxNewId()
     menu_view.Append(mnuViewID, "en&vironment")
-    EVT_MENU(parent, mnuViewID, parent.ViewEnvironment)
+    EVT_MENU(parent, mnuViewID, parent.OnMnuViewEnvironment)
+    mnuViewConfigureID = wxNewId()
+    menu_view.Append(mnuViewConfigureID, "configure")
+    EVT_MENU(parent, mnuViewConfigureID, parent.OnMnuViewConfigure)
+    mnuViewMakefileID = wxNewId()
+    menu_view.Append(mnuViewMakefileID, "Makefile")
+    EVT_MENU(parent, mnuViewMakefileID, parent.OnMnuViewMakefile)
+    mnuViewSetuppyID = wxNewId()
+    menu_view.Append(mnuViewSetuppyID, "setup.py")
+    EVT_MENU(parent, mnuViewSetuppyID, parent.OnMnuViewSetuppy)
     mnuDiffID = wxNewId()
     menu_view.Append(mnuDiffID, "&diff")
     EVT_MENU(parent, mnuDiffID, parent.OnMnuDiff)
     mnuEditID = wxNewId()
     menu_view.Append(mnuEditID, "This ebuild in e&xternal editor")
     EVT_MENU(parent, mnuEditID, parent.OnMnuEdit)
+    #mnuExploreWorkdirID = wxNewId()
+    #menu_view.Append(mnuExploreWorkdirID, "File browser in ${WORKDIR}")
+    #EVT_MENU(parent, mnuExploreWorkdirID, parent.ExploreWorkdir)
     menubar.Append(menu_view, "Vie&w")
     # Options
     menu_options = wxMenu()
@@ -430,18 +444,18 @@ def AddToolbar(parent):
     newID = wxNewId()
     newBmp = ('/usr/share/pixmaps/abeni/new.png')
     parent.tb.AddSimpleTool(newID, wxBitmap(newBmp, wxBITMAP_TYPE_PNG), \
-                            "Create new ebuild", "Create New ebuild")
+                            "Create new ebuild")
     EVT_TOOL(parent, newID, parent.OnMnuNew)
 
     openID = wxNewId()
     openBmp = ('/usr/share/pixmaps/abeni/open.png')
     parent.tb.AddSimpleTool(openID, wxBitmap(openBmp, wxBITMAP_TYPE_PNG), \
-                            "Open ebuild", "Open ebuild")
+                            "Open ebuild")
     EVT_TOOL(parent, openID, parent.OnMnuLoad)
     saveID = wxNewId()
     saveBmp = ('/usr/share/pixmaps/abeni/save.png')
     parent.tb.AddSimpleTool(saveID, wxBitmap(saveBmp, wxBITMAP_TYPE_PNG), \
-                            "Save ebuild", "Save ebuild")
+                            "Save ebuild")
     EVT_TOOL(parent, saveID, parent.OnMnuSave)
     parent.tb.AddSeparator()
     parent.tb.AddSeparator()
@@ -470,10 +484,16 @@ def AddToolbar(parent):
 
     parent.tb.AddSeparator()
 
+    toolEbuildID = wxNewId()
+    ebuildBmp = ('/usr/share/pixmaps/abeni/ebuild.png')
+    parent.tb.AddSimpleTool(toolEbuildID, wxBitmap(ebuildBmp, wxBITMAP_TYPE_PNG), \
+                         "ebuild (this ebuild) <command>")
+    EVT_TOOL(parent, toolEbuildID, parent.OnMnuEbuild)
+
     toolEmergeID = wxNewId()
     emergeBmp = ('/usr/share/pixmaps/abeni/emerge.png')
     parent.tb.AddSimpleTool(toolEmergeID, wxBitmap(emergeBmp, wxBITMAP_TYPE_PNG), \
-                         "Emerge this ebuild")
+                         "emerge <opts> (this ebuild)")
     EVT_TOOL(parent, toolEmergeID, parent.OnMnuEmerge)
 
     parent.tb.AddSeparator()

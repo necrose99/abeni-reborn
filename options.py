@@ -33,6 +33,12 @@ class Options:
             if string.find(line, 'fileBrowser') != -1:
                 self.fileBrowser = string.strip(string.split(line, '=')[1])
 
+            if string.find(line, 'use') != -1:
+                self.use = string.strip(string.split(line, '=')[1])
+
+            if string.find(line, 'features') != -1:
+                self.features = string.strip(string.split(line, '=')[1])
+
             line = f.readline()
         f.close()
 
@@ -46,4 +52,6 @@ class Options:
         pref['editor'] = self.editor
         pref['autoTabs'] = self.autoTabs
         pref['fileBrowser'] = self.fileBrowser
+        pref['use'] = self.use
+        pref['features'] = self.features
         return pref

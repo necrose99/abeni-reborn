@@ -31,7 +31,7 @@ class MyFrame(wxFrame):
 
     def __init__(self, parent, id, title):
         wxFrame.__init__(self, parent, -1, title, size=wxSize(900,600))
-        #self.SetAutoLayout(true)
+
         #Catch the close event so we can clean up nicely.
         EVT_CLOSE(self,self.OnClose)
         # Are we in the process of editing an ebuild?
@@ -77,15 +77,16 @@ class MyFrame(wxFrame):
         self.SetIcon(icon)
         AddMenu(self)
         AddToolbar(self)
-        self.sb = self.CreateStatusBar(1, wxST_SIZEGRIP)
+        self.sb = self.CreateStatusBar(2, wxST_SIZEGRIP)
         self.splitter = wxSplitterWindow(self, -1, style=wxNO_3D|wxSP_3D)
         def EmptyHandler(evt): pass
         EVT_ERASE_BACKGROUND(self.splitter, EmptyHandler)
         self.nb = wxNotebook(self.splitter, -1, style=wxCLIP_CHILDREN)
+        self.nb.portdir_overlay = portdir_overlay
+        self.nb.portdir = portdir
         self.log = wxTextCtrl(self.splitter, -1,
                              style = wxTE_MULTILINE|wxTE_READONLY|wxHSCROLL)
-        font = wxFont(12, wxMODERN, wxNORMAL, wxNORMAL, faceName="Lucida Console")
-        self.log.SetFont(font)
+        self.log.SetFont(wxFont(12, wxMODERN, wxNORMAL, wxNORMAL, faceName="Lucida Console"))
         wxLog_SetActiveTarget(MyLog(self.log))
         self.Show(True)
         self.splitter.SplitHorizontally(self.nb, self.log, 400)
@@ -93,20 +94,12 @@ class MyFrame(wxFrame):
         #Load ebuild if specified on command line, by filename or by full package name
         if len(sys.argv) == 2:
             f = sys.argv[1]
-            try:
-                os.path.exists(f)
+            if os.path.exists(f):
                 LoadEbuild(self, f, __version__, portdir)
-            except:
+            else:
                 print "No such file: " + f
                 print "Checking for package: " + f
                 self.LoadByPackage(f)
-
-    def Cleanup(self, *args):
-        """Cleanup for filehistory"""
-        pass
-        # No idea why this is used. It was in the demo code. It breaks in wxPython 2.4.2.1
-        # because object doesn't exist after notebook is removed then added.
-        #del self.filehistory
 
     def OnMnuLogBottom(self, event):
         """Switch ouput log to bottom"""
@@ -225,8 +218,8 @@ class MyFrame(wxFrame):
         if not self.editing:
             return
         current = os.getcwd()
-        new = os.chdir(self.ebuildDir)
-        cmd = 'cd %s;/usr/bin/repoman-safe.py' % new
+        #os.chdir(self.ebuildDir)
+        cmd = 'cd %s;/usr/bin/repoman-safe.py' % self.ebuildDir
         #cmd2 = self.pref['xterm'] + ' -T "repoman-safe" -e ' + cmd + ' &'
         #os.system(cmd2)
         os.chdir(current)
@@ -237,15 +230,18 @@ class MyFrame(wxFrame):
         if not self.editing:
             return
         WriteEbuild(self)
+        cmd = 'USE="%s" FEATURES="%s" sudo /usr/bin/emerge %s' % (self.pref['use'], self.pref['features'], self.filename)
         dlg = wxTextEntryDialog(self, 'What arguments do you want to pass?',
-                            'Arguments?', '')
+                            'Arguments?', cmd)
         #dlg.SetValue("")
         if dlg.ShowModal() == wxID_OK:
-            opts = dlg.GetValue()
+            cmd = dlg.GetValue()
+            self.write("Executing:\n%s" % cmd)
             dlg.Destroy()
         else:
             dlg.Destroy()
             return
+        """
         if opts == '-p' or opts == '--pretend':
             #cmd = '"/usr/bin/emerge ' + opts + ' ' + self.filename + ' ; echo Done"'
             cmd = '/usr/bin/emerge %s %s' % (opts, self.filename)
@@ -257,6 +253,7 @@ class MyFrame(wxFrame):
             else:
                 #cmd = 'sudo /usr/bin/emerge ' + opts + ' ' + self.filename + ' ; echo Done'
                 cmd = 'sudo /usr/bin/emerge %s %s' % (opts, self.filename)
+        """
         #cmd2 = self.pref['xterm'] + ' -T "emerge" -hold -e ' + cmd + ' &'
         #os.system(cmd2)
         self.ExecuteInLog(cmd)
@@ -266,13 +263,12 @@ class MyFrame(wxFrame):
         """Run 'ebuild <file> <cmd>' """
         if not self.editing:
             return
-        WriteEbuild(self)
         c = ['setup', 'depend', 'merge', 'qmerge', 'unpack',
              'compile', 'rpm', 'package', 'prerm', 'postrm',
              'preinst', 'postinst', 'config', 'touch', 'clean',
              'fetch', 'digest', 'install', 'unmerge']
         c.sort()
-        dlg = wxSingleChoiceDialog(self, 'Command:', 'Choose ebuild command',
+        dlg = wxSingleChoiceDialog(self, 'Command:', 'ebuild command',
                                    c, wxOK|wxCANCEL)
         if dlg.ShowModal() == wxID_OK:
             opt = dlg.GetStringSelection()
@@ -280,8 +276,11 @@ class MyFrame(wxFrame):
         else:
             dlg.Destroy()
             return
+        WriteEbuild(self)
+        cmd = 'USE="%s" FEATURES="%s" sudo /usr/sbin/ebuild %s %s' % (self.pref['use'], self.pref['features'], self.filename, opt)
+        self.write('Executing:\n%s' % cmd)
         #cmd = 'sudo /usr/sbin/ebuild ' + self.filename + ' ' + opt + ' ; echo Done'
-        cmd = 'sudo /usr/sbin/ebuild %s %s' % (self.filename, opt)
+        #cmd = '%s %s sudo /usr/sbin/ebuild %s %s' % (self.pref['use'], self.pref['features'], self.filename, opt)
         #cmd2 = '%s  -T "ebuild" -hold -e %s' % (self.pref['xterm'], cmd)
         #os.system(cmd2)
         #for l in os.popen(cmd).readline():
@@ -296,24 +295,22 @@ class MyFrame(wxFrame):
                 l = self.inp.readline()
                 self.write(l)
             self.inp = None
-            self.tb.Enable(True)
+            #self.tb.Enable(True)
             self.tb.EnableTool(self.toolStopID, False)
-            self.nb.Enable(True)
-            #self.menu.Enable(True)
+            #self.nb.Enable(True)
 
     def ExecuteInLog(self, cmd):
         """Executes cmd and shows output asynchronously in log window"""
+        #TODO: add option to run command when complete
         self.tb.EnableTool(self.toolStopID, True)
-        self.nb.Enable(False)
-        #self.menu.Enable(False)
-        self.tb.Enable(False)
-        wxSafeYield()
+        #self.nb.Enable(False)
+        #self.tb.Enable(False)
+        #wxSafeYield()
         sys.stdout.write("\n")
         sys.stdout.flush()
-        self.inp = os.popen('FEATURES="noauto notitles" %s 2>&1 &' % cmd)
+        self.inp = os.popen('%s 2>&1 &' % cmd)
         l = self.inp.readline()
         self.write(l)
-
 
     def OnMnuLintool(self, event):
         """Run 'lintool' on this ebuild"""
@@ -335,6 +332,9 @@ class MyFrame(wxFrame):
         self.editorList = []
         self.funcOrder = []
         self.varOrder = []
+        # Stupid kludge. See TODO
+        x,y  = self.GetSize()
+        self.SetSize(wxSize(x+1, y))
 
     def SetFilename(self, filename):
         """Set the ebuild full path and filename"""
@@ -447,7 +447,8 @@ class MyFrame(wxFrame):
         """OnToolZone clear status bar after hovering over toolbar icon"""
         #self.timer.Stop()
         #self.timer = None
-        self.sb.SetStatusText("", 0)
+        #self.sb.SetStatusText("", 0)
+        event.Skip()
 
     def OnPageChanged(self, event):
         """Catch event when page in notebook is changed"""
@@ -456,8 +457,10 @@ class MyFrame(wxFrame):
 
     def OnMnuEclassCVS(self, event):
         """Add Python distutils-related variables, inherit etc."""
+        print "Adding CVS skel\n"
         if not self.editing:
             return
+        self.write("Adding CVS skel\n")
         EclassCVS(self)
 
     def OnMnuEclassDistutils(self, event):
@@ -470,8 +473,8 @@ class MyFrame(wxFrame):
         """Dialog to add new function"""
         if not self.editing:
             return
-        from NewFuncDialog import wxDialog1
-        dlg = wxDialog1(self)
+        #from NewFuncDialog import wxDialog1
+        dlg = dialogs.NewFunction(self)
         dlg.CenterOnScreen()
         val = dlg.ShowModal()
         if val == wxID_OK:
@@ -506,9 +509,6 @@ class MyFrame(wxFrame):
             n += 1
         del self.funcList[n]
         self.saved = 0
-        #Neither of these fix the bug where the tab still shows. If you resize the window, it deletes it.
-        #self.nb.Refresh(true)
-        #self.Refresh()
 
     def AddEditor(self, name, val):
         """Add page in notebook for an editor"""
@@ -560,7 +560,7 @@ class MyFrame(wxFrame):
         """Creates a new ebuild from scratch"""
         #TODO: Add an "Are you sure?" dialog
         # Show dialog if URI isn't properly formed or can't determine package, filename, ebuild name
-        if self.editing:
+        if not self.VerifySaved():
             win = dialogs.GetURIDialog(self, -1, "Enter Package URI", \
                                 size=wxSize(350, 200), \
                                 style = wxDEFAULT_DIALOG_STYLE \
@@ -570,17 +570,20 @@ class MyFrame(wxFrame):
             self.URI = win.URI.GetValue()
             if self.URI == 'http://' or self.URI == '':
                 return
-            if self.URI == "CVS" or self.URI == "cvs":
-                self.URI = "package-cvs-0.0.1"
             if val == wxID_OK and self.URI:
                 self.ClearNotebook()
                 self.AddPages()
                 self.panelMain.PopulateDefault()
-                self.panelMain.SetURI(self.URI)
-                self.panelMain.SetName(self.URI)
+                if self.URI == "CVS" or self.URI == "cvs":
+                    #self.panelMain.SetURI("package-cvs-0.0.1")
+                    self.panelMain.SetName("package-cvs-0.0.1")
+                else:
+                    self.panelMain.SetURI(self.URI)
+                    self.panelMain.SetName(self.URI)
                 self.panelMain.SetPackage()
-                self.panelChangelog.Populate(filename= portdir + '/skel.ChangeLog')
+                self.panelChangelog.Populate("%s/skel.ChangeLog" % portdir, portdir)
                 self.editing = 1
+                self.saved = 0
                 if self.URI == "CVS" or self.URI == "cvs":
                     self.OnMnuEclassCVS(-1)
                 self.SetTitle(self.panelMain.GetEbuildName() + " | Abeni " + __version__)
@@ -634,6 +637,8 @@ class MyFrame(wxFrame):
             f.write('editor = %s\n' % self.pref['editor'])
             f.write('autoTabs = %s\n' % self.pref['autoTabs'])
             f.write('fileBrowser = %s\n' % self.pref['fileBrowser'])
+            f.write('use = %s\n' % self.pref['use'])
+            f.write('features = %s\n' % self.pref['features'])
             f.close()
 
     def OnMnuAbout(self,event):
@@ -656,9 +661,13 @@ class MyFrame(wxFrame):
                 return 1
 
     def LoadByPackage(self, f):
-        """Offer list of ebuilds when given a package"""
+        """Offer list of ebuilds when given a package or filename on command line"""
         ebuilds = []
-        for l in os.popen('etcat -v ' + '"^' + f + '$"').readlines():
+        if string.find(f, '/') == -1:
+            s = 'etcat -v "^%s$"' % f
+        else:
+            s = 'etcat -v %s' % f
+        for l in os.popen(s).readlines():
             if l[0:9] == '        [':
                 l = l.strip()
                 l = l[6:]
@@ -676,9 +685,15 @@ class MyFrame(wxFrame):
                 cat = string.split(s[0], '/')[0]
                 package = string.split(s[0], '/')[1]
                 if overlay:
-                    fname = portdir_overlay + '/' + cat + '/' + f + '/' + package + '.ebuild'
+                    if string.find(f, '/') == -1:
+                        fname = '%s/%s/%s/%s.ebuild' % (portdir_overlay, cat, f, package)
+                    else:
+                        fname = '%s/%s/%s.ebuild' % (portdir_overlay, f, package)
                 else:
-                    fname = portdir + '/' + cat + '/' + f + '/' + package + '.ebuild'
+                    if string.find(f, '/') == -1:
+                        fname = '%s/%s/%s/%s.ebuild' % (portdir, cat, f, package)
+                    else:
+                        fname = '%s/%s/%s.ebuild' % (portdir, f, package)
                 if os.path.exists(fname):
                     LoadEbuild(self, fname, __version__, portdir)
                 else:
@@ -687,29 +702,161 @@ class MyFrame(wxFrame):
         else:
             print "Package " + f + " not found. Be sure to use full package name."
 
-    def ViewEnvironment(self, event):
-        """Unpack source and show environment in editor window"""
+    def OnMnuViewMakefile(self, event):
+        """Show Makefile in editor window"""
+        #We can't read ${WORKDIR} as non-root, so we have to copy the file and change permissions.
         if not self.editing:
             return
-        WriteEbuild(self)
-        pv = self.panelMain.EbuildFile.GetValue()[:-7]
-        f = '%s/portage/%s/temp/environment' % (portage_tmpdir, pv)
-        if not os.path.exists(f):
-            cmd = 'sudo /usr/sbin/ebuild %s unpack' % self.filename
-            #os.system('%s -T "Unpack" -hold -e %s' % (self.pref['xterm'], cmd))
-            self.ExecuteInLog(cmd)
+        p = self.panelMain.EbuildFile.GetValue()[:-7]
+        s = '%s/portage/%s/work/%s/Makefile' % (portage_tmpdir, p, p)
+        try:
+            os.system('sudo cp %s /tmp/Makefile 2> /dev/null' % s)
+            os.system('sudo chmod a+r /tmp/Makefile 2> /dev/null')
+        except:
+            pass
+        # Example: /var/tmp/portage/zinf-2.2.3/work/zinf-2.2.3/configure
+        if os.path.exists('/tmp/Makefile'):
+            self.ViewMakefile()
+        else:
+            dlg = wxMessageDialog(self, 'You need to create a digest and unpack the package first\n\nThis can be done from the Tools menu.',
+                          'Error', wxOK | wxICON_INFORMATION)
+            dlg.ShowModal()
+            dlg.Destroy()
+
+    def ViewMakefile(self):
+        """Show Makefile in editor window"""
+        #We can't read ${WORKDIR} as non-root, so we have to copy the file and change permissions.
+        p = self.panelMain.EbuildFile.GetValue()[:-7]
+        s = '%s/portage/%s/work/%s/Makefile' % (portage_tmpdir, p, p)
+        os.system('sudo cp %s /tmp/Makefile 2> /dev/null' % s)
+        os.system('sudo chmod a+r /tmp/Makefile 2> /dev/null')
+        # Example: /var/tmp/portage/zinf-2.2.3/work/zinf-2.2.3/configure
+        if os.path.exists('/tmp/Makefile'):
+            self.AddEditor('Makefile', open('/tmp/Makefile', 'r').read())
+            self.SetToNewPage()
+            os.system('sudo rm /tmp/Makefile')
+
+    def ExploreWorkdir(self, event):
+        """Show configure file in editor window"""
+        # Gah. This won't work with sudo. ${WORKDIR} is locked.
+        # Could spawn an xterm, do su -c filemanager
+        # Feh. xterm su -c doesn't work with kfmclient
+        if not self.editing:
+            return
+        p = self.panelMain.EbuildFile.GetValue()[:-7]
+        s = '%s/portage/%s/work' % (portage_tmpdir, p)
+        if os.path.exists(s):
+            self.write('Warning: Running %s as root.' % self.pref['fileBrowser'])
+            cmd = '%s -e "su -c %s %s &"' % (self.pref['xterm'], self.pref['fileBrowser'], s)
+            self.write(s)
+            self.write(cmd)
+            os.system(cmd)
+            #os.system('sudo %s %s &' % (self.pref['fileBrowser'], s))
+        else:
+            dlg = wxMessageDialog(self, 'You need to create a digest and unpack the package first\n\nThis can be done from the Tools menu.',
+                          'Error', wxOK | wxICON_INFORMATION)
+            dlg.ShowModal()
+            dlg.Destroy()
+
+    def OnMnuViewConfigure(self, event):
+        """Show configure file in editor window"""
+        #We can't read ${WORKDIR} as non-root, so we have to copy the file and change permissions.
+        if not self.editing:
+            return
+        p = self.panelMain.EbuildFile.GetValue()[:-7]
+        s = '%s/portage/%s/work/%s/configure' % (portage_tmpdir, p, p)
+        try:
+            os.system('sudo cp %s /tmp/configure 2> /dev/null' % s)
+            os.system('sudo chmod a+r /tmp/configure 2> /dev/null')
+        except:
+            pass
+        # Example: /var/tmp/portage/zinf-2.2.3/work/zinf-2.2.3/configure
+        if os.path.exists('/tmp/configure'):
+            self.ViewConfigure()
+        else:
+            dlg = wxMessageDialog(self, 'You need to create a digest and unpack the package first\n\nThis can be done from the Tools menu.',
+                          'Error', wxOK | wxICON_INFORMATION)
+            dlg.ShowModal()
+            dlg.Destroy()
+
+    def OnMnuViewSetuppy(self, event):
+        """Show setuppy file in editor window"""
+        #We can't read ${WORKDIR} as non-root, so we have to copy the file and change permissions.
+        if not self.editing:
+            return
+        p = self.panelMain.EbuildFile.GetValue()[:-7]
+        s = '%s/portage/%s/work/%s/setup.py' % (portage_tmpdir, p, p)
+        try:
+            os.system('sudo cp %s /tmp/setup.py 2> /dev/null' % s)
+            os.system('sudo chmod a+r /tmp/setup.py 2> /dev/null')
+        except:
+            pass
+        # Example: /var/tmp/portage/zinf-2.2.3/work/zinf-2.2.3/setup.py
+        if os.path.exists('/tmp/setup.py'):
+            self.ViewSetuppy()
+        else:
+            dlg = wxMessageDialog(self, 'You need to create a digest and unpack the package first\n\nThis can be done from the Tools menu.',
+                          'Error', wxOK | wxICON_INFORMATION)
+            dlg.ShowModal()
+            dlg.Destroy()
+
+    def ViewSetuppy(self):
+        """Show setup.py file in editor window"""
+        #We can't read ${WORKDIR} as non-root, so we have to copy the file and change permissions.
+        p = self.panelMain.EbuildFile.GetValue()[:-7]
+        s = '%s/portage/%s/work/%s/setup.py' % (portage_tmpdir, p, p)
+        try:
+            os.system('sudo cp %s /tmp/setup.py 2> null' % s)
+            os.system('sudo chmod a+r /tmp/setup.py 2> null')
+        except:
+            pass
+        # Example: /var/tmp/portage/zinf-2.2.3/work/zinf-2.2.3/configure
+        if os.path.exists('/tmp/setup.py'):
+            self.AddEditor('setup.py', open('/tmp/setup.py', 'r').read())
+            self.SetToNewPage()
+            os.system('sudo rm /tmp/setup.py')
+
+    def ViewConfigure(self):
+        """Show configure file in editor window"""
+        #We can't read ${WORKDIR} as non-root, so we have to copy the file and change permissions.
+        p = self.panelMain.EbuildFile.GetValue()[:-7]
+        s = '%s/portage/%s/work/%s/configure' % (portage_tmpdir, p, p)
+        try:
+            os.system('sudo cp %s /tmp/configure 2> null' % s)
+            os.system('sudo chmod a+r /tmp/configure 2> null')
+        except:
+            pass
+        # Example: /var/tmp/portage/zinf-2.2.3/work/zinf-2.2.3/configure
+        if os.path.exists('/tmp/configure'):
+            self.AddEditor('configure', open('/tmp/configure', 'r').read())
+            self.SetToNewPage()
+            os.system('sudo rm /tmp/configure')
+
+    def OnMnuViewEnvironment(self, event):
+        """Show environment file in editor window"""
+        if not self.editing:
+            return
+        p = self.panelMain.EbuildFile.GetValue()[:-7]
+        f = '%s/portage/%s/temp/environment' % (portage_tmpdir, p)
         # Example: /var/tmp/portage/pysnmp-2.0.8/temp/environment
-        # Crud. Have to wait till above finishes.
+        if os.path.exists(f):
+            self.ViewEnvironment()
+        else:
+            dlg = wxMessageDialog(self, 'You need to create a digest and unpack the package first.\n\nThis can be done from the Tools menu.',
+                          'Error', wxOK | wxICON_INFORMATION)
+            dlg.ShowModal()
+            dlg.Destroy()
+
+    def ViewEnvironment(self):
+        """Show environment file in editor window"""
+        p = self.panelMain.EbuildFile.GetValue()[:-7]
+        f = '%s/portage/%s/temp/environment' % (portage_tmpdir, p)
         if os.path.exists(f):
             self.AddEditor('Environment', open(f, 'r').read())
             self.SetToNewPage()
-        else:
-            self.write("No enviornment: %s" % f)
 
     def SetToNewPage(self):
         self.nb.SetSelection(self.nb.GetPageCount() -1)
-
-
 
 class MyLog(wxPyLog):
     def __init__(self, textCtrl, logTime=0):
