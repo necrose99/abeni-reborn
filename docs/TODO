@@ -3,8 +3,6 @@ This is the TODO file for Abeni.
 If you are interested in working on any of these, please
 email pythonhead AT gentoo DOT org
 
-Urgent for 0.0.22
- - Make sure caret is visible after ExecuteInLog? wx.CallAfter(self.EnsureCaretVisible)
 
 * General:
  - Disable menus when not in edit mode
@@ -15,7 +13,8 @@ Urgent for 0.0.22
  - Lowercase PN when given URI on new ebuilds in GetURIDialog.py
  - New feature: Launch browser to HOMEPAGE url
  - Need function to extract variables from editor (see genone's ebuild.py)
- - Don't let user edit current ebuild through Explorer
+ - Don't let user edit current ebuild through Files tab
+ - Create custom file browser that doesn't show entire directory tree
 
 * Repoman/CVS:
 

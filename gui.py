@@ -25,17 +25,19 @@ import HelpFkeysDialog
 #import MetadataDialog
 import PortageFuncsDialog
 import PrefsDialog
+from URI_Link import MyURILink
+import MyDatabase
 
 import pyipc
 import options 
 #import abeniCVS
 
 env = config(clone=settings).environ()
-portdir_overlay = env['PORTDIR_OVERLAY'].split(" ")[0]
-if portdir_overlay[-1] == "/":
-    portdir_overlay = portdir_overlay[:-1]
-portdir = env['PORTDIR']
-portage_tmpdir = env['PORTAGE_TMPDIR']
+PORTDIR_OVERLAY = env['PORTDIR_OVERLAY'].split(" ")[0]
+if PORTDIR_OVERLAY[-1] == "/":
+    PORTDIR_OVERLAY = PORTDIR_OVERLAY[:-1]
+PORTDIR = env['PORTDIR']
+PORTAGE_TMPDIR = env['PORTAGE_TMPDIR']
 
 class MyFrame(wx.Frame):
     def __init__(self, *args, **kwds):
@@ -46,12 +48,15 @@ class MyFrame(wx.Frame):
         self.panel_1 = wx.Panel(self, -1)
         self.splitter = wx.SplitterWindow(self.panel_1, -1, style=wx.SP_3D|wx.SP_BORDER)
         self.notebook_1 = wx.Notebook(self.splitter, -1, style=wx.NB_BOTTOM)
+        self.notebook_1_pane_4 = wx.Panel(self.notebook_1, -1)
         self.panel_environment = wx.Panel(self.notebook_1, -1)
         self.panel_explorer = wx.Panel(self.notebook_1, -1)
         self.window_1 = wx.SplitterWindow(self.panel_explorer, -1, style=wx.SP_3DBORDER|wx.SP_BORDER)
         self.window_1_pane_2 = wx.Panel(self.window_1, -1)
         self.window_1_pane_1 = wx.Panel(self.window_1, -1)
         self.panel_log = wx.Panel(self.notebook_1, -1)
+        self.sizer_18_staticbox = wx.StaticBox(self.notebook_1_pane_4, -1, "Notes")
+        self.sizer_15_staticbox = wx.StaticBox(self.notebook_1_pane_4, -1, "")
         self.panel_cpvr = wx.Panel(self.panel_1, -1)
         
         # Menu Bar
@@ -223,6 +228,10 @@ class MyFrame(wx.Frame):
         self.text_ctrl_environment = wx.TextCtrl(self.panel_environment, -1, "", style=wx.TE_MULTILINE|wx.TE_READONLY)
         self.button_env_refresh = wx.Button(self.panel_environment, -1, "Refresh")
         self.radio_box_env = wx.RadioBox(self.panel_environment, -1, "View", choices=["Brief", "Full"], majorDimension=1, style=wx.RA_SPECIFY_ROWS)
+        self.button_bugzilla = wx.Button(self.notebook_1_pane_4, -1, "Bugzilla number:")
+        self.text_ctrl_bugz = wx.TextCtrl(self.notebook_1_pane_4, -1, "")
+        self.window_3 = MyURILink(self.notebook_1_pane_4, -1)
+        self.text_ctrl_notes = wx.TextCtrl(self.notebook_1_pane_4, -1, "", style=wx.TE_MULTILINE)
 
         self.__set_properties()
         self.__do_layout()
@@ -250,12 +259,19 @@ class MyFrame(wx.Frame):
         self.text_ctrl_PVR.Enable(False)
         self.button_1.SetValue(1)
         self.radio_box_env.SetSelection(0)
+        self.button_bugzilla.SetDefault()
+        self.text_ctrl_bugz.Enable(False)
+        self.text_ctrl_notes.Enable(False)
         # end wxGlade
 
     def __do_layout(self):
         # begin wxGlade: MyFrame.__do_layout
         sizer_1 = wx.BoxSizer(wx.VERTICAL)
         sizer_2 = wx.BoxSizer(wx.VERTICAL)
+        sizer_15 = wx.StaticBoxSizer(self.sizer_15_staticbox, wx.VERTICAL)
+        sizer_18 = wx.StaticBoxSizer(self.sizer_18_staticbox, wx.HORIZONTAL)
+        sizer_17 = wx.BoxSizer(wx.HORIZONTAL)
+        sizer_16 = wx.BoxSizer(wx.HORIZONTAL)
         sizer_13 = wx.BoxSizer(wx.VERTICAL)
         sizer_14 = wx.BoxSizer(wx.HORIZONTAL)
         sizer_9 = wx.BoxSizer(wx.HORIZONTAL)
@@ -320,9 +336,21 @@ class MyFrame(wx.Frame):
         self.panel_environment.SetSizer(sizer_13)
         sizer_13.Fit(self.panel_environment)
         sizer_13.SetSizeHints(self.panel_environment)
+        sizer_16.Add(self.button_bugzilla, 0, wx.ALL|wx.FIXED_MINSIZE, 6)
+        sizer_16.Add(self.text_ctrl_bugz, 0, wx.ALL|wx.FIXED_MINSIZE, 6)
+        sizer_15.Add(sizer_16, 0, wx.EXPAND, 0)
+        sizer_17.Add(self.window_3, 1, wx.EXPAND, 0)
+        sizer_15.Add(sizer_17, 1, wx.EXPAND, 0)
+        sizer_18.Add(self.text_ctrl_notes, 1, wx.EXPAND|wx.FIXED_MINSIZE, 0)
+        sizer_15.Add(sizer_18, 1, wx.EXPAND, 0)
+        self.notebook_1_pane_4.SetAutoLayout(True)
+        self.notebook_1_pane_4.SetSizer(sizer_15)
+        sizer_15.Fit(self.notebook_1_pane_4)
+        sizer_15.SetSizeHints(self.notebook_1_pane_4)
         self.notebook_1.AddPage(self.panel_log, "Output")
         self.notebook_1.AddPage(self.panel_explorer, "Files")
         self.notebook_1.AddPage(self.panel_environment, "Environment")
+        self.notebook_1.AddPage(self.notebook_1_pane_4, "Notes")
         self.splitter.SplitHorizontally(self.STCeditor, self.notebook_1)
         sizer_2.Add(self.splitter, 1, wx.EXPAND, 0)
         self.panel_1.SetAutoLayout(True)
@@ -348,7 +376,7 @@ class MyFrame(wx.Frame):
 
         wx.EVT_TREE_SEL_CHANGED(self, treeID, self.OnTreeActivate)
         wx.EVT_TREE_SEL_CHANGED(self, self.explorer.GetTreeCtrl().GetId(), self.OnFileSelect)
-
+        wx.EVT_BUTTON(self, self.button_bugzilla.GetId(), self.launch_bugz) 
         wx.EVT_BUTTON(self, self.button_env_refresh.GetId(), self.ViewEnvironment)
         wx.EVT_BUTTON(self, self.button_view.GetId(), self.OnViewButton)
         wx.EVT_BUTTON(self, self.button_edit.GetId(), self.OnEditButton)
@@ -442,10 +470,9 @@ class MyFrame(wx.Frame):
 
         wx.EVT_CLOSE(self, self.OnClose)
         wx.EVT_END_PROCESS(self, -1, self.OnProcessEnded)
-
         self.Bind(wx.EVT_TOGGLEBUTTON, self.on_noauto, self.button_1)
         self.noauto = "FEATURES='noauto'"
-
+        self.database = None
         self.process = None
 
     	self.toolbar.EnableTool(TB_STOP_ID, False)
@@ -517,7 +544,7 @@ class MyFrame(wx.Frame):
         f = wx.Font(points, wx.MODERN, wx.NORMAL, True)
         self.text_ctrl_log.SetDefaultStyle(wx.TextAttr("BLACK", wx.NullColour, f))
         wx.Log_SetActiveTarget(MyLog(self.text_ctrl_log))
-        utils.write(self, "))) PORTDIR_OVERLAY=%s\n\n\n" % portdir_overlay)
+        utils.write(self, "))) PORTDIR_OVERLAY=%s\n\n\n" % PORTDIR_OVERLAY)
         if not self.pref['editor']:
             utils.write(self,"!!! Please set your external editor under the Options menu")
             utils.write(self," *  If you use gvim you will need to use '/usr/bin/gvim -f'")
@@ -536,6 +563,10 @@ class MyFrame(wx.Frame):
             #Draw GUI before we start the slow search
             utils.LoadByPackage(self, f)
         self.enable_toolbar(False)
+        if self.pref['db'] == 0:
+            self.db = None
+        else: 
+            self.db = MyDatabase
 
     def ExecuteInLog(self, cmd, logMsg=''):
         """Run a program asynchronously and send stdout & stderr to the log window"""
@@ -590,7 +621,7 @@ class MyFrame(wx.Frame):
         """Choose license(s) overwrite any existing license(s)"""
         if not self.editing:
             return
-        c = os.listdir('%s/licenses' % portdir)
+        c = os.listdir('%s/licenses' % PORTDIR)
         def strp(s): return s.strip()
         c = map(strp, c)
         c = filter(None, c)
@@ -773,7 +804,7 @@ class MyFrame(wx.Frame):
 
     def OnCatButton(self, event):
         """Choose ebuild category"""
-        c = open('%s/profiles/categories' % portdir).readlines()
+        c = open('%s/profiles/categories' % PORTDIR).readlines()
         def strp(s): return s.strip()
         c = map(strp, c)
         c = filter(None, c)
@@ -827,7 +858,7 @@ class MyFrame(wx.Frame):
         """Load ebuild file"""
         if not utils.VerifySaved(self):
             wildcard = "ebuild files (*.ebuild)|*.ebuild"
-            dlg = wx.FileDialog(self, "Choose a file", portdir, "", \
+            dlg = wx.FileDialog(self, "Choose a file", PORTDIR, "", \
                                 wildcard, wx.OPEN)
             if dlg.ShowModal() == wx.ID_OK:
                 filename = dlg.GetPath()
@@ -846,6 +877,13 @@ class MyFrame(wx.Frame):
         """Display html help file"""
         self.LaunchBrowser("http://abeni.sf.net/docs/ebuild-quick-reference.html")
 
+    def launch_bugz(self, event):
+        """Launch browser to bugzilla nbr in Notes tab"""
+        #http://bugs.gentoo.org/show_bug.cgi?id=
+        bugz = self.text_ctrl_bugz.GetValue()
+        if bugz:
+            self.LaunchBrowser("http://bugs.gentoo.org/show_bug.cgi?id=%s" % bugz)
+        
     def strip_opts(self, cmd):
         """Strip any options from commands"""
         return cmd.split(" ")[0]
@@ -881,7 +919,7 @@ class MyFrame(wx.Frame):
         if not self.editing:
             return
 
-        if portdir in self.filename:
+        if PORTDIR in self.filename:
             msg = "Ebuild isn't saved in PORTDIR_OVERLAY. Can't delete."
             utils.MyMessage(self, msg, "Error", "error")
             return
@@ -902,8 +940,8 @@ class MyFrame(wx.Frame):
             return
         utils.SaveEbuild(self)
 
-    def getname(self, uri):
-        """get ebuild name from src_uri"""
+    def get_name(self, uri):
+        """return file name minus extension from src_uri"""
         path = urlparse.urlparse(uri)[2]
         path = string.split(path, '/')
         file = self.stripext(path[len(path)-1])
@@ -941,7 +979,7 @@ class MyFrame(wx.Frame):
             val = win.ShowModal()
             uri = win.URI.GetValue()
             template = win.GetTemplate()
-            n = ''
+            psplit = ''
             if uri.find('sourceforge') != -1:
                 a = urlparse.urlparse(uri)
                 if a[2].find('sourceforge') != -1:
@@ -952,25 +990,25 @@ class MyFrame(wx.Frame):
                     #utils.GetPN(self).lower())
             if val == wx.ID_OK and uri:
                 # foo-1.0.tgz
-                p = self.getname(uri)
+                p = self.get_name(uri)
                 if not p:
                     return
-                n = pkgsplit(p)
+                psplit = pkgsplit(p)
 
-                if n:
-                    p = ("%s-%s" % (n[0], n[1]))
-                    new_uri = uri.replace(p, "${P}")
-                    uri_line = ("%s" % new_uri)
+                if psplit:
+                    uri_line = uri.replace(p, "${P}") 
+                else:
+                    uri_line = uri.replace(p, "${MY_P}") 
             utils.Reset(self) 
-            if n:
-                self.text_ctrl_PN.SetValue(n[0])
-                self.text_ctrl_PVR.SetValue(n[1])
+            if psplit:
+                self.text_ctrl_PN.SetValue(psplit[0].lower())
+                self.text_ctrl_PVR.SetValue(psplit[1])
             #if self.pref['log'] == 'window':
             #    utils.LogWindow()
             # In case we edit SRC_URI and forget what the
             # original url is:
             if uri:
-                utils.write(self, '))) SRC_URI="%s"' % uri)
+                utils.write(self, '))) Pkg URI="%s"' % uri)
 
             self.STCeditor.SetText(open("/usr/share/abeni/templates/%s" % template, 'r').read())
             self.STCeditor.EmptyUndoBuffer()
@@ -979,13 +1017,11 @@ class MyFrame(wx.Frame):
             self.window_1_pane_2.Hide()
             self.editing = 1
             self.saved = 0
-            if n:
-                self.FindReplace("SRC_URI", 'SRC_URI="%s"' % uri_line)
+            self.FindReplace("SRC_URI", 'SRC_URI="%s"' % uri_line)
             self.SetTitle("Abeni * The ebuild Builder " + __version__.version)
 
     def OnClose(self, event):
         """Called when trying to close application"""
-        #TODO: Give yes/no quit dialog.
         if self.running:
             utils.write(self, "!!! You're executing %s" % self.running)
             return
@@ -1009,14 +1045,14 @@ class MyFrame(wx.Frame):
 
     def OnMnuUseHelp(self, event):
         """View PORTDIR/profiles/use.desc file"""
-        f = "%s/profiles/use.desc" % portdir
+        f = "%s/profiles/use.desc" % PORTDIR
         msg = open(f, "r").read()
         dlg = ScrolledMessageDialog(self, msg, "USE descriptions")
         dlg.Show(True)
 
     def OnMnuLocalUseHelp(self, event):
         """View PORTDIR/profiles/use.local.desc file"""
-        f = "%s/profiles/use.local.desc" % portdir
+        f = "%s/profiles/use.local.desc" % PORTDIR
         msg = open(f, "r").read()
         dlg = ScrolledMessageDialog(self, msg, "local USE descriptions")
         dlg.Show(True)
@@ -1249,6 +1285,16 @@ class MyFrame(wx.Frame):
         """Return last position in editor"""
         return self.STCeditor.GetLineEndPosition(self.STCeditor.GetLineCount())
     
+    def FindVar(self, var):
+        """Searches STCeditor for variable name, returns value"""
+        p = self.STCeditor.FindText(0, self.LastPos(), "^%s" % var, wx.stc.STC_FIND_REGEXP)
+        if p != -1:
+            pend = self.STCeditor.FindText(p, self.LastPos(), "$", wx.stc.STC_FIND_REGEXP)
+            t = self.STCeditor.GetTextRange(p, pend).lstrip().rstrip()
+            t = t.split("=")[1]
+            t = t.replace('"', '')
+            t = t.replace("'", '')
+            return t.rstrip().lstrip()
 
     def OnMnuRepomanScan(self, event):
         """repoman scan"""
@@ -1414,18 +1460,18 @@ class MyFrame(wx.Frame):
     def OnMnuLoadFromOverlay(self, event):
         """Load an ebuild from list of overlay ebuilds only"""
         if not utils.VerifySaved(self):
-            cmd = "find %s -name '*.ebuild'" % portdir_overlay
+            cmd = "find %s -name '*.ebuild'" % PORTDIR_OVERLAY
             r, choices = utils.RunExtProgram(cmd)
             choices.sort()
             out = []
             for l in choices:
-                out.append(l.replace(('%s/' % portdir_overlay), ''))
+                out.append(l.replace(('%s/' % PORTDIR_OVERLAY), ''))
             dlg = wx.SingleChoiceDialog(self, 'Load overlay ebuild:', \
                                       'Load overlay ebuild', out, wx.OK|wx.CANCEL)
             if dlg.ShowModal() == wx.ID_OK:
                 e = dlg.GetStringSelection()
                 utils.Reset(self)
-                filename = "%s/%s" % (portdir_overlay, e)
+                filename = "%s/%s" % (PORTDIR_OVERLAY, e)
                 if os.path.isfile(filename):
                     utils.LoadEbuild(self, filename)
                     self.filehistory.AddFileToHistory(filename)
@@ -1440,7 +1486,7 @@ class MyFrame(wx.Frame):
 
     def OnMnuEclassHelp(self, event):
         """View an eclass file"""
-        d = "%s/eclass/" % portdir
+        d = "%s/eclass/" % PORTDIR
         c = os.listdir(d)
         c.sort()
         dlg = wx.SingleChoiceDialog(self, 'View an Eclass', 'Eclass',
@@ -1464,7 +1510,7 @@ class MyFrame(wx.Frame):
         cat = utils.GetCategoryName(self)
         pn = utils.getPN(self)
         ebuild = "%s.ebuild" % utils.getP(self)
-        orig_ebuild = "%s/%s/%s/%s" % (portdir, cat, pn, ebuild)
+        orig_ebuild = "%s/%s/%s/%s" % (PORTDIR, cat, pn, ebuild)
         this_ebuild = utils.GetFilename(self)
 
         if not os.path.exists(orig_ebuild):
@@ -1490,7 +1536,7 @@ class MyFrame(wx.Frame):
         fdir_overlay = utils.GetEbuildDir(self)
         cat = utils.GetCategoryName(self)
         pn = utils.getPN(self)
-        fdir_port = "%s/%s/%s" % (portdir, cat, pn)
+        fdir_port = "%s/%s/%s" % (PORTDIR, cat, pn)
 
         fdir = "%s/files" % fdir_overlay
 
@@ -1535,6 +1581,7 @@ class MyFrame(wx.Frame):
             self.pref['gentooHighlight'] = win.checkbox_gentoo_highlighting.GetValue()
             self.pref['show_whitespace'] = win.checkbox_whitespace.GetValue()
             self.pref['tabsize'] = win.text_ctrl_1.GetValue()
+            self.pref['db'] = win.radio_box_database.GetSelection()
             f = open(os.path.expanduser('~/.abeni/abenirc'), 'w')
 
             for v in self.pref.keys():
@@ -1544,6 +1591,13 @@ class MyFrame(wx.Frame):
 
     def ApplyPrefs(self):
         """Apply changes after getting prefs"""
+        if self.pref['db'] == 0:
+            self.text_ctrl_notes.Enable(False)
+            self.text_ctrl_bugz.Enable(False)
+        else:
+            self.text_ctrl_notes.Enable(True)
+            self.text_ctrl_bugz.Enable(True)
+            utils.load_db_record(self)
         face, size = self.pref['font'].split(",")
         self.STCeditor.SetMyStyle() 
         self.STCeditor.StyleSetFontAttr(0, string.atoi(size), face, 0, 0, 0)
@@ -1562,7 +1616,6 @@ class MyFrame(wx.Frame):
             self.logfile = open(self.pref['logFilename'], 'a')
         else:
             self.logfile = None
-
         #if self.pref['externalControl'] == 1:
         #self.ExternalControlListen()
 
@@ -1572,7 +1625,20 @@ class MyFrame(wx.Frame):
     #    ID_Timer = wx.NewId()
     #    self.extTimer = wx.Timer(self, ID_Timer)
     #    wx.EVT_TIMER(self,  ID_Timer, self.OnExtTimer)
-    #    self.extTimer.Start(1000)
+    #    self.extTimer.Start(2000)
+
+    def get_db_type(self):
+        """Return type of database backend we are using"""
+        if self.pref['db'] == 1:
+            return "pysql"
+        if self.pref['db'] == 2:
+            return "postgresql"
+        if self.pref['db'] == 3:
+            return "firebird"
+        if self.pref['db'] == 4:
+            return "mysql"
+        # 0 or invalid:
+        return None
 
     def OnExtTimer(self, evt):
         mq = pyipc.MessageQueue(100)
@@ -1723,7 +1789,7 @@ class MyFrame(wx.Frame):
         else:
             c = os.getcwd()
             p = utils.getP(self)
-            d = '%s/portage/%s/image/' % (portage_tmpdir, p)
+            d = '%s/portage/%s/image/' % (PORTAGE_TMPDIR, p)
             if os.path.exists(d):
                 os.chdir(d)
             else:
@@ -1760,7 +1826,7 @@ class MyFrame(wx.Frame):
                 os.chdir(mys)
             else:
                 try:
-                    os.chdir('%s/portage/%s/work/' % (portage_tmpdir, p))
+                    os.chdir('%s/portage/%s/work/' % (PORTAGE_TMPDIR, p))
                 except:
                     pass
             xterm = self.pref['xterm']

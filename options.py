@@ -26,6 +26,7 @@ class Options:
         self.pref['use'] = ''
         self.pref['features'] = 'noauto'
         self.pref['cvsRoot'] = ''
+        self.pref['db'] = 0
         self.Read_apprc()
 
     def Read_apprc(self):
@@ -41,6 +42,14 @@ class Options:
                     val = 1
                 if val == '0' or val == 'False':
                     val = 0
+                if val == '2':
+                    val == 2
+                if val == '3':
+                    val == 3
+                if val == '4':
+                    val == 4
+                if val == '5':
+                    val == 5
                 self.pref[var] = val
             l = f.readline()
         f.close()

@@ -25,15 +25,11 @@ except:
     sys.exit(1)
 
 
-defaults = ["SRC_URI", "HOMEPAGE", "DEPEND", "RDEPEND", "DESCRIPTION", \
-            "S", "IUSE", "SLOT", "KEYWORDS", "LICENSE"]
-
-distdir = env['DISTDIR']
-portdir = env['PORTDIR']
-portdir_overlay = env['PORTDIR_OVERLAY'].split(" ")[0]
-if portdir_overlay[-1] == "/":
-    portdir_overlay = portdir_overlay[:-1]
-portage_tmpdir = env['PORTAGE_TMPDIR']
+PORTDIR = env['PORTDIR']
+PORTDIR_OVERLAY = env['PORTDIR_OVERLAY'].split(" ")[0]
+if PORTDIR_OVERLAY[-1] == "/":
+    PORTDIR_OVERLAY = PORTDIR_OVERLAY[:-1]
+PORTAGE_TMPDIR = env['PORTAGE_TMPDIR']
 
 #Lets choose the first arch they have, in case of multiples.
 #TODO: Mention in documentation
@@ -152,9 +148,9 @@ def WriteText(parent, text):
     parent.busywriting = 1
     #TODO: No idea why this is output at the end of every ExecuteInLog:
     #TODO: Log file to disk code can go here 
-    if string.find(text, "md5 src_uri") == 4:
-        if parent.action != 'unpack':
-            return
+    #if string.find(text, "md5 src_uri") == 4:
+    #    if parent.action != 'unpack':
+    #        return
 
     if parent.pref['logfile'] == 1:
         parent.logfile.write(text + "\n")
@@ -311,14 +307,14 @@ def ExportEbuild(parent):
 def PostInstall(parent):
     """Change group perms of files in ${D} so we can read them"""
     p = getP(parent)
-    d = '%s/portage/%s/image' % (portage_tmpdir, p)
+    d = '%s/portage/%s/image' % (PORTAGE_TMPDIR, p)
     os.system("sudo chmod +g+r -R %s" %  d)
     os.system("sudo chmod +g+xr %s" %  d)
 
 def get_status(parent):
     """Let us know if ebuild has been unpacked, comiled and installed"""
     p = getP(parent)
-    d = '%s/portage/%s' % (portage_tmpdir, p)
+    d = '%s/portage/%s' % (PORTAGE_TMPDIR, p)
     if not os.path.exists(d):
         return
     fs = ['.unpacked', '.compiled', '.installed']
@@ -340,8 +336,8 @@ def get_status(parent):
 def fix_unpacked(parent):
     """chmod for portage group read"""
     p = getP(parent)
-    d = '%s/portage/%s/work' % (portage_tmpdir, p)
-    d1 = '%s/portage/%s' % (portage_tmpdir, p)
+    d = '%s/portage/%s/work' % (PORTAGE_TMPDIR, p)
+    d1 = '%s/portage/%s' % (PORTAGE_TMPDIR, p)
     #uname = pwd.getpwuid(os.getuid())[0]
     #Yay! Can we say 'kludge'?
     #print uname, d
@@ -351,8 +347,8 @@ def fix_unpacked(parent):
 def PostUnpack(parent):
     """Report what directories were unpacked, try to set S if necessary"""
     p = getP(parent)
-    d = '%s/portage/%s/work' % (portage_tmpdir, p)
-    d1 = '%s/portage/%s' % (portage_tmpdir, p)
+    d = '%s/portage/%s/work' % (PORTAGE_TMPDIR, p)
+    d1 = '%s/portage/%s' % (PORTAGE_TMPDIR, p)
     #uname = pwd.getpwuid(os.getuid())[0]
     #Yay! Can we say 'kludge'?
     #print uname, d
@@ -391,10 +387,12 @@ def PostUnpack(parent):
 def SetS(parent, myp):
     """Set S"""
     p = getP(parent)
-    parent.s = "%s/portage/%s/work/%s" % (portage_tmpdir, p, myp)
+    parent.s = "%s/portage/%s/work/%s" % (PORTAGE_TMPDIR, p, myp)
 
 def Reset(parent):
     """Reset abeni for new/loaded ebuild"""
+    parent.text_ctrl_notes.SetValue('')
+    parent.text_ctrl_bugz.SetValue('')
     parent.button_Category.Enable(True)
     parent.text_ctrl_Category.Enable(True)
     parent.text_ctrl_PN.Enable(True)
@@ -511,10 +509,10 @@ def getP(parent):
 
 def GetCategoryPath(parent):
     """Return path to category of ebuild"""
-    return os.path.join (portdir_overlay, GetCategoryName(parent))
+    return os.path.join (PORTDIR_OVERLAY, GetCategoryName(parent))
 
 def GetPortdirPathVersion(parent):
-    categoryDir = os.path.join (portdir, GetCategoryName(parent))
+    categoryDir = os.path.join (PORTDIR, GetCategoryName(parent))
     try:
         return os.path.join(categoryDir, getPN(parent))
     except:
@@ -537,8 +535,8 @@ def checkEntries(parent):
     """Validate entries on forms"""
     category = GetCategoryName(parent)
     categoryDir = GetCategoryPath(parent)
-    valid_cat = os.path.join(portdir, category)
-    if categoryDir == portdir_overlay + '/':
+    valid_cat = os.path.join(PORTDIR, category)
+    if categoryDir == PORTDIR_OVERLAY + '/':
         msg = "You must specify a category."
         return msg
     if not os.path.exists(valid_cat):
@@ -627,10 +625,10 @@ def LoadByPackage(parent, query):
             
             if len(s) == 3:
                 fname = '%s/%s/%s/%s-%s.ebuild' % \
-                        (portdir_overlay, cat, package, package, version)
+                        (PORTDIR_OVERLAY, cat, package, package, version)
             else:
                     fname = '%s/%s/%s/%s-%s.ebuild' % \
-                            (portdir, cat, package, package, version)
+                            (PORTDIR, cat, package, package, version)
             LoadEbuild(parent, fname)
     else:
         print "Package " + query + " not found. Use full category/package name."
@@ -639,7 +637,7 @@ def GetD(parent):
     """return ${D} if it exists"""
     p = getP(parent)
     #TODO: use os path join
-    d = '%s/portage/%s/image' % (portage_tmpdir, p)
+    d = '%s/portage/%s/image' % (PORTAGE_TMPDIR, p)
     if os.path.exists(d):
         return d
 
@@ -654,7 +652,7 @@ def GetCVSDir(parent):
 def GetS(parent):
     """grep S from environment file"""
     p = getP(parent)
-    e = '%s/portage/%s/temp/environment' % (portage_tmpdir, p)
+    e = '%s/portage/%s/temp/environment' % (PORTAGE_TMPDIR, p)
     if not os.path.exists(e):
         return 0
     f = open(e, 'r')
@@ -668,8 +666,8 @@ def GetS(parent):
 
 def CheckUnpacked(parent):
     """Return 1 if they have unpacked"""
-    #if os.path.exists('%s/portage/%s/.unpacked' % (portage_tmpdir, getP(parent))):
-    if not os.system('sudo ls %s/portage/%s/.unpacked >& /dev/null' % (portage_tmpdir, getP(parent))):
+    #if os.path.exists('%s/portage/%s/.unpacked' % (PORTAGE_TMPDIR, getP(parent))):
+    if not os.system('sudo ls %s/portage/%s/.unpacked >& /dev/null' % (PORTAGE_TMPDIR, getP(parent))):
         return 1
     else:
         return 0
@@ -678,7 +676,7 @@ def GetEnvs(parent):
     """Get the 'major' environmental vars"""
     parent.env = {}
     p = getP(parent)
-    f = '%s/portage/%s/temp/environment' % (portage_tmpdir, p)
+    f = '%s/portage/%s/temp/environment' % (PORTAGE_TMPDIR, p)
     if not os.path.exists(f):
         #cmd = '/usr/sbin/ebuild %s setup' % parent.filename
         #os.system(cmd)
@@ -714,7 +712,7 @@ def ViewEnvironment(parent):
         parent.text_ctrl_environment.SetValue(txt)
     else:
         p = getP(parent)
-        f = '%s/portage/%s/temp/environment' % (portage_tmpdir, p)
+        f = '%s/portage/%s/temp/environment' % (PORTAGE_TMPDIR, p)
         if os.path.exists(f):
             parent.text_ctrl_environment.SetValue(open(f, 'r').read())
 
@@ -749,7 +747,7 @@ def AddInherit(parent, eclass):
 
 def RunExtProgram(cmd):
     """Run program and return exit code, output in a list"""
-    #TODO: Replace with commands.getoutput
+    #TODO: Replace with commands.getoutput?
     out = []
     p = popen2.Popen4(cmd , 1)
     inp = p.fromchild
@@ -832,6 +830,22 @@ def LoadEbuild(parent, filename):
     parent.ApplyPrefs()
     ViewEnvironment(parent)
     get_status(parent)
+    v = parent.FindVar("HOMEPAGE")
+    parent.window_3.set_uri(v, v)
+    if parent.db:
+        load_db_record(parent)
+
+def load_db_record(parent):
+    """Load db record for current ebuild"""
+    cpvr = GetCatPackVer(parent)
+    try:
+        e = parent.db.Ebuild.byCpvr(cpvr)
+        if e.notes:
+            parent.text_ctrl_notes.SetValue(e.notes)
+        if e.bugz:
+            parent.text_ctrl_bugz.SetValue("%s" % e.bugz)
+    except:
+        pass
 
 def isValidP(parent, filename):
     """Return cat,pkg,ver,rev if valid otherwise 0"""
@@ -889,11 +903,34 @@ def WriteEbuild(parent, temp=0):
     parent.STCeditor.SetSavePoint()
     parent.recentList.append(filename)
     parent.statusbar.SetStatusText("Saved", 0)
+    if parent.db:
+        db_write_record(parent)
     #TODO: Add option in prefs to show this:
     write(parent, "))) Saved %s" % filename)
 
+def db_write_record(parent):
+    """Write Notes tab to db backend"""
+    my_notes = "%s" % parent.text_ctrl_notes.GetValue()
+    my_bugz = "%s" % parent.text_ctrl_bugz.GetValue()
+    if my_bugz:
+        try:
+            my_bugz = string.atoi(my_bugz) 
+        except:
+            my_bugz = None
+    my_cpvr = GetCatPackVer(parent)
+    try:
+        #Update existing record:
+        e = parent.db.Ebuild.byCpvr(my_cpvr)
+        if my_bugz:
+            e.bugz = my_bugz
+        if my_notes:
+            e.notes = my_notes 
+    except:
+        #New record:
+        e = parent.db.Ebuild(cpvr = my_cpvr, bugz = my_bugz, notes = my_notes)
+
 def IsOverlay(parent, ebuild_path):
     """Returns 1 if this ebuild is in PORTDIR_OVERLAY, None if in PORTDIR"""
-    if ebuild_path[0:len(portdir_overlay)] == portdir_overlay:
+    if ebuild_path[0:len(PORTDIR_OVERLAY)] == PORTDIR_OVERLAY:
         return 1
 

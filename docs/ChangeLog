@@ -1,8 +1,12 @@
 
+  24 Nov 2004; Rob Cakebread <pythonhead@gentoo.org>:
+  Added Notes tab to notebook, database option in PrefsDialog,
+  sqlobject interface for Notes.
+ 
   19 Nov 2004; Rob Cakebread <pythonhead@gentoo.org>:
- - When deleting ebuild, offer to rm -rf package dir when there are no more ebuilds
+  When deleting ebuild, offer to rm -rf package dir when there are no more ebuilds
   18 Nov 2004; Rob Cakebread <pythonhead@gentoo.org>:
- - When deleting ebuild, offer to rm -rf package dir when there are no more ebuilds
+  When deleting ebuild, offer to rm -rf package dir when there are no more ebuilds
 
   14 Nov 2004; Rob Cakebread <pythonhead@gentoo.org>:
   Abeni now runs as regular user using sudo to perform any ebuild/emerge
