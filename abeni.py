@@ -1121,16 +1121,8 @@ class MyFrame(wxFrame):
             self.pref['log'] = win.log.GetValue()
             self.pref['email'] = win.email.GetValue()
             f = open(os.path.expanduser('~/.abeni/abenirc'), 'w')
-            f.write('browser = %s\n' % self.pref['browser'])
-            f.write('xterm = %s\n' % self.pref['xterm'])
-            f.write('diff = %s\n' % self.pref['diff'])
-            f.write('editor = %s\n' % self.pref['editor'])
-            f.write('autoTabs = %s\n' % self.pref['autoTabs'])
-            f.write('fileBrowser = %s\n' % self.pref['fileBrowser'])
-            f.write('use = %s\n' % self.pref['use'])
-            f.write('features = %s\n' % self.pref['features'])
-            f.write('log = %s\n' % self.pref['log'])
-            f.write('email = %s\n' % self.pref['email'])
+            for v in self.pref.keys():
+                f.write('%s = %s\n' % (v, self.pref[v]))
             f.close()
 
     def OnMnuAbout(self,event):
