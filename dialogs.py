@@ -78,12 +78,17 @@ class SubmitEbuild(wxDialog):
         '''Catch submit event, submit ebuild'''
         self.summary = self.SummarytextCtrl.GetValue()
         self.desc = self.DesctextCtrl.GetValue()
-        self.SubmitEbuild()
+        dlg = wxTextEntryDialog(self, 'Enter your Bugzilla password:',
+                            'Bugzilla password', '', style=wxTE_PASSWORD)
+        if dlg.ShowModal() == wxID_OK:
+            self.password = dlg.GetValue()
+            dlg.Destroy()
+            self.SubmitEbuild()
 
     def SubmitEbuild(self):
         ''' Do the actual bug creation and attachment upload'''
         import BugzInterface
-        a = BugzInterface.HandleForm(self.filename, self.summary, self.desc, self.uri, "mauch")
+        a = BugzInterface.HandleForm(self.filename, self.summary, self.desc, self.uri, self.password)
         max = 90
         dlg = wxProgressDialog("Submitting ebuild",
                                "Creating new bug...",
@@ -97,12 +102,13 @@ class SubmitEbuild(wxDialog):
         dlg.Update(count, "Entering new bug...")
         a.EnterNewBug()
         count += 33
-        dlg.Update(count, "Uploading attachment...")
-        a.UploadAttachment()
-        count += 33
-        dlg.Update(count, "Done.")
-        dlg.Destroy()
         self.bugNbr = a.bugNbr
+        if self.bugNbr:
+            dlg.Update(count, "Uploading attachment...")
+            a.UploadAttachment()
+            count += 33
+            dlg.Update(count, "Done.")
+        dlg.Destroy()
         self.Close()
 
 
@@ -363,7 +369,6 @@ class BugzillaDialog(wxDialog):
               id=wxID_BUGZILLAABENICOMBOBOX, name='AbeniComboBox', parent=self,
               pos=wxPoint(224, 160), size=wxSize(224, 22), style=0,
               validator=wxDefaultValidator, value='')
-        #self.AbeniComboBox.SetLabel('')
 
         self.checkBox1 = wxCheckBox(id=wxID_BUGZILLACHECKBOX1,
               label='Ebuild is Mine', name='checkBox1', parent=self,

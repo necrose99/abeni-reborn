@@ -37,6 +37,7 @@ class HandleForm:
         self.desc = desc
         self.uri = uri
         self.password = password
+        self.bugNbr = 0
 
     def Login(self, user="genone@127.0.0.1"):
         url = "http://abeni.kicks-ass.net/bugzilla/enter_bug.cgi"
