@@ -39,7 +39,7 @@ class ebuild:
 		self.elements = { "functions": [], "variables": [], "statements": [] }
 		self.header = ""
 
-		self.content = ""
+		self.content = ""	# only for internal use, call getContent() if you want the content
 				
 	# constructor to get the ebuild by filename
 	def __init__(self, filename):
@@ -82,6 +82,19 @@ class ebuild:
 		self.version = version
 		self.filename = package+"-"+version+".ebuild"
 		self.path = self.location+"/"+self.category+"/"+self.package+"/"+self.filename
+	
+	# return the complete content of the ebuild
+	def getContent(self):
+		myelements = []
+		for l in self.elements.values():
+			myelements += l
+		myelements.sort(lambda x,y: x.getPos() - y.getPos())
+		mycontent = self.header+"\n"
+		for e in myelements:
+			mycontent += e.getContent()+"\n"
+		
+		self.content = mycontent
+		return mycontent
 		
 	# read and parse the ebuild
 	def readEbuild(self):
@@ -164,13 +177,10 @@ class ebuild:
 			self.elements['statements'].append(myelement)
 			myelement = None
 			
+	def	writeEbuild(self):
+		self.content = self.getContent()
+			
 # test code
-sc = ebuild("dev-php", "mod_php", "4.3.2")
+sc = ebuild("net-mail", "sylpheed-claws", "0.9.4", "/usr/portage/local")
 sc.readEbuild()
-print sc.header
-for v in sc.elements['variables']:
-	print v.getPos(), v.getContent()
-for f in sc.elements['functions']:
-	print f.getPos(), f.getContent()
-for s in sc.elements['statements']:
-	print s.getPos(), s.getContent()
+print sc.getContent()
