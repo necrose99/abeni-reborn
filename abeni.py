@@ -176,6 +176,14 @@ class MyFrame(wxFrame):
         frame = ProjectManager.MyFrame(self)
         frame.Show(true)
 
+    def OnMnuSubmitEbuild(self, event):
+        """Submit Ebuild to bugs.gentoo.org"""
+        if not self.editing:
+            return
+        if self.SaveEbuild():
+            win = dialogs.SubmitEbuild(self)
+            win.ShowModal()
+
     def OnMnuGetDeps(self, event):
         #DEPEND
         l = self.panelDepend.elb1.GetStrings()
@@ -1519,6 +1527,9 @@ class MyFrame(wxFrame):
         mnuSumID = wxNewId()
         menu_proj.Append(mnuSumID, "Project Manager")
         EVT_MENU(self, mnuSumID, self.OnMnuProjManager)
+        mnuSubmitID = wxNewId()
+        menu_proj.Append(mnuSubmitID, "Submit ebuild to bugs.gentoo.org")
+        EVT_MENU(self, mnuSubmitID, self.OnMnuSubmitEbuild)
         menubar.Append(menu_proj, "&Project")
 
         # View
@@ -1588,7 +1599,7 @@ class MyLog(wxPyLog):
         if self.tc:
             self.tc.AppendText(message + '\n')
 
-class oldMyApp(wxPySimpleApp):
+class MyApp(wxPySimpleApp):
 
     """ Main wxPython app class """
 
@@ -1601,36 +1612,6 @@ class oldMyApp(wxPySimpleApp):
         frame.Show(true)
         self.SetTopWindow(frame)
         return true
-
-
-class MyApp(wxApp):
-    def OnInit(self):
-        """
-        Create and show the splash screen.  It will then create and show
-        the main frame when it is time to do so, or when you click on it.
-        """
-        wxInitAllImageHandlers()
-        splash = MySplashScreen()
-        splash.Show()
-        return True
-
-class MySplashScreen(wxSplashScreen):
-    def __init__(self):
-        bmp = wxImage("/usr/share/pixmaps/abeni/abeni_logo50.png").ConvertToBitmap()
-        wxSplashScreen.__init__(self, bmp,
-                                wxSPLASH_CENTRE_ON_SCREEN|wxSPLASH_TIMEOUT,
-                                500, None, -1,
-                                style = wxSIMPLE_BORDER|wxFRAME_NO_TASKBAR|wxSTAY_ON_TOP)
-        EVT_CLOSE(self, self.OnClose)
-
-    def OnClose(self, evt):
-        """Set up the main frame"""
-        # Enable gif, jpg, bmp, png handling for wxHtml and icons
-
-        wxInitAllImageHandlers()
-        frame=MyFrame(None, -1, 'Abeni - The ebuild Builder ' + __version__)
-        frame.Show()
-        evt.Skip()  # Make sure the default handler runs too...
 
 
 app=MyApp()
