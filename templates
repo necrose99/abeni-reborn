@@ -5,12 +5,12 @@ Add your own eclass templates here. Use this format:
 
 To add a "command":
 
-    parent.AddCommand("inherit kde-base")
+    AddCommand("inherit kde-base")
 
 
 To add a variable:
 
-    parent.AddNewVar("VAR_NAME", "value")
+    AddNewVar("VAR_NAME", "value")
 
 
 To add a function set the body of the function in a variable.
@@ -22,13 +22,13 @@ src_install() {
 }
 '''
 
-    parent.AddFunc("src_install", (srcinst))
+    AddFunc("src_install", (srcinst))
 
 
 Follow the examples below. Make sure you prefix the name
 you want in the menu with "my". For instance:
 
-def myGnome(parent):
+def myGnome(utils):
 
 will show as "Gnome" in the menu.
 
@@ -36,12 +36,12 @@ will show as "Gnome" in the menu.
 """
 
 
-
 def myGames(parent):
     """Add games.eclass stuff"""
 
-    parent.AddCommand("inherit games")
+    from utils import AddNewVar, AddCommand, AddFunc
 
+    AddCommand(parent, "inherit games")
 
     src_compile="""
 src_compile() {
@@ -49,7 +49,7 @@ src_compile() {
 \temake
 }"""
 
-    parent.AddFunc("src_compile", (src_compile))
+    AddFunc(parent, "src_compile", (src_compile))
 
     src_install="""
 src_install() {
@@ -57,7 +57,7 @@ src_install() {
 \tegamesinstall || die
 \tprepgamesdirs
 }"""
-    parent.AddFunc("src_install", (src_install))
+    AddFunc(parent, "src_install", (src_install))
 
 
 def myDistutils(parent):
@@ -65,17 +65,21 @@ def myDistutils(parent):
     # You don't need src_install() with distutils because it gets called automatically.
     # We add it in case they want to add anything to it.
 
-    parent.AddCommand("inherit distutils")
+    from utils import AddNewVar, AddCommand, AddFunc
+
+    AddCommand(parent, "inherit distutils")
 
     src_install ="""
 src_install() {
 \tdistutils_src_install
 }"""
 
-    parent.AddFunc("src_install", (src_install))
+    AddFunc(parent, "src_install", (src_install))
 
 def myCVS(parent):
     """Add CVS-related variables, inherit etc."""
+
+    from utils import AddNewVar, AddCommand, AddFunc
 
     src_compile ="""src_compile() {
 \texport WANT_AUTOCONF_2_5=1
@@ -88,16 +92,21 @@ def myCVS(parent):
 \teinstall || die 'make install failed'
 }"""
 
-    parent.AddNewVar("ECVS_SERVER", "")
-    parent.AddNewVar("ECVS_MODULE", "")
-    parent.AddNewVar("ECVS_TOD_DIR", "$DIST/")
+    AddNewVar(parent, "ECVS_SERVER", "")
+    parent.varOrder.append("ECVS_SERVER")
+    AddNewVar(parent, "ECVS_MODULE", "")
+    parent.varOrder.append("ECVS_MODULE")
+    AddNewVar(parent, "ECVS_TOD_DIR", "$DIST/")
+    parent.varOrder.append("ECVS_TOD_DIR")
     parent.panelMain.S.SetValue("${WORKDIR}/${PN/-cvs/}")
-    parent.AddCommand("inherit cvs")
-    parent.AddFunc("src_compile", (src_compile))
-    parent.AddFunc("src_install", (src_install))
+    AddCommand(parent, "\ninherit cvs")
+    AddFunc(parent, "src_compile", (src_compile))
+    AddFunc(parent, "src_install", (src_install))
 
 def myCVSGames(parent):
     """Add CVS-related variables, inherit games etc."""
+
+    from utils import AddNewVar, AddCommand, AddFunc
 
     src_unpack = """src_unpack() {
 \t#If you don't have aditional files to unpack in SRC_URI
@@ -129,12 +138,16 @@ def myCVSGames(parent):
 \teinstall || die
 \tprepgamesdirs
 }"""
-    parent.AddCommand("inherit cvs games")
-    parent.AddNewVar("ECVS_SERVER", "")
-    parent.AddNewVar("ECVS_MODULE", "")
-    parent.AddNewVar("ECVS_USER", "")
-    parent.AddNewVar("ECVS_PASS", "")
+    AddCommand(parent, "inherit cvs games")
+    AddNewVar(parent, "ECVS_SERVER", "")
+    parent.varOrder.append("ECVS_SERVER")
+    AddNewVar(parent, "ECVS_MODULE", "")
+    varOrder.append("ECVS_MODULE")
+    AddNewVar(parent, "ECVS_USER", "")
+    parent.varOrder.append("ECVS_USER")
+    AddNewVar(parent, "ECVS_PASS", "")
+    parent.varOrder.append("ECVS_PASS")
     parent.panelMain.S.SetValue("${WORKDIR}/${PN/-cvs/}")
-    parent.AddFunc("src_unpack", (src_unpack))
-    parent.AddFunc("src_compile", (src_compile))
-    parent.AddFunc("src_install", (src_install))
+    AddFunc(parent, "src_unpack", (src_unpack))
+    AddFunc(parent, "src_compile", (src_compile))
+    AddFunc(parent, "src_install", (src_install))

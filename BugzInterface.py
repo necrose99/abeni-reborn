@@ -1,13 +1,7 @@
 
 '''
 
-This module requires two packages not in portage yet. I've submitted them
-to bugs.gentoo.org:
-Bug# 27581
-Bug# 27582
-
-If you run this module it will create a new bug and upload an
-attachment to http://bugs.gentoo.org.
+create a new bug and upload an attachment to http://bugs.gentoo.org.
 
 '''
 

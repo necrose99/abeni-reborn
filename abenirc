@@ -1,7 +1,7 @@
-browser = /usr/bin/MozillaFirebird
+browser = /usr/bin/firefox
 xterm = /usr/X11R6/bin/xterm
 diff = /usr/kde/3.1/bin/kompare
-editor = /usr/bin/gedit
+editor = /usr/bin/gvim -f
 autoTabs = no
 fileBrowser = kfmclient -exec
 use =

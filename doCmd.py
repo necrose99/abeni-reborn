@@ -1,5 +1,9 @@
 
-import sys, popen2, string, os
+import sys
+import popen2
+import string
+import os
+
 
 pid_file = '/tmp/abeni_proc.pid'
 f = open(pid_file, 'w')

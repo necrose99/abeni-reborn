@@ -28,12 +28,14 @@ cellpadding="0" border="1">
 <p><b>Abeni</b> is an IDE for creating ebuilds for
 Gentoo Linux</p>
 
-<p><b>Abeni</b> was written by <b>Rob Cakebread<br>
-pythonhead@gentoo.org</b><br>
+<p><b>Abeni</b> was written by<br>
+<b>Rob Cakebread - pythonhead@gentoo.org</b><br><br>
+
 with contributions from:<br><br>
+
 <b>Marius Mauch - genone@gentoo.org<br>
 Tim Cera - timcera@earthlink.net</b><br><br>
-<b>Abeni</b> is Copyright (c) 2003-2004 Rob Cakebread <pythonhead@gentoo.org>.</p>
+<b>Abeni</b> is Copyright (c) 2003-2004 <b>Rob Cakebread</b> <pythonhead@gentoo.org>.</p>
 
 <p>
 <font size="-1"><b>Abeni</b> is released under the terms of<br>

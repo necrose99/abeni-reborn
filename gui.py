@@ -6,10 +6,19 @@ from wxPython.lib.dialogs import wxScrolledMessageDialog
 from wxPython.wx import *
 from portage import config, settings, pkgsplit
 
+from panels import Logo
 import utils
-import dialogs
 import abeniCVS
 import __version__ 
+import AboutDialog
+import PreferencesDialog
+import DevPrefsDialog
+import EchangelogDialog
+import EmergeDialog
+import GetURIDialog
+import MetadataDialog
+import AddFunctionDialog
+import FileCopyDialog
 
 env = config(clone=settings).environ()
 portdir_overlay = env['PORTDIR_OVERLAY'].split(" ")[0]
@@ -25,6 +34,10 @@ class MyFrame(wxFrame):
 
     def __init__(self, parent, id, title):
         wxFrame.__init__(self, parent, -1, title, size=wxSize(900,720))
+        #TODO: Add option to start full-screen:
+        #screenWidth =  wx.wxSystemSettings_GetSystemMetric(wx.wxSYS_SCREEN_X)
+        #screenHeight = wx.wxSystemSettings_GetSystemMetric(wx.wxSYS_SCREEN_Y)
+
         if os.getuid() != 0:
             utils.MyMessage(self, "You must be root, or running Abeni with 'sudo'.",\
                            "You must be root.", "error")
@@ -93,8 +106,6 @@ class MyFrame(wxFrame):
         utils.AddToolbar(self)
         self.sb = self.CreateStatusBar(2, wxST_SIZEGRIP)
         self.splitter = wxSplitterWindow(self, -1, style=wxNO_3D|wxSP_3D)
-
-
         self.nb = wxNotebook(self.splitter, -1, style=wxCLIP_CHILDREN)
         self.nb.portdir_overlay = portdir_overlay
         self.nb.portdir = portdir
@@ -106,19 +117,15 @@ class MyFrame(wxFrame):
         #EVT_ERASE_BACKGROUND(self.splitter, EmptyHandler)
         self.log = wxTextCtrl(self.splitter, -1,
             style = wxTE_MULTILINE|wxTE_READONLY|wxTE_RICH)
-            #style = wxTE_MULTILINE|wxTE_READONLY|wxHSCROLL|wxTE_RICH)
         self.log.SetFont(wxFont(12, wxMODERN, wxNORMAL, wxNORMAL, \
             faceName="Andale Mono"))
-        #self.log.SetAutoLayout(TRUE)
-        #self.log.SetBackgroundColour(wxBLACK)
-        #self.log.SetDefaultStyle(wxTextAttr(wxWHITE))
-        #self.log.SetDefaultStyle(wxTextAttr(wxNullColour, wxBLACK))
         wxLog_SetActiveTarget(MyLog(self.log))
         self.Show(True)
         self.splitter.SplitHorizontally(self.nb, self.log, 400)
+        p = Logo(self.nb)
+        self.nb.AddPage(p, "Abeni %s" % __version__.version)
         self.sashPosition = 400
-        utils.write(self, " *  PORTDIR=%s" % portdir)
-        utils.write(self, " *  PORTDIR_OVERLAY=%s" % portdir_overlay)
+        utils.write(self, ">>> PORTDIR_OVERLAY=%s" % portdir_overlay)
         EVT_MENU_RANGE(self, wxID_FILE1, wxID_FILE9, self.OnFileHistory)
         EVT_IDLE(self, self.OnIdle)
         #Load ebuild if specified on command line, by filename or by
@@ -130,10 +137,9 @@ class MyFrame(wxFrame):
             else:
                 print "No such file: %s" % f
                 print "Checking for package: %s" % f
-                #Make sure GUI is drawn before we start the slow search
+                #Draw GUI before we start the slow search
                 wxSafeYield()
                 utils.LoadByPackage(self, f)
-
 
     def OnTimer(self, evt):
         """Call idle handler every second to update log window"""
@@ -169,8 +175,7 @@ class MyFrame(wxFrame):
                                 wildcard, wxOPEN)
             if dlg.ShowModal() == wxID_OK:
                 filename = dlg.GetPath()
-                if self.editing:
-                    utils.ClearNotebook(self)
+                utils.ClearNotebook(self)
                 utils.LoadEbuild(self, filename, portdir)
                 self.filehistory.AddFileToHistory(filename)
             dlg.Destroy()
@@ -197,7 +202,6 @@ class MyFrame(wxFrame):
             self.splitter.SplitHorizontally(self.nb, self.log, 400)
             self.splitter.SetMinimumPaneSize(20)
             self.log.Show(True)
-            self.log.ShowPosition(self.log.GetLastPosition())
             self.pref['log'] = 'bottom'
 
     def OnMnuProjManager(self, event):
@@ -229,14 +233,12 @@ class MyFrame(wxFrame):
                 self.nb.SetSelection(p-1)
                 self.nb.RemovePage(p)
                 del self.tabs[p]
-                x,y  = self.GetSize()
-                self.SetSize(wxSize(x+1, y))
                 break
             n += 1
         try:
             del self.funcList[n]
         except:
-            utils.write(self, "ERROR: Select the function first, then delete it.")
+            utils.write(self, "!!! ERROR: Select the function first, then delete it.")
         self.saved = 0
 
     def OnMnuHelpRef(self, event):
@@ -266,10 +268,10 @@ class MyFrame(wxFrame):
     def OnMnuNew(self,event):
         """Creates a new ebuild from scratch"""
         if not utils.VerifySaved(self):
-            win = dialogs.GetURIDialog(self, -1, "Enter Package URI", \
-                                size=wxSize(350, 200), \
-                                style = wxDEFAULT_DIALOG_STYLE \
-                                )
+            win = GetURIDialog.GetURIDialog(self, -1, "Enter Package URI", \
+                                       size=wxSize(350, 200), \
+                                       style = wxDEFAULT_DIALOG_STYLE \
+                                       )
             win.CenterOnScreen()
             val = win.ShowModal()
             self.URI = win.URI.GetValue()
@@ -312,7 +314,7 @@ class MyFrame(wxFrame):
         """Called when trying to close application"""
         #TODO: Give yes/no quit dialog.
         if self.running:
-            utils.write(self, "You're executing %s" % self.running)
+            utils.write(self, "!!! You're executing %s" % self.running)
             return
 
         if not utils.VerifySaved(self):
@@ -340,6 +342,7 @@ class MyFrame(wxFrame):
         """Run 'ebuild filename digest' on this ebuild"""
         if not self.editing:
             return
+        utils.write(self, '>>> Creating digest...')
         if utils.SaveEbuild(self):
             cmd = 'FEATURES="%s" USE="%s" /usr/sbin/ebuild %s digest' % \
                 (self.pref['features'], self.pref['use'], self.filename)
@@ -350,6 +353,7 @@ class MyFrame(wxFrame):
 
     def OnToolbarUnpack(self, event):
         if self.editing:
+            utils.write(self, '>>> Unpacking...')
             if utils.SaveEbuild(self):
                 self.action = 'unpack'
                 cmd = 'FEATURES="%s" USE="%s" /usr/sbin/ebuild %s unpack' % \
@@ -358,6 +362,7 @@ class MyFrame(wxFrame):
 
     def OnToolbarCompile(self, event):
         if self.editing:
+            utils.write(self, '>>> Compiling...')
             if utils.SaveEbuild(self):
                 cmd = 'FEATURES="%s" USE="%s" /usr/sbin/ebuild %s compile' % \
                     (self.pref['features'], self.pref['use'], self.filename)
@@ -365,6 +370,7 @@ class MyFrame(wxFrame):
 
     def OnToolbarInstall(self, event):
         if self.editing:
+            utils.write(self, '>>> Installing...')
             if utils.SaveEbuild(self):
                 cmd = 'FEATURES="%s" USE="%s" /usr/sbin/ebuild %s install' % \
                     (self.pref['features'], self.pref['use'], self.filename)
@@ -373,6 +379,7 @@ class MyFrame(wxFrame):
     def OnToolbarQmerge(self, event):
         """ run /usr/sbin/ebuild (this ebuild) qmerge"""
         if self.editing:
+            utils.write(self, '>>> Qmerging...')
             if utils.SaveEbuild(self):
                 cmd = 'FEATURES="%s" USE="%s" /usr/sbin/ebuild %s qmerge' % \
                     (self.pref['features'], self.pref['use'], self.filename)
@@ -441,8 +448,7 @@ class MyFrame(wxFrame):
 
             cvs = abeniCVS.CVS(self)
             cvs.FullCommit()
-            self.log.ShowPosition(self.log.GetLastPosition())
-            #self.log.ScrollToLine(self.log.GetEndAtLastLine() - 10)
+            #utils.write(self, "   ")
 
     def OnMnuCVSupdate(self, event):
         """/usr/bin/cvs update"""
@@ -497,7 +503,7 @@ class MyFrame(wxFrame):
 
     def OnMnuMetadataEdit(self, event):
         if self.editing:
-            dlg = dialogs.MetadataDialog(self)
+            dlg = MetadataDialog.MetadataDialog(self)
             dlg.CenterOnScreen()
             v = dlg.ShowModal()
             if v == wxID_OK:
@@ -518,7 +524,7 @@ class MyFrame(wxFrame):
         """Run echangelog for official Gentoo devs"""
         if not self.editing:
             return
-        win = dialogs.EchangelogDialog(self, -1, "echangelog entry", \
+        win = EchangelogDialog.EchangelogDialog(self, -1, "echangelog entry", \
                                        size=wxSize(350, 200), \
                                        style = wxDEFAULT_DIALOG_STYLE \
                                        )
@@ -632,9 +638,22 @@ class MyFrame(wxFrame):
             dlg.Destroy()
             return
 
+    def OnMnuFileCopy(self, event):
+        """Copy from PORTDIR FILESDIR to PORTDIR_OVERLAY FILESDIR"""
+        if self.editing:
+            fdir_overlay = utils.GetEbuildDir(self)
+            cat = utils.GetCategoryName(self)
+            pn = utils.GetPackageName(self)
+            fdir_port = "%s/%s/%s" % (portdir, cat, pn)
+            if not os.path.exists(fdir_port):
+                fdir_port = ""
+            win = FileCopyDialog.wxFrame1(self, fdir_port, fdir_overlay)
+            win.CenterOnScreen()
+            win.Show(True)
+
     def OnMnuDevPref(self, event):
         """Modify developer preferences"""
-        win = dialogs.DevPrefs(self)
+        win = DevPrefsDialog.DevPrefs(self)
         win.CenterOnScreen()
         val = win.ShowModal()
         if val == wxID_OK:
@@ -648,7 +667,7 @@ class MyFrame(wxFrame):
 
     def OnMnuPref(self, event):
         """Modify preferences"""
-        win = dialogs.Preferences(self, -1, "Preferences", \
+        win = PreferencesDialog.Preferences(self, -1, "Preferences", \
                                   size=wxSize(350, 200), \
                                   style = wxDEFAULT_DIALOG_STYLE \
                                   )
@@ -679,7 +698,7 @@ class MyFrame(wxFrame):
         #      'Contributors: Marius Mauch' % __version__
         #title = 'About Abeni %s ' % __version__
         #utils.MyMessage(self, msg, title)
-        about = dialogs.MyAboutBox(self)
+        about = AboutDialog.MyAboutBox(self)
         about.ShowModal()
         about.Destroy()
 
@@ -693,7 +712,7 @@ class MyFrame(wxFrame):
         """Dialog to add bugzilla info"""
         if not self.editing:
             return
-        dlg = dialogs.BugzillaDialog(self)
+        dlg = BugzillaDialog.BugzillaDialog(self)
         dlg.CenterOnScreen()
         v = dlg.ShowModal()
         if v == wxID_OK:
@@ -704,7 +723,7 @@ class MyFrame(wxFrame):
         """Dialog to add new function"""
         if not self.editing:
             return
-        dlg = dialogs.NewFunction(self)
+        dlg = AddFunctionDialog.AddFunction(self)
         dlg.CenterOnScreen()
         v = dlg.ShowModal()
         if v == wxID_OK:
@@ -765,13 +784,76 @@ class MyFrame(wxFrame):
         self.action = None
         utils.PostAction(self, action)
         self.timer.Stop()
-        #self.log.SetInsertionPointEnd()
-        self.log.ShowPosition(self.log.GetLastPosition())
+        #This assures the log window positions at the bottom:
+        wxSafeYield()
+        utils.write(self, "   ")
+   
+    def OnXtermInCVS(self, event):
+        """Launch xterm in ${CVS}"""
+        if not self.editing:
+            return
 
-    def OnToolbarXterm(self, event):
+        if not utils.CheckUnpacked(self):
+            msg = 'You need to unpack the package first.'
+            utils.MyMessage(self, msg, "Error", "error")
+        else:
+            c = os.getcwd()
+            p = utils.GetP(self)
+            mys = utils.GetS(self)
+            if os.path.exists(self.s):
+                os.chdir(self.s)
+            elif os.path.exists(mys):
+                os.chdir(mys)
+            else:
+                try:
+                    os.chdir('%s/portage/%s/work/' % (portage_tmpdir, p))
+                except:
+                    pass
+            if self.pref['xterm']:
+                try:
+                    os.system('%s &' % self.pref['xterm'])
+                    os.chdir(c)
+                except:
+                    pass
+            else:
+                utils.MyMessage(self, "Set xterm in preferences", \
+                  "Error - no xterm", "error")
+
+
+    def OnXtermInD(self, event):
+        """Launch xterm in ${D}"""
+        if not self.editing:
+            return
+
+        if not utils.CheckUnpacked(self):
+            msg = 'You need to unpack the package first.'
+            utils.MyMessage(self, msg, "Error", "error")
+        else:
+            c = os.getcwd()
+            p = utils.GetP(self)
+            d = '%s/portage/%s/image/' % (portage_tmpdir, p)
+            if os.path.exists(d):
+                os.chdir(d)
+            else:
+                msg = 'You need to run src_install() first.'
+                utils.MyMessage(self, msg, "Error", "error")
+                return
+            if self.pref['xterm']:
+                try:
+                    os.system('%s &' % self.pref['xterm'])
+                except:
+                    pass
+            else:
+                utils.MyMessage(self, "Set xterm in preferences", \
+                  "Error - no xterm", "error")
+            os.chdir(c)
+
+
+    def OnXtermInS(self, event):
         """Launch xterm in ${S}"""
         if not self.editing:
             return
+
         if not utils.CheckUnpacked(self):
             msg = 'You need to unpack the package first.'
             title = 'Error'
@@ -820,6 +902,7 @@ class MyFrame(wxFrame):
         """Run repoman --pretend full on this ebuild"""
         if not self.editing:
             return
+        utils.write(self, '@>> repoman --pretend full')
         cmd = 'cd %s;/usr/bin/repoman --pretend full' % self.ebuildDir
         utils.ExecuteInLog(self, cmd)
 
@@ -867,7 +950,9 @@ class MyFrame(wxFrame):
         if utils.SaveEbuild(self):
             cmd = 'USE="%s" FEATURES="%s" /usr/sbin/ebuild %s %s' % \
               (self.pref['use'], self.pref['features'], self.filename, opt)
-            utils.write(self, 'Executing:\n%s' % cmd)
+            utils.write(self, '>>> Executing:\n')
+            utils.write(self, ">>>   USE='%s' FEATURES='%s'\n" % (self.pref['use'], self.pref['features']))
+            utils.write(self, '>>>   ebuild %s %s' % (self.filename, opt))
             utils.ExecuteInLog(self, cmd)
 
     def OnMnuDelVariable(self, event):
@@ -939,14 +1024,21 @@ class MyFrame(wxFrame):
         self.filehistory.UseMenu(self.menu)
         # Variable
         menu_variable = wxMenu()
+
         mnuNewVariableID = wxNewId()
         menu_variable.Append(mnuNewVariableID, "&New Variable\tF2", \
           "New Variable")
         EVT_MENU(self, mnuNewVariableID, self.OnMnuNewVariable)
+
         mnuDelVariableID = wxNewId()
         menu_variable.Append(mnuDelVariableID, "&Delete Variable")
         EVT_MENU(self, mnuDelVariableID, self.OnMnuDelVariable)
+
         menubar.Append(menu_variable, "&Variable")
+        #TODO: Remove all sub-menus when ebuild isn't open, then append them
+        #      when ebuild is open. Make a class to hold the menus.
+        #menu_variable.Remove(mnuDelVariableID)
+
         # Function
         menu_function = wxMenu()
         mnuNewFunctionID = wxNewId()
@@ -984,22 +1076,42 @@ class MyFrame(wxFrame):
         menu_tools.Append(mnuRepomanID, "Run &repoman --pretend full")
         EVT_MENU(self, mnuRepomanID, self.OnMnuRepoman)
         mnuDigestID = wxNewId()
-        menu_tools.Append(mnuDigestID, "&Create Digest in PORTDIR_OVERLAY")
+        menu_tools.Append(mnuDigestID, "&Create Digest in PORTDIR_OVERLAY\tf8")
         EVT_MENU(self, mnuDigestID, self.OnMnuCreateDigest)
-        mnuClearLogID = wxNewId()
-        menu_tools.Append(mnuClearLogID, "Clear log &window\tF11")
-        EVT_MENU(self, mnuClearLogID, self.OnMnuClearLog)
+
+        mnuFileCopyID = wxNewId()
+        menu_tools.Append(mnuFileCopyID, "$FILESDIR (copy/del/diff/edit)\tf6")
+        EVT_MENU(self, mnuFileCopyID, self.OnMnuFileCopy)
+
         menubar.Append(menu_tools, "&Tools")
 
-        # Project
-        menu_proj = wxMenu()
-        mnuBugID = wxNewId()
-        menu_proj.Append(mnuBugID, "Bug&zilla info")
-        EVT_MENU(self, mnuBugID, self.OnMnuBugzilla)
-        mnuSumID = wxNewId()
-        menu_proj.Append(mnuSumID, "&Project Manager")
-        EVT_MENU(self, mnuSumID, self.OnMnuProjManager)
-        menubar.Append(menu_proj, "&Project")
+        ## Project
+        #menu_proj = wxMenu()
+        #mnuBugID = wxNewId()
+        #menu_proj.Append(mnuBugID, "Bug&zilla info")
+        #EVT_MENU(self, mnuBugID, self.OnMnuBugzilla)
+        #mnuSumID = wxNewId()
+        #menu_proj.Append(mnuSumID, "&Project Manager")
+        #EVT_MENU(self, mnuSumID, self.OnMnuProjManager)
+        #menubar.Append(menu_proj, "&Project")
+
+        # Xterm in (directory)
+        # Open xterm in ${S} ${D} CVS_DIR/category/package
+        menu_xterm = wxMenu()
+
+        mnuSdirID = wxNewId()
+        menu_xterm.Append(mnuSdirID, "Open Xterm in ${&S}")
+        EVT_MENU(self, mnuSdirID, self.OnXtermInS)
+
+        mnuDdirID = wxNewId()
+        menu_xterm.Append(mnuDdirID, "Open Xterm in ${&D}")
+        EVT_MENU(self, mnuDdirID, self.OnXtermInD)
+
+        mnuCVSdirID = wxNewId()
+        menu_xterm.Append(mnuCVSdirID, "Open Xterm in &CVS dir")
+        EVT_MENU(self, mnuCVSdirID, self.OnXtermInCVS)
+
+        menubar.Append(menu_xterm, "Xter&m")
 
         #CVS
         menu_cvs = wxMenu()
@@ -1083,6 +1195,28 @@ class MyFrame(wxFrame):
         menu_view.Append(mnuExploreDid, "File browser in ${D}")
         EVT_MENU(self, mnuExploreDid, self.OnMnuExploreD)
         menubar.Append(menu_view, "Vie&w")
+        # Log window
+        self.menu_log = wxMenu()
+        #self.menu_log.AppendSeparator()
+
+        mnuLogBottomID = wxNewId()
+        self.mnuLogBottomID = wxNewId()
+        self.menu_log.Append(self.mnuLogBottomID, "Log at bottom", \
+                             "", wxITEM_RADIO)
+        EVT_MENU(self, self.mnuLogBottomID, self.OnMnuLogBottom)
+
+        self.mnuLogWindowID = wxNewId()
+        self.menu_log.Append(self.mnuLogWindowID, \
+                             "Log in separate window", "", wxITEM_RADIO)
+        EVT_MENU(self, self.mnuLogWindowID, self.OnMnuLogWindow)
+
+        mnuClearLogID = wxNewId()
+        self.menu_log.Append(mnuClearLogID, "Clear log &window\tF11")
+        EVT_MENU(self, mnuClearLogID, self.OnMnuClearLog)
+
+        #self.menu_log.AppendSeparator()
+        menubar.Append(self.menu_log, "Lo&g")
+
         # Options
         self.menu_options = wxMenu()
         mnuPrefID = wxNewId()
@@ -1091,16 +1225,6 @@ class MyFrame(wxFrame):
         mnuDevPrefID = wxNewId()
         self.menu_options.Append(mnuDevPrefID, "&Developer Preferences")
         EVT_MENU(self, mnuDevPrefID, self.OnMnuDevPref)
-        self.menu_options.AppendSeparator()
-        self.mnuLogBottomID = wxNewId()
-        self.menu_options.Append(self.mnuLogBottomID, "Log at &bottom\tf9", \
-          "", wxITEM_RADIO)
-        EVT_MENU(self, self.mnuLogBottomID, self.OnMnuLogBottom)
-        self.mnuLogWindowID = wxNewId()
-        self.menu_options.Append(self.mnuLogWindowID, \
-          "Log in separate &window\tf10", "", wxITEM_RADIO)
-        EVT_MENU(self, self.mnuLogWindowID, self.OnMnuLogWindow)
-        self.menu_options.AppendSeparator()
 
         menubar.Append(self.menu_options, "&Options")
         # Help

@@ -4,6 +4,7 @@ import os
 import keyword
 import sys
 
+from wxPython.html import *
 from wxPython.lib.dialogs import wxMultipleChoiceDialog
 from portage import pkgsplit
 from wxPython.wx import *
@@ -303,8 +304,8 @@ class LogWindow(wxFrame):
         wxFrame.__init__(self, parent, -1, "Abeni Log", size=wxSize(900, 450))
         self.parent=parent
         self.AddToolbar()
-        aTable = wxAcceleratorTable([(wxACCEL_NORMAL, WXK_F10, self.ScrollID)])
-        self.SetAcceleratorTable(aTable)
+        #aTable = wxAcceleratorTable([(wxACCEL_NORMAL, WXK_F10, self.ScrollID)])
+        #self.SetAcceleratorTable(aTable)
         EVT_CLOSE(self, self.OnClose)
         self.splitter = wxSplitterWindow(self, -1, style=wxNO_3D|wxSP_3D)
         self.parent.log.Reparent(self.splitter)
@@ -403,10 +404,36 @@ class Logo(wxPanel):
 
     def __init__(self, parent):
         wxPanel.__init__(self, parent, -1)
-        self.SetBackgroundColour(wxBLUE)
-        png = wxImage('/usr/share/abeni/images/abeni_logo50.png', wxBITMAP_TYPE_PNG).ConvertToBitmap()
-        wxStaticBitmap(self, -1, png, wxPoint(10, 30), wxSize(png.GetWidth(), png.GetHeight()))
- 
+        self.htmlWindow1 = wxHtmlWindow(self, -1)
+        html = """
+                <html>
+                <body bgcolor="#dddaec">
+                <table cellpadding="0" cellspacing="0">
+                     <tr>
+                          <td align=center><img src="/usr/share/abeni/images/abeni_logo50.png")</td>
+                          <td><h2>Abeni - The ebuild Builder</h2>
+                          Abeni is not an official Gentoo product. Please do <i>not</i> report
+                          Abeni bugs on Gentoo's bugzilla.<br><br>
+
+                          Send bug reports to pythonhead@gentoo.dev<br><br>
+
+                          Abeni is pre-alpha. You may want to create a separate PORTDIR_OVERLAY
+                          for Abeni. You can create the directory then add it in /etc/make.conf,
+                          separating it with a space:<br><br>
+                          PORTDIR_OVERLAY="/tmp/abeni /usr/local/portage"
+                          </td>
+
+                     </tr>
+
+                </table>
+                </body>
+                </html>
+        """
+        self.htmlWindow1.SetPage(html)
+        s = wxBoxSizer(wxHORIZONTAL)
+        s.Add(self.htmlWindow1, 1, wxEXPAND)
+        self.SetSizer(s)
+        self.SetAutoLayout(True)
  
 class NewFunction(wxPanel):
 
@@ -433,7 +460,8 @@ class Editor(wxPanel):
 
     def __init__(self, parent):
         wxPanel.__init__(self, parent, -1)
-        self.editorCtrl = PythonSTC(self, -1)
+        #self.editorCtrl = PythonSTC(self, -1)
+        self.editorCtrl = wxStyledTextCtrl(self, -1, style = wxNO_FULL_REPAINT_ON_RESIZE)
         s = wxBoxSizer(wxHORIZONTAL)
         s.Add(self.editorCtrl, 1, wxEXPAND)
         self.SetSizer(s)
@@ -444,16 +472,6 @@ class Editor(wxPanel):
         self.editorCtrl.SetMarginType(1, wxSTC_MARGIN_NUMBER)
         self.editorCtrl.SetMarginWidth(1, 25)
         self.editorCtrl.SetLexer(wxSTC_LEX_PYTHON)
-        #LEX_MAKEFILE is kinda ok too
-
-#wxStyledTextCtrl::SetLexer
-#void SetLexer(wxSTC_LEX lexer)
-#
-#Sets the lexing language of the document.
-#The valid values for lexer are: wxSTC_LEX_BATCH, wxSTC_LEX_CPP, wxSTC_LEX_ERRORLIST,
-#wxSTC_LEX_HTML, wxSTC_LEX_LATEX, wxSTC_LEX_MAKEFILE, wxSTC_LEX_NULL, wxSTC_LEX_PERL,
-#wxSTC_LEX_PROPERTIES, wxSTC_LEX_PYTHON, wxSTC_LEX_SQL, wxSTC_LEX_VB,
-#wxSTC_LEX_XCODE and wxSTC_LEX_XML.
 
 class PythonSTC(wxStyledTextCtrl):
     def __init__(self, parent, ID):

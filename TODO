@@ -1,4 +1,14 @@
+Abeni 0.0.10
+
+menu item to copy a file to ${FILESDIR}
+
+show which file just loaded in log window, add option to clear log when loading new file, log to disk
+
+don't write ChangeLog - ever. Only via echangelo
+
 Abeni 0.0.9
+
+
 
 Add checkbox for ACCEPT_KEYWORDS="~x86" in emerge dialog
 
@@ -61,13 +71,6 @@ Bugs:
     (0.10 ) If opening ${PORTDIR} ebuild, copy files in ${FILESDIR} to
 	PORTDIR_OVERLAY/${FILESDIR} when user saves.
     
-    (0.10) Use --pretend full - 
-    Watch to see if/when repoman gets patched for users so I can stop using
-    my custom repoman-safe.py:
-    http://bugs.gentoo.org/show_bug.cgi?id=23072
-    http://forums.gentoo.org/viewtopic.php?t=59389
-
-
     COSMETIC:
 
     (0.10) Seems to be fixed in portage

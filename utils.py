@@ -163,8 +163,6 @@ def OnNoAuto(frame, event):
 
 def StripNoAuto(frame):
     """Strip noauto feature"""
-    #We completely ignore what's in make.conf and Abeni's preference file
-    #because the NOAUTO toggle switch on the toolbar is so damned handy
     if string.find(frame.pref['features'], "-noauto") != -1:
         frame.pref['features'] = string.replace(frame.pref['features'], "-noauto", "")
     if string.find(frame.pref['features'], "noauto") != -1:
@@ -319,13 +317,10 @@ def ClearNotebook(frame):
     frame.statementList = []
     frame.funcOrder = []
     frame.varOrder = []
-    # Stupid kludge. See TODO
-    x,y  = frame.GetSize()
-    frame.SetSize(wxSize(x+1, y))
 
 def SetFilename(frame, filename):
     """Set the ebuild full path and filename"""
-    #Keep last file for viewing and creating diffs
+    #Keep last file for viewing and creating diffs(future feature)
     frame.lastFile = frame.filename
     frame.filename = filename
     frame.sb.SetStatusText(filename, 1)
@@ -406,10 +401,6 @@ def PopulateForms(frame, defaultVars):
         rdepends.append(s)
     frame.panelDepend.elb2.SetStrings(rdepends)
 
-def GetCat(frame):
-    """Return value of category on main form"""
-    return frame.panelMain.Category.GetValue()
-
 def NewPage(frame, panel, name):
     """Add new page to notebook"""
     frame.nb.AddPage(panel, name)
@@ -426,12 +417,15 @@ def AddFunc(frame, newFunction, val):
 
 def AddEditor(frame, name, val):
     """Add page in notebook for an editor"""
-    n = panels.Editor(frame.nb)
-    NewPage(frame, n, name)
-    n.editorCtrl.SetText(val)
     if name == 'Output':
-        n.editorCtrl.SetReadOnly(1)
+        n = panels.NewFunction(frame.nb)
+        n.edNewFun.SetText(val)
+        n.edNewFun.SetReadOnly(1)
         frame.ebuildfile = n
+    else:
+        n = panels.Editor(frame.nb)
+        n.editorCtrl.SetText(val)
+    NewPage(frame, n, name)
     if name == 'configure' or name == 'Makefile' or name == 'Environment':
         n.editorCtrl.SetReadOnly(1)
 
@@ -480,7 +474,7 @@ def ExportEbuild(frame):
                 return 0
         filelist += auxfilelist
 
-        filelist = [f.replace(GetCategory(frame)+"/", "") for f in filelist]
+        filelist = [f.replace(GetCategoryPath(frame)+"/", "") for f in filelist]
 
         tarballname = GetP(frame)+".tar.bz2"
         filemask = "BZipped tarball (*.tar.bz2)|*.tar.bz2|GZipped tarball (*.tar.gz)|*.tar.gz|Uncompressed tarball (*.tar)|*.tar|All files|*"
@@ -499,10 +493,10 @@ def ExportEbuild(frame):
         else:
             taroptions = "-cvf"
 
-        ExecuteInLog(frame, "tar "+taroptions+" "+tarballname+" -C "+GetCategory(frame)+" "+reduce(lambda a,b: a+" "+b, filelist))
+        ExecuteInLog(frame, "tar "+taroptions+" "+tarballname+" -C "+GetCategoryPath(frame)+" "+reduce(lambda a,b: a+" "+b, filelist))
 
         # FUTURE: once we have python-2.3 we can use the following:
-        #os.chdir(frame.GetCategory())
+        #os.chdir(frame.GetCategoryPath())
         #tarball = tarfile.open(tarballname, "w:bz2")
         #for f in filelist:
         #    tarball.add(f)
@@ -511,6 +505,14 @@ def ExportEbuild(frame):
         return 1
     else:
         return 0
+
+def GetEbuildDir(frame):
+    return os.path.join (GetCategoryPath(frame), GetPackageName(frame))
+
+def GetCategoryPath(frame):
+    """Return path to category of ebuild"""
+    categoryDir = os.path.join (portdir_overlay, frame.panelMain.Category.GetValue())
+    return categoryDir
 
 def GetPackageName(frame):
     """Return PN from form"""
@@ -523,7 +525,7 @@ def GetCategoryName(frame):
 def checkEntries(frame):
     """Validate entries on forms"""
     category = frame.panelMain.Category.GetValue()
-    categoryDir = GetCategory(frame)
+    categoryDir = GetCategoryPath(frame)
     valid_cat = os.path.join(portdir, category)
     if categoryDir == portdir_overlay + '/':
         msg = "You must specify a category."
@@ -567,11 +569,6 @@ def AddPages(frame):
     NewPage(frame, frame.panelDepend, "Dependencies")
     NewPage(frame, frame.panelChangelog, "ChangeLog")
 
-
-def GetCategory(frame):
-    """Return category of ebuild"""
-    categoryDir = os.path.join (portdir_overlay, frame.panelMain.Category.GetValue())
-    return categoryDir
 
 def isDefault(frame, var):
     """ Return 1 if varibale is in list of default ebuild variables"""
@@ -963,20 +960,21 @@ def LoadEbuild(parent, filename, portdir):
 
 def WriteEbuild(parent, temp=0):
     """Format data into fields and output to ebuild file"""
-    categoryDir = GetCategory(parent)
+    categoryDir = GetCategoryPath(parent)
     if not os.path.exists(categoryDir):
         os.mkdir(categoryDir)
-    parent.ebuildDir = os.path.join (categoryDir, parent.panelMain.Package.GetValue())
+    #TODO: Hmmm:
+    parent.ebuildDir = GetEbuildDir(parent)
     if not os.path.exists(parent.ebuildDir):
         os.mkdir(parent.ebuildDir)
     filename = os.path.join(parent.ebuildDir, parent.panelMain.EbuildFile.GetValue())
     SetFilename(parent, filename)
     parent.filehistory.AddFileToHistory(filename.strip())
     f = open(filename, 'w')
-    f.write('# Copyright 1999-2004 Gentoo Technologies, Inc.\n')
+    f.write('# Copyright 1999-2004 Gentoo Foundation\n')
     f.write('# Distributed under the terms of the GNU General Public License v2\n')
     # Heh. CVS fills this line in, have to trick it with:
-    f.write('# ' + '$' + 'Header:' + ' $\n\n')
+    f.write('# ' + '$' + 'Header:' + ' $\n')
 
     if parent.CVS:
         varDict = parent.panelMain.GetVars()
@@ -1074,7 +1072,7 @@ def WriteEbuild(parent, temp=0):
     parent.recentList.append(filename)
     parent.sb.SetStatusText("Saved", 0)
     #parent.write("Saved %s" % filename)
-    #TODO: CRITICAL Fix this. It doesn't work on first save of new ebuild.
+    #TODO: Kludgy? It doesn't work on first save of new ebuild.
     try:
         parent.ebuildfile.editorCtrl.SetReadOnly(0)
     except:
@@ -1206,15 +1204,10 @@ def AddToolbar(parent):
     xtermBmp = ('/usr/share/pixmaps/abeni/xterm.png')
     parent.tb.AddSimpleTool(xtermID, wxBitmap(xtermBmp, wxBITMAP_TYPE_PNG), \
                             "Launch xterm in ${S}")
-    EVT_TOOL(parent, xtermID, parent.OnToolbarXterm)
-
-    #helpID = wxNewId()
-    #helpBmp = ('/usr/share/pixmaps/abeni/help.png')
-    #parent.tb.AddSimpleTool(helpID, wxBitmap(helpBmp, wxBITMAP_TYPE_PNG), \
-    #                        "Help")
-    #EVT_TOOL(parent, helpID, parent.OnMnuHelp)
+    EVT_TOOL(parent, xtermID, parent.OnXtermInS)
 
     #Load recent ebuilds to File menu
+    #TODO: Delete reference if they no longer exist
     for ebuild in parent.recentList:
         parent.filehistory.AddFileToHistory(ebuild.strip())
 
