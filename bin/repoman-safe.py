@@ -1,7 +1,7 @@
 #!/usr/bin/python2.2
 # Copyright 1999-2003 Gentoo Technologies, Inc.
 # Distributed under the terms of the GNU General Public License v2
-# $Header: /cvsroot/abeni/abeni/bin/Attic/repoman-safe.py,v 1.1 2003/06/15 17:51:51 robc Exp $
+# $Header: /cvsroot/abeni/abeni/bin/Attic/repoman-safe.py,v 1.2 2003/07/31 14:32:55 robc Exp $
 
 # Next to do: dep syntax checking in mask files
 # Then, check to make sure deps are satisfiable (to avoid "can't find match for" problems)
@@ -12,6 +12,13 @@ os.environ["PORTAGE_CALLER"]="repoman"
 
 import sys,string,signal,readline,portage,re,cvstree
 from output import *
+
+for p in sys.path:
+    if os.path.basename(p) == 'site-packages':
+        modulePath = "%s/abeni" % p
+sys.path.append(modulePath)
+
+from  nulloutput import *
 from commands import getstatusoutput
 
 exename=os.path.basename(sys.argv[0])
