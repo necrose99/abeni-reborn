@@ -1,12 +1,767 @@
-from wxPython.wx import *
 import os
 import string
 import sys
 import re
 import popen2
 import shutil
-#Abeni:
+
+from wxPython.wx import *
+from wxPython.lib.dialogs import wxScrolledMessageDialog, wxMultipleChoiceDialog
+from portage import config, portdb, db, pkgsplit, catpkgsplit, settings
+
 import options
+import panels
+
+sys.path.insert(0, "/usr/lib/gentoolkit/pym")
+import gentoolkit
+
+modulePath = "/usr/lib/python%s/site-packages/abeni" % sys.version[0:3]
+
+try:
+    env = config(clone=settings).environ()
+except:
+    print "ERROR: Can't read portage configuration from /etc/make.conf"
+    sys.exit(1)
+
+__version__ = '0.0.10'
+
+defaults = ["SRC_URI", "HOMEPAGE", "DEPEND", "RDEPEND", "DESCRIPTION", \
+            "S", "IUSE", "SLOT", "KEYWORDS", "LICENSE"]
+
+distdir = env['DISTDIR']
+portdir = env['PORTDIR']
+portdir_overlay = env['PORTDIR_OVERLAY'].split(" ")[0]
+if portdir_overlay[-1] == "/":
+    portdir_overlay = portdir_overlay[:-1]
+portage_tmpdir = env['PORTAGE_TMPDIR']
+
+codes={}
+codes["bold"]="\x1b[01m"
+codes["teal"]="\x1b[36;06m"
+codes["turquoise"]="\x1b[36;01m"
+codes["fuscia"]="\x1b[35;01m"
+codes["purple"]="\x1b[35;06m"
+codes["blue"]="\x1b[34;01m"
+codes["darkblue"]="\x1b[34;06m"
+codes["green"]="\x1b[32;01m"
+codes["darkgreen"]="\x1b[32;06m"
+codes["yellow"]="\x1b[33;01m"
+codes["brown"]="\x1b[33;06m"
+codes["red"]="\x1b[31;01m"
+codes["darkred"]="\x1b[31;06m"
+
+def ResolveDeps(frame, l):
+    new = []
+    for p in l:
+        p = p.strip()
+        if p:
+            #curver = frame.versions('^%s$' % p)
+            curver = frame.versions(p)
+            if curver == None:
+                #frame.write("Can't find: %s" % p)
+                new.append(p)
+            elif curver == "":
+                #Multiple names. Be more specific.")
+                #Also means isn't installed.
+                #frame.write("Not installed, or multiple names like %s" % p)
+                new.append(p)
+            else:
+                write(frame, ">=%s" % curver)
+                new.append(">=%s" % curver)
+    return new
+
+def search(search_key):
+    matches = []
+    for package in portdb.cp_all():
+        package_parts=package.split("/")
+        if re.search(search_key.lower(), package_parts[1].lower()):
+            matches.append(package)
+    return matches
+
+def versions(frame, query):
+    tup = smart_pkgsplit(query)
+    if tup[0] and tup[1]:
+        matches = [ tup[0] + "/" + tup[1] ]
+    elif tup[1]:
+        matches = search(tup[1])
+    curver = ""
+    for package in matches:
+        curver = db["/"]["vartree"].dep_bestmatch(package)
+        return curver
+
+def smart_pkgsplit(query):
+    cat = ''
+    pkg = ''
+    ver = ''
+    rev = ''
+
+    if len(query.split('/')) == 2:
+        cat = query.split('/')[0]
+        query = query.split('/')[1]
+
+    components = query.split('-')
+    name_components = []
+    ver_components = []
+
+    # seperate pkg-ver-rev
+    for c in components:
+        if ver_components:
+            ver_components.append(c)
+        elif ord(c[0]) > 47 and ord(c[0]) < 58:
+            ver_components.append(c)
+        else:
+            name_components.append(c)
+    pkg = '-'.join(name_components)
+
+    # check if there is a revision number
+    if len(ver_components) > 0 and ver_components[-1][0] == 'r':
+        rev = ver_components[-1]
+        ver_components = ver_components[:-1]
+
+    # check for version number
+    if len(ver_components) > 0:
+        ver = '-'.join(ver_components)
+
+    return [cat, pkg, ver, rev]
+
+
+def MyMessage(frame, msg, title, type="info", cancel=0):
+    """Simple informational dialog"""
+    if type == "info":
+        icon = wxICON_INFORMATION
+    elif type == "error":
+        icon = wxICON_ERROR
+    if cancel:
+        dlg = wxMessageDialog(frame, msg, title, wxOK | wxCANCEL | icon)
+    else:
+        dlg = wxMessageDialog(frame, msg, title, wxOK | icon)
+    if (dlg.ShowModal() == wxID_OK):
+        return 1
+    else:
+        dlg.Destroy()
+        return 0
+
+def LogWindow(frame):
+    """Show log in separate window"""
+    if frame.splitter.IsSplit():
+        frame.splitter.Unsplit()
+        frame.logWin=panels.LogWindow(frame)
+        frame.logWin.Show(True)
+        frame.log.Show(True)
+        frame.pref['log'] = 'window'
+        frame.menu_options.Check(frame.mnuLogWindowID, 1)
+
+def OnNoAuto(frame, event):
+    """Toggle switch for FEATURES='noauto'"""
+    StripNoAuto(frame)
+    if frame.noauto == 1:
+        frame.noauto = 0
+        frame.pref['features'] = "noauto %s" % frame.pref['features'].strip()
+    else:
+        frame.noauto = 1
+        frame.pref['features'] = "-noauto %s" % frame.pref['features'].strip()
+
+def StripNoAuto(frame):
+    """Strip noauto feature"""
+    #We completely ignore what's in make.conf and Abeni's preference file
+    #because the NOAUTO toggle switch on the toolbar is so damned handy
+    if string.find(frame.pref['features'], "-noauto") != -1:
+        frame.pref['features'] = string.replace(frame.pref['features'], "-noauto", "")
+    if string.find(frame.pref['features'], "noauto") != -1:
+        frame.pref['features'] = string.replace(frame.pref['features'], "noauto", "")
+
+
+def WriteText(frame, text):
+    """Send text to log window after colorizing"""
+    #TODO: No idea why this is output at the end of every ExecuteInLog:
+    if string.find(text, "md5 src_uri") == 4:
+        return
+
+    if text[-1:] == '\n':
+        text = text[:-1]
+    color = ''
+    reset = "\x1b[0m"
+    if string.find(text, reset) != -1:
+        text = string.replace(text, reset, '')
+        for c in codes:
+            if string.find(text, codes[c]) != -1:
+                if c == "darkgreen":
+                    color = "FOREST GREEN"
+                elif c == "yellow":
+                    color = "BROWN"
+                elif c == "brown":
+                    color = "BROWN"
+                elif c == "darkred":
+                    color = "RED"
+                elif c == "teal":
+                    color = "FOREST GREEN"
+                elif c == "turquoise":
+                    color = "TURQUOISE"
+                elif c == "fuscia":
+                    color = "PURPLE"
+                elif c == "green":
+                    color = "DARK GREEN"
+                elif c == "red":
+                    color = "RED"
+                else:
+                    color = "BLUE"
+                text = string.replace(text, codes[c], '')
+                break
+    if color:
+        logColor(frame, color)
+        wxLogMessage(text)
+        logColor(frame, "BLACK")
+    else:
+        if text[0:3] == ">>>" or text[0:3] == "<<<":
+            logColor(frame, "BLUE")
+            wxLogMessage(text)
+            logColor(frame, "BLACK")
+        elif text[0:3] == "!!!":
+            logColor(frame, "RED")
+            wxLogMessage(text)
+            logColor(frame, "BLACK")
+        else:
+            wxLogMessage(text)
+
+def logColor(frame, color):
+    """Set color of text sent to log window"""
+    frame.log.SetDefaultStyle(wxTextAttr(wxNamedColour(color)))
+
+def write(frame, txt):
+    """Send text to log window"""
+    WriteText(frame, txt)
+
+def GetP(frame):
+    """ Returns P from the ebuild name"""
+    ebuild = frame.panelMain.EbuildFile.GetValue()
+    p = string.replace(ebuild, '.ebuild', '')
+    return p
+
+def AddNewVar(frame, var, val):
+    """Add new variable on Main panel"""
+    if val == '':
+        val = '""'
+    frame.panelMain.AddVar(var, val)
+
+def AddCommand(frame, command):
+    """Add a statement to the Misc Commands field on the main panel (i.e. inherit gnome2)"""
+    t = frame.panelMain.stext.GetValue()
+    t += "%s\n" % command
+    frame.panelMain.stext.SetValue(t)
+
+def PostAction(frame, action):
+    """Execute code after ExecuteInLog finishes"""
+    if action == 'unpack':
+        PostUnpack(frame)
+
+def PostUnpack(frame):
+    """Report what directories were unpacked, try to set S if necessary"""
+    import popen2
+    p = GetP(frame)
+    d = '%s/portage/%s/work' % (portage_tmpdir, p)
+    try:
+        lines = os.listdir(d)
+    except:
+        return
+    dirs = []
+    logColor(frame, "RED")
+    write(frame, "Unpacked these directory(s) into ${WORKDIR}:")
+    for l in lines:
+        if os.path.isdir("%s/%s" % (d, l)):
+            write(frame, l)
+            dirs.append(l)
+    if len(dirs) == 1:
+        #We know we have S. Otherwise there were multiple directories unpacked
+        p = dirs[0]
+        if p == GetP(frame):
+            write(frame, "S=${WORKDIR}/${P}")
+            SetS(frame, p)
+        else:
+            ep = frame.panelMain.S.GetValue()
+            if ep == "${WORKDIR}/${P}":
+                frame.panelMain.S.SetValue("${WORKDIR}/%s" % p)
+                SetS(frame, p)
+    else:
+        if GetS(frame) == "${WORKDIR}/${P}":
+            write(frame, "More than one directory unpacked, you get to guess what ${S} is.")
+    logColor(frame, "BLACK")
+    ViewConfigure(frame)
+    ViewMakefile(frame)
+
+def SetS(frame, myp):
+    """Set S"""
+    p = GetP(frame)
+    frame.s = "%s/portage/%s/work/%s" % (portage_tmpdir, p, myp)
+
+def ExecuteInLog(frame, cmd):
+    """Run a program and send stdout & stderr to the log window"""
+    if frame.running:
+        msg = ("Please wait till this finishes:\n %s" % frame.running)
+        title = 'Abeni: Error - Wait till external program is finished.'
+        MyMessage(frame, msg, title, "error")
+        return
+    frame.running = cmd
+    frame.tb.EnableTool(frame.toolStopID, True)
+    frame.process = wxProcess(frame)
+    frame.process.Redirect();
+    pyCmd = "python -u %s/doCmd.py %s" % (modulePath, cmd)
+    frame.pid = wxExecute(pyCmd, wxEXEC_ASYNC, frame.process)
+    ID_Timer = wxNewId()
+    frame.timer = wxTimer(frame, ID_Timer)
+    EVT_TIMER(frame,  ID_Timer, frame.OnTimer)
+    frame.timer.Start(100)
+
+
+def ClearNotebook(frame):
+    """Delete all pages in the notebook"""
+    frame.nb.DeleteAllPages()
+    frame.funcList = []
+    frame.statementList = []
+    frame.funcOrder = []
+    frame.varOrder = []
+    # Stupid kludge. See TODO
+    x,y  = frame.GetSize()
+    frame.SetSize(wxSize(x+1, y))
+
+def SetFilename(frame, filename):
+    """Set the ebuild full path and filename"""
+    #Keep last file for viewing and creating diffs
+    frame.lastFile = frame.filename
+    frame.filename = filename
+    frame.sb.SetStatusText(filename, 1)
+
+def GetFilename(frame):
+    """Get the full path and filename of ebuild"""
+    return frame.filename
+
+def SeparateVars(vars):
+    """Separates variables into defaultVars and all others (vars)"""
+    defaultVars = {}
+    for key in defaults:
+        if vars.has_key(key):
+            defaultVars[key] = vars[key]
+            del vars[key]
+        else:
+            defaultVars[key] = ""
+    return defaultVars, vars
+
+def VerifySaved(frame):
+    """Check if the ebuild has changed and offer to save if so"""
+    modified = 0
+    status = 0
+    for fns in frame.funcList:
+        if fns.edNewFun.GetModify():
+            modified = 1
+            break
+    if modified or not frame.saved:
+        dlg = wxMessageDialog(frame, 'Save modified ebuild?\n' + frame.filename,
+                'Save ebuild?', wxYES_NO | wxCANCEL | wxICON_INFORMATION)
+        val = dlg.ShowModal()
+        if val == wxID_YES:
+            msg = checkEntries(frame)
+            if msg:
+                status = 1
+                dlg.Destroy()
+                msg = "Set your ebuild name and package name properly."
+                MyMessage(frame, msg, "Can't save", "error")
+                return status
+            WriteEbuild(frame)
+            frame.saved = 1
+            status = 0
+        if val == wxID_NO:
+            status = 0
+        if val == wxID_CANCEL:
+            status = 1
+        dlg.Destroy()
+    return status
+
+def PopulateForms(frame, defaultVars):
+    """Fill forms with saved data"""
+    frame.panelMain.Package.SetValue(defaultVars['package'])
+    frame.package = defaultVars['package']
+    frame.panelMain.EbuildFile.SetValue(defaultVars['ebuild_file'])
+    frame.panelMain.Category.SetValue(defaultVars['category'])
+    frame.panelMain.URI.SetValue(defaultVars['SRC_URI'])
+    frame.panelMain.Homepage.SetValue(defaultVars['HOMEPAGE'])
+    frame.panelMain.Desc.SetValue(defaultVars['DESCRIPTION'])
+    frame.panelMain.S.SetValue(defaultVars['S'])
+    frame.panelMain.USE.SetValue(defaultVars['IUSE'])
+    frame.panelMain.Slot.SetValue(defaultVars['SLOT'])
+    frame.panelMain.Keywords.SetValue(defaultVars['KEYWORDS'])
+    frame.panelMain.License.SetValue(defaultVars['LICENSE'])
+    d = string.split(defaultVars['DEPEND'], '\n')
+    depends = []
+    for s in d:
+        s = s.replace('"', '')
+        depends.append(s)
+    frame.panelDepend.elb1.SetStrings(depends)
+    r = string.split(defaultVars['RDEPEND'], '\n')
+    rdepends = []
+    for s in r:
+        s = s.replace('"', '')
+        rdepends.append(s)
+    frame.panelDepend.elb2.SetStrings(rdepends)
+
+def GetCat(frame):
+    """Return value of category on main form"""
+    return frame.panelMain.Category.GetValue()
+
+def NewPage(frame, panel, name):
+    """Add new page to notebook"""
+    frame.nb.AddPage(panel, name)
+    frame.tabs.append(name)
+
+def AddFunc(frame, newFunction, val):
+    """Add page in notebook for a new function"""
+    n = panels.NewFunction(frame.nb)
+    frame.funcList.append(n)
+    NewPage(frame, n, newFunction)
+    n.edNewFun.SetText(val)
+    n.edNewFun.SetSavePoint()
+
+
+def AddEditor(frame, name, val):
+    """Add page in notebook for an editor"""
+    n = panels.Editor(frame.nb)
+    NewPage(frame, n, name)
+    n.editorCtrl.SetText(val)
+    if name == 'Output':
+        n.editorCtrl.SetReadOnly(1)
+        frame.ebuildfile = n
+    if name == 'configure' or name == 'Makefile' or name == 'Environment':
+        n.editorCtrl.SetReadOnly(1)
+
+
+def SaveEbuild(frame):
+    '''Save ebuild if entries are sane'''
+    msg = checkEntries(frame)
+    if not msg:
+        defaultVars = getDefaultVars(frame)
+        WriteEbuild(frame)
+        frame.saved = 1
+        DoTitle(frame)
+        return 1
+    else:
+        title = 'Abeni: Error Saving'
+        MyMessage(frame, msg, title, "error")
+        return 0
+
+def ExportEbuild(frame):
+    ''' Export ebuild directory to tar file '''
+    GetEnvs(frame)
+    if SaveEbuild(frame):
+        filelist = []
+        filelist.append(GetFilename(frame))
+        # auto-add the digest
+        filelist.append(frame.env['FILESDIR']+"/digest-"+GetP(frame))
+        auxfilelist = [f for f in os.listdir(frame.env['FILESDIR']) if f[:6] != "digest"]
+
+        # add all filenames that are present in the ebuild and ask
+        # the user about the others.
+        # Hmm, the multi-choice dialog does not allow to pre-select anything
+        # I'd like to select all files by default, but I guess that needs a custom dialog then.
+        ebuild_content = frame.ebuildfile.editorCtrl.GetText()
+        for f in auxfilelist:
+            if re.search(f+"[^a-zA-Z0-9\-\.\?\*]", ebuild_content):
+                filelist.append(frame.env['FILESDIR']+"/"+f)
+                write(frame, "auto adding file: " + f)
+                auxfilelist.remove(f)
+        if len(auxfilelist) > 0:
+            msg = "Select the files you want to include in the tarball.\n(don't worry about the digest,\nit will be included automatically)"
+            fileselectdlg = wxMultipleChoiceDialog(frame, msg, "Auxiliary file selection",
+                                                   auxfilelist, size=(300,min([500,150+len(auxfilelist)*20])))
+            if fileselectdlg.ShowModal() == wxID_OK:
+                auxfilelist = [frame.env['FILESDIR']+"/"+f for f in list(fileselectdlg.GetValueString())]
+            else:
+                return 0
+        filelist += auxfilelist
+
+        filelist = [f.replace(GetCategory(frame)+"/", "") for f in filelist]
+
+        tarballname = GetP(frame)+".tar.bz2"
+        filemask = "BZipped tarball (*.tar.bz2)|*.tar.bz2|GZipped tarball (*.tar.gz)|*.tar.gz|Uncompressed tarball (*.tar)|*.tar|All files|*"
+        filedlg = wxFileDialog(frame, "Export ebuild to tarball", "", tarballname, filemask, wxSAVE|wxOVERWRITE_PROMPT)
+        if filedlg.ShowModal() == wxID_OK:
+            tarballname = filedlg.GetPath()
+            filedlg.Destroy()
+        else:
+            filedlg.Destroy()
+            return 0
+
+        if tarballname[-8:] == ".tar.bz2":
+            taroptions = "-cvjf"
+        elif tarballname[-7:] == ".tar.gz":
+            taroptions = "-cvzf"
+        else:
+            taroptions = "-cvf"
+
+        ExecuteInLog(frame, "tar "+taroptions+" "+tarballname+" -C "+GetCategory(frame)+" "+reduce(lambda a,b: a+" "+b, filelist))
+
+        # FUTURE: once we have python-2.3 we can use the following:
+        #os.chdir(frame.GetCategory())
+        #tarball = tarfile.open(tarballname, "w:bz2")
+        #for f in filelist:
+        #    tarball.add(f)
+        #tarball.close()
+        frame.sb.SetStatusText("Ebuild exported to " + tarballname, 0)
+        return 1
+    else:
+        return 0
+
+def GetPackageName(frame):
+    """Return PN from form"""
+    return frame.panelMain.GetPackageName()
+
+def GetCategoryName(frame):
+    """Return Category name from form"""
+    return frame.panelMain.GetCategoryName()
+
+def checkEntries(frame):
+    """Validate entries on forms"""
+    category = frame.panelMain.Category.GetValue()
+    categoryDir = GetCategory(frame)
+    valid_cat = os.path.join(portdir, category)
+    if categoryDir == portdir_overlay + '/':
+        msg = "You must specify a category."
+        return msg
+    if not os.path.exists(valid_cat):
+        msg = category + " isn't a valid category."
+        return msg
+    pn = frame.panelMain.GetPackageName()
+    if not pn:
+        msg = "You need to set the Package Name"
+        return msg
+    e = frame.panelMain.GetEbuildName()
+    if not e:
+        msg = "You need to set the Ebuild Name"
+        return msg
+    if e[-7:] != '.ebuild':
+        msg = "Ebuild file must end with '.ebuild'"
+        return msg
+    p = frame.panelMain.GetPackage()
+    l = pkgsplit(p)
+    if not l:
+        msg = "You need to fix the Package Name and Ebuild Name"
+        return msg
+    if pn != l[0]:
+        msg = "Package Name does not match Ebuild Name"
+        return msg
+
+def DoTitle(frame):
+    ''' Set application's titlebar '''
+    if not frame.saved:
+        frame.SetTitle(frame.panelMain.GetEbuildName() + " * Abeni " + __version__)
+    else:
+        frame.SetTitle(frame.panelMain.GetEbuildName() + " - Abeni " + __version__)
+
+def AddPages(frame):
+    """Add pages to blank notebook"""
+    frame.panelMain=panels.main(frame.nb, env)
+    frame.panelDepend=panels.depend(frame.nb)
+    frame.panelChangelog=panels.changelog(frame.nb)
+    NewPage(frame, frame.panelMain, "Main")
+    NewPage(frame, frame.panelDepend, "Dependencies")
+    NewPage(frame, frame.panelChangelog, "ChangeLog")
+
+
+def GetCategory(frame):
+    """Return category of ebuild"""
+    categoryDir = os.path.join (portdir_overlay, frame.panelMain.Category.GetValue())
+    return categoryDir
+
+def isDefault(frame, var):
+    """ Return 1 if varibale is in list of default ebuild variables"""
+    for l in defaults:
+        if var == l:
+            return 1
+
+def LoadByPackage(frame, query):
+    """Offer list of ebuilds when given a package or filename on command line"""
+
+    matches = gentoolkit.find_packages(query, masked=True)
+    matches = gentoolkit.sort_package_list(matches)
+    #if len(matches) > 1:
+    #    print "More than one package matches that name. Use full category/packagename."
+        #for pkg in matches:
+        #    print pkg.get_category()+"/"+pkg.get_name()
+        #return
+    if len(matches):
+        cat = matches[0].get_category()
+        package = matches[0].get_name()
+        pkgs = []
+        
+        print "* " + matches[0].get_category()+"/"+matches[0].get_name()+ " :"
+        for pkg in matches:
+                
+            state = []
+            unstable = 0
+            overlay = ""
+                
+            # check if masked
+            if pkg.is_masked():
+                state.append("M")
+            else:
+                state.append(" ")
+
+            # check if in unstable
+            kwd = pkg.get_env_var("KEYWORDS")
+            if "~" + gentoolkit.settings["ARCH"] in kwd.split():
+                state.append("~")
+                unstable = 1
+            else:
+                state.append(" ")
+                    
+            # check if installed
+            if pkg.is_installed():
+                state.append("I")
+            else:
+                state.append(" ")
+
+            # check if this is a OVERLAY ebuild
+            if pkg.is_overlay():
+                overlay = " OVERLAY"
+
+            ver = pkg.get_version()
+            slot = pkg.get_env_var("SLOT")
+            print " "*8 + "[" + string.join(state,"") + "] " + ver + " (" + slot + ")" + overlay
+            pkgs.append (ver + " (" + slot + ")" + overlay)
+
+ 
+        dlg = wxSingleChoiceDialog(frame, cat + "/" + package, 'Ebuilds Available',
+                    pkgs, wxOK|wxCANCEL)
+        if dlg.ShowModal() == wxID_OK:
+            s = dlg.GetStringSelection().split(' ')
+            version = s[0] 
+            
+            if len(s) == 3:
+                fname = '%s/%s/%s/%s-%s.ebuild' % \
+                        (portdir_overlay, cat, package, package, version)
+            else:
+                    fname = '%s/%s/%s/%s-%s.ebuild' % \
+                            (portdir, cat, package, package, version)
+            LoadEbuild(frame, fname, portdir)
+        dlg.Destroy()
+    else:
+        print "Package " + query + " not found. Use full package name."
+
+
+def GetS(frame):
+    """grep S from environment file"""
+    p = GetP(frame)
+    e = '%s/portage/%s/temp/environment' % (portage_tmpdir, p)
+    if not os.path.exists(e):
+        return 0
+    f = open(e, 'r')
+    l = f.readline()
+    while l:
+        if l[0:2] == "S=":
+            return l[2:].strip()
+        l = f.readline()
+    #This should never get reached, since there should always be an S:
+    return 0
+
+
+def ViewMakefile(frame):
+    """Show Makefile in editor window"""
+    s = GetS(frame)
+    if s:
+        f = '%s/Makefile' % s
+        if os.path.exists(f):
+            try:
+                frame.nb.RemovePage(frame.tabs.index('Makefile'))
+                del frame.tabs[frame.tabs.index('Makefile')]
+            except:
+                pass
+            AddEditor(frame, 'Makefile', open(f, 'r').read())
+
+def GetEnvs(frame):
+    """Get the 'major' environmental vars"""
+    frame.env = {}
+    p = frame.panelMain.EbuildFile.GetValue()[:-7]
+    f = '%s/portage/%s/temp/environment' % (portage_tmpdir, p)
+    if not os.path.exists(f):
+        cmd = '/usr/sbin/ebuild %s setup' % frame.filename
+        write(frame, cmd)
+        os.system(cmd)
+    lines = open(f, 'r').readlines()
+    #TODO: This is a partial list. Should add option to show all vars available.
+    envVars = ['A', 'AA', 'AUTOCLEAN', 'BUILDDIR', 'BUILD_PREFIX', \
+            'D', 'DESTTREE', 'EBUILD', 'FEATURES', 'FILESDIR', \
+            'INHERITED', 'KV', 'KVERS', 'O', 'P', 'PF', 'PN', 'PV', \
+            'PVR', 'RESTRICT', 'S', 'SRC_URI', 'T', 'WORKDIR']
+    for l in lines:
+        if "=" in l:
+            s = string.split(l, '=')
+            var = s[0]
+            val = s[1]
+            if var in envVars:
+                frame.env[var] = val.strip()
+
+def ViewConfigure(frame):
+    """Show configure file in editor window"""
+    s = GetS(frame)
+    f = '%s/configure' % s
+    if os.path.exists(f):
+        try:
+            frame.nb.RemovePage(frame.tabs.index('configure'))
+            del frame.tabs[frame.tabs.index('configure')]
+        except:
+            pass
+        AddEditor(frame, 'configure', open(f, 'r').read())
+
+def CheckUnpacked(frame):
+    """Return 1 if they have unpacked"""
+    if os.path.exists('%s/portage/%s/.unpacked' % (portage_tmpdir, GetP(frame))):
+        return 1
+    else:
+        return 0
+
+def ViewEnvironment(frame):
+    """Show environment file in editor window"""
+    #TODO: This is brief version, the commented out line below gives full environment.
+    #Add config option to show either, or menu option. Or both.
+    GetEnvs(frame)
+    txt = ''
+    keys = frame.env.keys()
+    keys.sort()
+    for k in keys:
+        txt += '%s=%s\n' % (k, frame.env[k])
+    p = frame.panelMain.EbuildFile.GetValue()[:-7]
+    f = '%s/portage/%s/temp/environment' % (portage_tmpdir, p)
+    if os.path.exists(f):
+        try:
+            frame.nb.RemovePage(frame.tabs.index('Environment'))
+            del frame.tabs[frame.tabs.index('Environment')]
+        except:
+            pass
+        AddEditor(frame, 'Environment', txt)
+
+def SetToNewPage(frame):
+    ''' Change pages in notebook '''
+    frame.nb.SetSelection(frame.nb.GetPageCount() -1)
+
+def GetTemplates(frame):
+    """Return list of Eclass templates to load"""
+    import Templates
+    funcs = dir(Templates)
+    c = []
+    for l in funcs:
+        if l[0:2] == 'my':
+            c.append(l[2:])
+    return c
+
+def NotGentooDev(frame):
+    ''' Warn user about non-developers using CVS '''
+    e = frame.pref['email']
+    if not e:
+        msg = "CVS options are for official Gentoo Developers:\n\n \
+              Your email address is not set.\n \
+              Set your email address in Options - Global Preferences."
+    else:
+        msg = "CVS options are for official Gentoo Developers:\n\n \
+              Your email address doesn't end in @gentoo.org\n \
+              Set your email address in Options - Global Preferences."
+    MyMessage(frame, msg, "Gentoo Developer?", "error")
 
 
 def RunExtProgram(cmd):
@@ -30,7 +785,7 @@ def LoadEbuild(parent, filename, portdir):
     """Load ebuild from filename"""
     filename = string.strip(filename)
     if not os.path.exists(filename):
-        parent.write("File not found: " + filename)
+        write(parent, "File not found: " + filename)
         dlg = wxMessageDialog(parent, "The file " + filename + " does not exist",
                               "File not found", wxOK | wxICON_ERROR)
         dlg.ShowModal()
@@ -43,9 +798,9 @@ def LoadEbuild(parent, filename, portdir):
     r, out = RunExtProgram(cmd)
     os.system("chmod -x %s" % filename)
     if r:
-        parent.write("Ebuild syntax is incorrect - /bin/bash found an error. Fix this before trying to load:")
+        write(parent, "Ebuild syntax is incorrect - /bin/bash found an error. Fix this before trying to load:")
         for l in out:
-            parent.write(l)
+            write(parent, l)
         msg = "The ebuild has a syntax error. Would you like to edit this in your external editor?"
         dlg = wxMessageDialog(parent, msg,
                 'Syntax Error', wxOK | wxCANCEL | wxICON_ERROR)
@@ -53,7 +808,7 @@ def LoadEbuild(parent, filename, portdir):
         if val == wxID_OK:
             parent.OnMnuEdit(save=0, filename=filename)
         return
-    parent.SetFilename(filename)
+    SetFilename(parent, filename)
     parent.recentList.append(filename)
     vars = {}
     funcs = {}
@@ -80,12 +835,11 @@ def LoadEbuild(parent, filename, portdir):
         if l[0:10] == '# $Header:':
             continue
 
-        # Variables always start a line with all caps and has an =
-        varTest = re.search('^[A-Z]+.*= ?', l)
+        varTest = re.search('^[A-Za-z]+.*= ?', l)
 
         # Match any of these:
         #  mine() {
-        #  mine () {   # I hate when people use this one.
+        #  mine () {
         #  my_func() {
         #  my_func () {
         #  Any above with { on separate line
@@ -131,7 +885,7 @@ def LoadEbuild(parent, filename, portdir):
                     break
             continue
         # Command like 'inherit cvs' or a comment
-        if re.search('^([a-z]|#|\[)', l):
+        if re.search('^([a-zA-Z]|#|\[)', l):
             parent.statementList.append(l)
 
     f.close()
@@ -142,12 +896,11 @@ def LoadEbuild(parent, filename, portdir):
     category = s[len(s)-3]
     defaultVars = {}
     otherVars = {}
-    defaultVars, otherVars = parent.SeparateVars(vars)
+    defaultVars, otherVars = SeparateVars(vars)
     defaultVars['package'] = package
     defaultVars['ebuild_file'] = parent.ebuild_file
     defaultVars['category'] = category
 
-    #If S isn't set it equals
     if defaultVars['S'] == '':
         defaultVars['S'] = '${WORKDIR}/${P}'
 
@@ -155,14 +908,28 @@ def LoadEbuild(parent, filename, portdir):
     if defaultVars['IUSE'] == '':
         defaultVars['IUSE'] = '""'
     parent.editing = 1
-    parent.AddPages()
-    parent.PopulateForms(defaultVars)
-    clog = string.replace(filename, parent.ebuild_file, '') + 'ChangeLog'
+    AddPages(parent)
+    PopulateForms(parent, defaultVars)
     parent.ebuildDir = string.replace(filename, parent.ebuild_file, '')
-    parent.panelChangelog.Populate(clog, portdir)
+
+    #Load ChangeLog if in PORTDIR_OVERLAY, otherwise check PORTDIR, else use skel
+    #This is read-only, you must use "echangelog" to edit the ChangeLog
+    clog = string.replace(filename, parent.ebuild_file, '') + 'ChangeLog'
+    if os.path.exists(clog):
+        changelog_txt = open(clog).read()
+    else:
+        category = parent.panelMain.Category.GetValue()
+        name = parent.panelMain.Package.GetValue()
+        portdir_clog = "%s/%s/%s/ChangeLog" % (portdir, category, name)
+        if os.path.exists(portdir_clog):
+            changelog_txt = open(portdir_clog).read()
+        else:
+            filename= '%s/skel.ChangeLog' % portdir
+            changelog_txt = open(filename).read()
+    parent.panelChangelog.Populate(changelog_txt)
 
     # Add original ebuild file:
-    parent.AddEditor('Output', open(filename, 'r').read())
+    AddEditor(parent, 'Output', open(filename, 'r').read())
     #Add custom variables to Main panel
 
     #This was un-ordered:
@@ -173,36 +940,36 @@ def LoadEbuild(parent, filename, portdir):
     for n in range(len(parent.varOrder)):
         for v in otherVars:
             if v == parent.varOrder[n]:
-                parent.AddNewVar(v, otherVars[v])
-    if parent.CheckUnpacked():
-        parent.ViewEnvironment()
-        parent.ViewConfigure()
-        parent.ViewMakefile()
-    #TODO: This is dumb. Put them in logical order: pkg_setup, src_unpack, src_compile etc.
+                AddNewVar(parent, v, otherVars[v])
+    if CheckUnpacked(parent):
+        ViewEnvironment(parent)
+        ViewConfigure(parent)
+        ViewMakefile(parent)
+    #TODO: Put them in logical order: pkg_setup, src_unpack, src_compile etc.
     #Add functions in order they were in in ebuild:
     for n in range(len(parent.funcOrder)):
-        parent.AddFunc(parent.funcOrder[n], funcs[parent.funcOrder[n]])
+        AddFunc(parent, parent.funcOrder[n], funcs[parent.funcOrder[n]])
     parent.panelMain.stext.SetValue(string.join(parent.statementList, '\n'))
     if parent.pref['log'] != 'bottom':
-        parent.LogWindow()
+        LogWindow()
     parent.nb.SetSelection(0)
 
     # Set titlebar of app to ebuild name
-    parent.DoTitle()
+    DoTitle(parent)
 
 def WriteEbuild(parent, temp=0):
     """Format data into fields and output to ebuild file"""
-    categoryDir = parent.GetCategory()
+    categoryDir = GetCategory(parent)
     if not os.path.exists(categoryDir):
         os.mkdir(categoryDir)
     parent.ebuildDir = os.path.join (categoryDir, parent.panelMain.Package.GetValue())
     if not os.path.exists(parent.ebuildDir):
         os.mkdir(parent.ebuildDir)
     filename = os.path.join(parent.ebuildDir, parent.panelMain.EbuildFile.GetValue())
-    parent.SetFilename(filename)
+    SetFilename(parent, filename)
     parent.filehistory.AddFileToHistory(filename.strip())
     f = open(filename, 'w')
-    f.write('# Copyright 1999-2003 Gentoo Technologies, Inc.\n')
+    f.write('# Copyright 1999-2004 Gentoo Technologies, Inc.\n')
     f.write('# Distributed under the terms of the GNU General Public License v2\n')
     # Heh. CVS fills this line in, have to trick it with:
     f.write('# ' + '$' + 'Header:' + ' $\n\n')
@@ -225,7 +992,7 @@ def WriteEbuild(parent, temp=0):
     if not parent.CVS:
         varDict = parent.panelMain.GetVars()
         for n in range(len(parent.varOrder)):
-            if not parent.isDefault(parent.varOrder[n]):
+            if not isDefault(parent, parent.varOrder[n]):
                 f.write(parent.varOrder[n] + '=' + varDict[parent.varOrder[n]][1].GetValue() + '\n')
 
     f.write('\n')
@@ -340,8 +1107,8 @@ def getDefaultVars(parent):
     return defaultVars
 
 def AddToolbar(parent):
-    #Create Toolbar with icons
-    # icons are about 28x28
+    ''' Create Toolbar with icons '''
+    # icons are ~28x~28
     parent.tb = parent.CreateToolBar(wxTB_HORIZONTAL|wxNO_BORDER|wxTB_FLAT)
     newID = wxNewId()
     newBmp = ('/usr/share/pixmaps/abeni/new.png')
@@ -450,7 +1217,7 @@ def AddToolbar(parent):
     parent.tb.AddSeparator()
     parent.noautoID = wxNewId()
     b = wxToggleButton(parent.tb, parent.noautoID, "noauto")
-    EVT_TOGGLEBUTTON(parent, parent.noautoID, parent.OnNoAuto)
+    EVT_TOGGLEBUTTON(parent, parent.noautoID, OnNoAuto)
     parent.tb.AddControl(b)
 
     parent.tb.AddSeparator()
@@ -463,10 +1230,11 @@ def AddToolbar(parent):
 
     parent.tb.Realize()
     #parent.timer = None
-    parent.OnNoAuto(-1)
+    #OnNoAuto(frame, -1)
     b.SetValue(True)
 
 def DelVariable(parent):
+    ''' Delete variable '''
     varDict = parent.panelMain.GetVars()
     l = varDict.keys()
     dlg = wxSingleChoiceDialog(parent, 'Choose variable to DELETE:', 'Delete Variable',
@@ -502,163 +1270,163 @@ class CVS:
 
     """ CVS utilities """
 
-    def __init__(self, parent):
-        self.parent = parent
-        self.cvsRoot = self.parent.pref['cvsRoot']
-        self.cat = self.parent.GetCat()
-        self.package = self.parent.panelMain.Package.GetValue()
-        self.ebuild = self.parent.panelMain.EbuildFile.GetValue()
-        self.userName = self.parent.pref['userName']
-        self.cvsDir = self.QueryPath()
-        if not os.path.exists(self.cvsDir):
-            self.CreateCVSdir()
+    def __init__(frame, parent):
+        frame.parent = parent
+        frame.cvsRoot = frame.parent.pref['cvsRoot']
+        frame.cat = frame.parent.GetCat()
+        frame.package = frame.parent.panelMain.Package.GetValue()
+        frame.ebuild = frame.parent.panelMain.EbuildFile.GetValue()
+        frame.userName = frame.parent.pref['userName']
+        frame.cvsDir = frame.QueryPath()
+        if not os.path.exists(frame.cvsDir):
+            CreateCVSdir(frame)
         try:
-            os.chdir(self.cvsDir)
+            os.chdir(frame.cvsDir)
         except:
-            self.parent.write("ERROR: Couldn't cd to %s" % self.cvsDir)
-        self.cvsEbuild = "%s/%s" % (self.cvsDir, self.ebuild)
-        self.FixPerms()
+            parent.write(frame, "ERROR: Couldn't cd to %s" % frame.cvsDir)
+        frame.cvsEbuild = "%s/%s" % (frame.cvsDir, frame.ebuild)
+        FixPerms(frame)
 
-    def QueryPath(self):
+    def QueryPath(frame):
         """Return CVS directory of this ebuild"""
-        return "%s/%s/%s" % (self.cvsRoot, self.cat, self.package)
+        return "%s/%s/%s" % (frame.cvsRoot, frame.cat, frame.package)
 
-    def CreateCVSdir(self):
+    def CreateCVSdir(frame):
         """Create CVSroot/cat/package directory"""
-        catDir = "%s/%s" % (self.cvsRoot, self.cat)
+        catDir = "%s/%s" % (frame.cvsRoot, frame.cat)
         if not os.path.exists(catDir):
             os.mkdir(catDir)
         try:
-            os.mkdir(self.cvsDir)
-            self.parent.write("Created %s" % self.cvsDir)
+            os.mkdir(frame.cvsDir)
+            frame.parent.write("Created %s" % frame.cvsDir)
         except:
-            self.parent.write("ERROR: Failed to create %s!" % self.cvsDir)
+            frame.parent.write("ERROR: Failed to create %s!" % frame.cvsDir)
 
-    def FileExistsInCVS(self):
-        if os.path.exists('./%s' % self.ebuild):
+    def FileExistsInCVS(frame):
+        if os.path.exists('./%s' % frame.ebuild):
             return 1
 
-    def CVSupdate(self):
+    def CVSupdate(frame):
         """/usr/bin/cvs update"""
         cmd = "/usr/bin/cvs update"
-        self.Execute(cmd)
-        self.parent.write("(cvs update in this directory: %s)" % self.cvsDir)
+        frame.Execute(cmd)
+        frame.parent.write("(cvs update in this directory: %s)" % frame.cvsDir)
 
-    def CopyEbuild(self):
+    def CopyEbuild(frame):
         """Copy ebuild and ${FILES} contents from PORT_OVERLAY to CVSroot/cat/package/"""
         # TODO: Copy all files not added to CVS? Just check for patches/config files we added?
-        file = self.parent.GetFilename()
-        shutil.copy(file, self.cvsDir)
-        self.parent.write("Copied %s to %s" % (file, self.cvsDir))
-        self.FixPerms()
+        file = frame.parent.GetFilename()
+        shutil.copy(file, frame.cvsDir)
+        frame.parent.write("Copied %s to %s" % (file, frame.cvsDir))
+        frame.FixPerms()
 
-    def FixPerms(self):
+    def FixPerms(frame):
         if len(os.listdir('./')):
-            os.system("chown %s -R %s/*" % (self.userName, self.cvsDir))
-        os.system("chown %s -R %s" % (self.userName, self.cvsDir))
+            os.system("chown %s -R %s/*" % (frame.userName, frame.cvsDir))
+        os.system("chown %s -R %s" % (frame.userName, frame.cvsDir))
 
-    def RepomanScan(self):
-        if not self.FileExistsInCVS():
-            self.parent.write("WARNING: This ebuild hasn't been copied to CVS directory yet.")
-        cmd = "su %s -c '/usr/bin/repoman scan'" % self.userName
-        self.Execute(cmd)
+    def RepomanScan(frame):
+        if not frame.FileExistsInCVS():
+            frame.parent.write("WARNING: This ebuild hasn't been copied to CVS directory yet.")
+        cmd = "su %s -c '/usr/bin/repoman --pretend scan'" % frame.userName
+        frame.Execute(cmd)
 
-    def RepomanCommitPretend(self):
+    def RepomanCommitPretend(frame):
         """repoman commmit pretend"""
-        if self.FileExistsInCVS():
-            cmd = """su %s -c '/usr/bin/repoman --pretend commit -m "test msg"'""" % self.userName
-            self.Execute(cmd)
+        if frame.FileExistsInCVS():
+            cmd = """su %s -c '/usr/bin/repoman --pretend commit -m "test msg"'""" % frame.userName
+            frame.Execute(cmd)
         else:
-            self.parent.write("ERROR: Ebuild isn't in CVS directory yet.")
+            frame.parent.write("ERROR: Ebuild isn't in CVS directory yet.")
 
-    def RepomanCommit(self):
-        if self.FileExistsInCVS():
-            msg = self.GetMsg()
+    def RepomanCommit(frame):
+        if frame.FileExistsInCVS():
+            msg = frame.GetMsg()
             if msg:
-                cmd = """su %s -c '/usr/bin/repoman --pretend commit -m "%s"'""" % (self.userName, msg)
-                self.Execute(cmd)
+                cmd = """su %s -c '/usr/bin/repoman --pretend commit -m "%s"'""" % (frame.userName, msg)
+                frame.Execute(cmd)
             else:
-                self.parent.write("ERROR: I won't commit without a message.")
+                frame.parent.write("ERROR: I won't commit without a message.")
         else:
-            self.parent.write("ERROR: ebuild isn't in CVS directory yet.")
+            frame.parent.write("ERROR: ebuild isn't in CVS directory yet.")
 
 
-    def GetMsg(self):
-        dlg = wxTextEntryDialog(self.parent, 'Enter commit message:', 'Commit message:', '')
+    def GetMsg(frame):
+        dlg = wxTextEntryDialog(frame.parent, 'Enter commit message:', 'Commit message:', '')
         if dlg.ShowModal() == wxID_OK:
             msg = dlg.GetValue()
         dlg.Destroy()
         return msg
 
-    def CreateDigest(self):
-        if self.FileExistsInCVS():
-            cmd = "PORTDIR_OVERLAY='%s' /usr/sbin/ebuild %s digest" % (self.cvsRoot, self.ebuild)
-            self.Execute(cmd)
+    def CreateDigest(frame):
+        if frame.FileExistsInCVS():
+            cmd = "PORTDIR_OVERLAY='%s' /usr/sbin/ebuild %s digest" % (frame.cvsRoot, frame.ebuild)
+            frame.Execute(cmd)
         else:
-            self.parent.write("ERROR: ebuild isn't in CVS directory yet.")
+            frame.parent.write("ERROR: ebuild isn't in CVS directory yet.")
 
-    def AddDir(self):
-        if self.FileExistsInCVS():
-            os.chdir(os.path.dirname(self.cvsDir))
-            cmd = "su rob -c '''/usr/bin/cvs add %s'''" % os.path.basename(self.cvsDir)
-            self.Execute(cmd)
+    def AddDir(frame):
+        if frame.FileExistsInCVS():
+            os.chdir(os.path.dirname(frame.cvsDir))
+            cmd = "su rob -c '''/usr/bin/cvs add %s'''" % os.path.basename(frame.cvsDir)
+            frame.Execute(cmd)
         else:
-            self.parent.write("ERROR: ebuild isn't in CVS directory yet.")
+            frame.parent.write("ERROR: ebuild isn't in CVS directory yet.")
 
-    def AddEbuild(self):
+    def AddEbuild(frame):
         """/usr/bin/cvs add ebuild"""
-        if self.FileExistsInCVS():
-            cmd = "su rob -c /usr/bin/cvs add %s" % self.ebuild
-            self.Execute(cmd)
+        if frame.FileExistsInCVS():
+            cmd = "su rob -c /usr/bin/cvs add %s" % frame.ebuild
+            frame.Execute(cmd)
         else:
-            self.parent.write("ERROR: ebuild isn't in CVS directory yet.")
+            frame.parent.write("ERROR: ebuild isn't in CVS directory yet.")
 
-    def AddDigest(self):
+    def AddDigest(frame):
         """/usr/bin/cvs add digest"""
-        if not self.FileExistsInCVS():
-            self.parent.write("ERROR: ebuild isn't in CVS directory yet.")
+        if not frame.FileExistsInCVS():
+            frame.parent.write("ERROR: ebuild isn't in CVS directory yet.")
             return
-        digest = "digest-%s" % self.ebuild[0:-7]
+        digest = "digest-%s" % frame.ebuild[0:-7]
         if os.path.exists('./files/%s' % digest):
             cmd = "/usr/bin/cvs add files/%s" % digest
-            self.Execute(cmd)
+            frame.Execute(cmd)
         else:
-            self.parent.write("ERROR: digest doesn't exist in CVS directory yet.")
+            frame.parent.write("ERROR: digest doesn't exist in CVS directory yet.")
 
-    def Execute(self, cmd):
-        self.parent.write("Executing: %s" % cmd)
-        self.parent.ExecuteInLog(cmd)
+    def Execute(frame, cmd):
+        frame.parent.write("Executing: %s" % cmd)
+        frame.parent.ExecuteInLog(cmd)
 
-    def AddChangelog(self):
-        if not self.FileExistsInCVS():
-            self.parent.write("ERROR: ebuild isn't in CVS directory yet.")
+    def AddChangelog(frame):
+        if not frame.FileExistsInCVS():
+            frame.parent.write("ERROR: ebuild isn't in CVS directory yet.")
             return
         if os.path.exists('./ChangeLog'):
             cmd = "/usr/bin/cvs add ChangeLog"
-            self.Execute(cmd)
+            frame.Execute(cmd)
         else:
-            self.parent.write("ERROR: ChangeLog doesn't exist in CVS directory")
+            frame.parent.write("ERROR: ChangeLog doesn't exist in CVS directory")
 
-    def AddMetadata(self):
-        if not self.FileExistsInCVS():
-            self.parent.write("ERROR: ebuild isn't in CVS directory yet.")
+    def AddMetadata(frame):
+        if not frame.FileExistsInCVS():
+            frame.parent.write("ERROR: ebuild isn't in CVS directory yet.")
             return
         if os.path.exists('./metadata.xml'):
             cmd = "/usr/bin/cvs add metadata.xml"
-            self.Execute(cmd)
+            frame.Execute(cmd)
         else:
-            self.parent.write("ERROR: metadata.xml doesn't exist in CVS directory")
+            frame.parent.write("ERROR: metadata.xml doesn't exist in CVS directory")
 
 
-    def Echangelog(self):
-        dlg = self.parent.dialogs.EchangelogDialog(self.parent, -1, "echangelog entry", \
-                                size=wxSize(350, 200), \
-                                style = wxDEFAULT_DIALOG_STYLE \
-                                )
+    def Echangelog(frame):
+        dlg = frame.parent.dialogs.EchangelogDialog(frame.parent, -1, "echangelog entry", \
+                                                    size=wxSize(350, 200), \
+                                                    style = wxDEFAULT_DIALOG_STYLE \
+                                                    )
         dlg.CenterOnScreen()
         val = dlg.ShowModal()
         if val == wxID_OK:
             l = dlg.inp.GetValue()
             if l:
-                self.parent.ExecuteInLog("/usr/bin/echangelog %s" % l)
+                frame.parent.ExecuteInLog("/usr/bin/echangelog %s" % l)
         dlg.Destroy()
