@@ -1,0 +1,73 @@
+
+There are minor bugs/new features needed noted in the software with #TODO
+
+
+Documentation:
+
+    1) Tutorials:
+        * Show how to make ebuild for:
+            + Basic C - configure && make
+
+            + Eclasses:
+                - Python with distutils
+                - KDE
+
+    2) Convert online help to Gentoo documentation templates
+
+    3) Show actual ebuilds in portage that are good examples for specific scenarios
+
+Bugs:
+
+    1) Need to parse /etc/make.conf. Right now I'm using default locations such
+       as /usr/portage and /usr/local/portage (PORTDIR_OVERLAY)
+
+    2) Variables are not kept in order when imported
+
+    3) Need to check if people have saved changed ebuilds before loading/creating new one
+
+    4) Comments not inside functions are not being saved in imported ebuilds
+
+    5) Only Netscape/Mozilla/Firebird works for help
+        * I think this is a bug in Gentoo's Firebird shell script that opens Firebird
+          when using Python's webbrowser module.
+
+    6) Editors (wxStyledTextCtrl) needs work on syntax and keyword highlighting.
+        * Need 'all' Gentoo public/private functions added (panels.py)
+        * Syntax highlighting is buggy for multi-line variables, see RDEPENDS/DEPENDS
+
+    7) Order of funtions is not kept when importing, then saving. This is a cosmetic problem
+       only. It'd be nice to order them logically: src_unpack, src_compile, src_install etc.
+
+
+Add Features:
+
+    1) Options screen:
+        * diff program (xterm -e diff, kompare etc.)
+        * Default browser for help files (Konqueror, Firebird etc.)
+        * Run lintool after importing ebuild <yes/no>
+        * Run lintool after saving <yes/no>
+        * Create digest after saving <yes/no>
+
+    2) Create diff of ebuild
+        * Gentoo prefers diffs of previous ebuild with user-submitted ebuild
+        * Its good to see how Abeni changes original ebuild
+
+    3) Add 'ebuild' command to menu with option to pass any command:
+        * ebuild <current ebuild file> digest
+
+    4) Add 'emerge' command to menu with option to pass any args:
+        * ebuild -<args> <current ebuild file>
+
+    5) Feature to check online to see if there is a newer version of Abeni available
+
+    6) Eclass templates for the most common secnarios:
+        * Python distutils
+        * KDE etc.
+
+    7) View /usr/portage/skel.ebuild for reference
+
+
+Misc:
+
+    1) Create abeni-cvs ebuild for testing nightly builds
+
