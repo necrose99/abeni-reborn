@@ -146,6 +146,11 @@ class MyFrame(wxFrame):
     def OnMnuLoad(self, event):
         """Load ebuild file"""
         #TODO: Add an "Are you sure?" dialog
+        # Multi-line variables now work, so DEPEND/RDEPEND can be done now.
+        # Commands/statements section
+        # Comments: This is going to need a lot of work. I'll need to break up the
+        #   ebuild into a tree, by vars, statements and functions, so I can put the
+        #   comments back in the right place.
         if self.editing:
             self.ClearNotebook()
         wildcard = "ebuild files (*.ebuild)|*.ebuild"
@@ -159,7 +164,7 @@ class MyFrame(wxFrame):
             f = open(filename, 'r')
             while 1:
                 l = f.readline()
-                if not l:
+                if not l: #End of file
                     break
                 if len(l) > 1:
                     l = string.strip(l)
@@ -183,7 +188,7 @@ class MyFrame(wxFrame):
                             v += l
                             if l.count('"') == 1:
                                 print s[0], v
-                                s[1] = v
+                                s[1] = v.replace('\t', '')
                                 break
 
                     vars[s[0]] = string.replace(s[1], '"', '')
@@ -235,11 +240,24 @@ class MyFrame(wxFrame):
             self.nb.SetSelection(0)
             # Set titlebar of app to ebuild name
             self.SetTitle('Abeni: ' + ebuild_file)
-            #TODO:
-            # Comments
-            # DEPEND/RDEPEND
-            # Commands section
         dlg.Destroy()
+
+    def PopulateForms(self, myData):
+        """Fill forms with saved data"""
+        self.panelMain.Ebuild.SetValue(myData['ebuild'])
+        self.panelMain.EbuildFile.SetValue(myData['ebuild_file'])
+        self.panelMain.Category.SetValue(myData['category'])
+        self.panelMain.URI.SetValue(myData['SRC_URI'])
+        self.panelMain.Homepage.SetValue(myData['HOMEPAGE'])
+        self.panelMain.Desc.SetValue(myData['DESCRIPTION'])
+        self.panelMain.USE.SetValue(myData['IUSE'])
+        self.panelMain.Slot.SetValue(myData['SLOT'])
+        self.panelMain.Keywords.SetValue(myData['KEYWORDS'])
+        self.panelMain.License.SetValue(myData['LICENSE'])
+        depends = string.split(myData['DEPEND'], '\n')
+        self.panelDepend.elb1.SetStrings(depends)
+        rdepends = string.split(myData['RDEPEND'], '\n')
+        self.panelDepend.elb2.SetStrings(rdepends)
 
     def SeparateVars(self, vars):
         """Separates variables into defaults (myData) and all others (otherVars)"""
@@ -352,19 +370,6 @@ class MyFrame(wxFrame):
         self.AddPages()
         self.PopulateForms(myData)
         self.editing = 1
-
-    def PopulateForms(self, myData):
-        """Fill forms with saved data"""
-        self.panelMain.Ebuild.SetValue(myData['ebuild'])
-        self.panelMain.EbuildFile.SetValue(myData['ebuild_file'])
-        self.panelMain.Category.SetValue(myData['category'])
-        self.panelMain.URI.SetValue(myData['SRC_URI'])
-        self.panelMain.Homepage.SetValue(myData['HOMEPAGE'])
-        self.panelMain.Desc.SetValue(myData['DESCRIPTION'])
-        self.panelMain.USE.SetValue(myData['IUSE'])
-        self.panelMain.Slot.SetValue(myData['SLOT'])
-        self.panelMain.Keywords.SetValue(myData['KEYWORDS'])
-        self.panelMain.License.SetValue(myData['LICENSE'])
 
     def OnMnuSave(self, event):
         """Save ebuild file to disk"""
