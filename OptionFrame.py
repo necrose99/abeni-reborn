@@ -5,6 +5,7 @@ from options import *
 appdir = os.path.abspath(os.path.join(os.getcwd(), sys.path[0]))
 
 class OptionFrame(wxFrame):
+    """TODO: Change this to wxDialog"""
     def __init__(self, parent, id, title):
 
         myOptions = Options()
@@ -34,13 +35,16 @@ class OptionFrame(wxFrame):
         self.Inpdebug.SetValue(self.debug)
 
     def OnOK(self, event):
+        """Write file on OK button"""
         f = open(('%s/abenirc' % appdir), 'w')
         f.write('debug = %s\n' % self.Inpdebug.GetValue())
         f.close()
         self.Close(true)
 
     def OnCloseMe(self, event):
+        """Close window"""
         self.Close(true)
 
     def OnCloseWindow(self, event):
+        """Destroy window"""
         self.Destroy()
