@@ -688,7 +688,7 @@ class MyFrame(wxFrame):
         # get the file based on the menu ID
         fileNum = evt.GetId() - wxID_FILE1
         path = self.filehistory.GetHistoryFile(fileNum)
-        if os.path.exists(path) and not self.VerifySaved():
+        if not self.VerifySaved():
             self.ClearNotebook()
             LoadEbuild(self, path, portdir)
             # add it back to the history so it will be moved up the list
@@ -702,11 +702,10 @@ class MyFrame(wxFrame):
                                 wildcard, wxOPEN)
             if dlg.ShowModal() == wxID_OK:
                 filename = dlg.GetPath()
-                if os.path.exists(filename):
-                    if self.editing:
-                        self.ClearNotebook()
-                    LoadEbuild(self, filename, portdir)
-                    self.filehistory.AddFileToHistory(filename)
+                if self.editing:
+                    self.ClearNotebook()
+                LoadEbuild(self, filename, portdir)
+                self.filehistory.AddFileToHistory(filename)
             dlg.Destroy()
 
     def PopulateForms(self, defaultVars):
@@ -1052,11 +1051,10 @@ class MyFrame(wxFrame):
                                 wildcard, wxOPEN)
             if dlg.ShowModal() == wxID_OK:
                 filename = dlg.GetPath()
-                if os.path.exists(filename):
-                    if self.editing:
-                        self.ClearNotebook()
-                    LoadEbuild(self, filename, portdir)
-                    self.filehistory.AddFileToHistory(filename)
+                if self.editing:
+                    self.ClearNotebook()
+                LoadEbuild(self, filename, portdir)
+                self.filehistory.AddFileToHistory(filename)
             dlg.Destroy()
 
     def OnMnuLoadFromOverlay(self, event):
@@ -1181,10 +1179,7 @@ class MyFrame(wxFrame):
                         fname = '%s/%s/%s/%s.ebuild' % (portdir, cat, f, package)
                     else:
                         fname = '%s/%s/%s.ebuild' % (portdir, f, package)
-                if os.path.exists(fname):
-                    LoadEbuild(self, fname, portdir)
-                else:
-                    print "Error: Can't load %s" % fname
+                LoadEbuild(self, fname, portdir)
             dlg.Destroy()
         else:
             print "Package " + f + " not found. Be sure to use full package name."

@@ -23,6 +23,12 @@ def GetOptions(parent):
 def LoadEbuild(parent, filename, portdir):
     """Load ebuild from filename"""
     filename = string.strip(filename)
+    if not os.path.exists(filename):
+        parent.write("File not found: " + filename)
+        dlg = wxMessageDialog(parent, "The file " + filename + " does not exist",
+                              "File not found", wxOK | wxICON_ERROR)
+        dlg.ShowModal()
+        return
     #Check if ebuild has syntax errors before loading.
     #If there are errors ask if they want to edit it in external editor.
     #Try to load again after exiting external editor.
