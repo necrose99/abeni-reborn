@@ -55,8 +55,25 @@ class element:
 		else:
 			return ""
 	
+	# get the body of a function, the value of a variable or the code of a statement
 	def getBody(self):
-		return ""
+		header_passed = False
+		rValue = ""
+		for l in self.content.split("\n"):
+			header_passed = header_passed or (l != "" and l[0] != "#" )
+			if header_passed and (rValue != "" or l.strip() != ""):
+				if self.type == "unknown" or self.type == "statement":
+					rValue += l+"\n"
+				elif self.type == "variable":
+					if l[:len(self.getName())] == self.getName():
+						rValue += l[len(self.getName())+1:]+"\n"
+					else:
+						rValue += l+"\n"
+				elif self.type == "function" and l.strip() != "}":
+					rValue += l+"\n"
+		if self.type == "function":
+			rValue = reduce(lambda a,b: a+"\n"+b, rValue.split("\n")[1:-1])	# drop first and last line
+		return rValue
 	
 # class that encapsulates all the data from an ebuild
 class ebuild:
@@ -222,4 +239,4 @@ class ebuild:
 sc = ebuild("net-mail", "sylpheed-claws", "0.9.4", "/usr/portage/local")
 sc.readEbuild()
 for e in sc.elements['functions']:
-	print e.getName()
+	print e.getBody()
