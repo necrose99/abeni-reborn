@@ -25,14 +25,17 @@ cellpadding="0" border="1">
 </tr>
 </table>
 <p>
+<b>Abeni writes ebuild elements in this order:</b>
+</p>
+<p>
 <ul>
-<li> - header
-<li> - inherits
-<li> - MY_* variables
-<li> - standard variables
-<li> - custom variables (non- MY_* )
-<li> - misc statements and comments
-<li> - functions
+<li> header
+<li> inherits
+<li> MY_* variables
+<li> standard variables
+<li> custom variables (non MY_* )
+<li> misc statements and comments
+<li> functions
 </ul>
 </p>
 <center>
