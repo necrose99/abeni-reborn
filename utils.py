@@ -13,6 +13,7 @@ import string
 import sys
 import re
 import popen2
+import commands
 
 import wx
 from wx.lib.dialogs import MultipleChoiceDialog
@@ -43,8 +44,6 @@ PORTAGE_TMPDIR = env['PORTAGE_TMPDIR']
 arch = '%s' % env['ACCEPT_KEYWORDS'].split(' ')[0]
 
 
-#TODO: We might get this every time from /etc/make.conf in case
-#      its changed while Abeni is running? 
 def get_arch():
     """Returns first arch listed in ACCEPT_KEYWORDS in /etc/make.conf"""
     return arch
@@ -104,6 +103,15 @@ def smart_pkgsplit(query):
     return [cat, pkg, ver, rev]
 
 
+def launch_browser(parent, url):
+    """launch web browser"""
+    if not cmd_exists(parent.pref['browser']):
+        my_message(self, "You need to define a browser in preferences.", \
+                   "Error", "error")
+        return
+    cmd = parent.pref['browser'] + " " + url
+    os.system("%s &" % cmd)
+
 def my_message(parent, msg, title, icon_type="info", cancel=0):
     """Simple informational dialog"""
     if icon_type == "info":
@@ -123,7 +131,7 @@ def my_message(parent, msg, title, icon_type="info", cancel=0):
 def refresh_s(parent):
     """Refresh ${S} file browser"""
     s_dir = get_s(parent)
-    print s_dir
+    #print s_dir
     if s_dir:
         if os.path.exists(s_dir):
             #parent.sDir.onRefresh(-1)
@@ -310,7 +318,7 @@ def post_unpack(parent):
         #We know we have S. Otherwise there were multiple directories unpacked
         p = dirs[0]
         if p == get_p(parent):
-            parent.Write(" * S=${WORKDIR}/${P}")
+            parent.Write("))) S=${WORKDIR}/${P}")
             if parent.FindReplace("S=${WORKDIR}/${P}", "") != -1:
                 set_s(parent, p)
                 parent.Write("))) removed S=${WORKDIR}/${P} from ebuild (its not necessary)")
@@ -770,7 +778,7 @@ def load_ebuild(parent, filename):
         parent.button_filesdir_new.Enable(False)
         parent.button_filesdir_download.Enable(False)
         parent.button_filesdir_delete.Enable(False)
-
+        parent.Write("))) Save ebuild to copy it to your overlay.")
     enable_browser_buttons(parent, olay = is_overlay(parent.filename))
 
 def enable_browser_buttons(parent, olay):
@@ -833,6 +841,23 @@ def create_ebuild_paths(parent):
         if status == -1:
             return -1
 
+def strip_opts(cmd):
+    """Strip any options from commands"""
+    return cmd.split(" ")[0]
+
+def cmd_exists(cmd):
+    """Return True if command exists"""
+    if not cmd:
+        return
+    cmd = strip_opts(cmd)
+    if cmd[0] == "/":
+        if os.path.exists(cmd):
+            return True
+    else:
+        o = commands.getoutput("which %s" % cmd)
+        if o[0:6] != "which:":
+            return True
+
 def create_dir(parent, path, verbose = 0):
     """Create a directory, or fail show dialog, return -1"""
     try:
@@ -863,7 +888,7 @@ def write_ebuild(parent, temp=0):
     parent.ebuild_dir = get_ebuild_dir(parent)
     filename = make_ebuild_pathname(parent)
 
-    print parent.filename
+    #print parent.filename
     if not is_overlay(parent.filename):
         new_ebuild = 1
         if not os.path.exists(filename):
@@ -897,9 +922,10 @@ def write_ebuild(parent, temp=0):
     if not os.path.exists(filesdir):
         create_dir(parent, filesdir, verbose = 1)
     parent.filesDir.populate(filesdir)
+    set_homepage(parent)
 
 def strip_cvs_header(parent):
-    """Strip down cvs header."""
+    """Strip cvs header."""
     if parent.pref['stripHeader'] == 1:
         parent.FindReplace("# $Header", '# ' + '$' + 'Header' + ': $')
 
