@@ -141,8 +141,9 @@ class GetURIDialog(wx.Dialog):
         c = utils.get_categories()
         dlg = wx.SingleChoiceDialog(self, 'Category', 'Category:',
                                    c, wx.OK|wx.CANCEL)
-        opt = dlg.GetStringSelection()
-        self.text_ctrl_category.SetValue(opt)
+        if dlg.ShowModal() == wx.ID_OK:
+            opt = dlg.GetStringSelection()
+            self.text_ctrl_category.SetValue(opt)
         #TODO: games can be marked stable
 
     def SetWarning(self, txt):
