@@ -137,75 +137,13 @@ def LogBottom(parent, log):
     parent.pref['log'] = 'bottom'
 
 
-def write(parent, txt):
-    """Send text to log window"""
-    if parent.stdout:
-        print txt
-    WriteText(parent, txt)
-
-def WriteText(parent, text):
-    """Send text to log window after colorizing"""
-    parent.busywriting = 1
-    #TODO: No idea why this is output at the end of every ExecuteInLog:
-    #TODO: Log file to disk code can go here 
-    #if string.find(text, "md5 src_uri") == 4:
-    #    if parent.action != 'unpack':
-    #        return
-
-    if parent.pref['logfile'] == 1:
-        parent.logfile.write(text + "\n")
-
-    if text[-1:] == '\n':
-        text = text[:-1]
-    #Remove color and other esc codes
-    text = text.replace('\b', '')
-    text = text.replace("\x1b[0m" , '')
-    text = text.replace("\x1b[01m", '')
-    text = text.replace("\x1b[32;01m" , '')
-    text = text.replace("\x1b[32;06m" , '')
-    text = text.replace("\x1b[31;06m", '')
-    text = text.replace("\x1b[31;01m", '')
-    text = text.replace("\x1b[33;06m", '')
-    text = text.replace("\x1b[33;01m", '')
-    text = text.replace("\x1b[32;06m", '')
-    text = text.replace("\x1b[32;01m", '')
-    text = text.replace("\x1b[34;06m", '')
-    text = text.replace("\x1b[35;06m", '')
-    text = text.replace("\x1b[34;01m", '')
-    text = text.replace("\x1b[35;01m", '')
-    text = text.replace("\x1b[36;01m", '')
-    text = text.replace("\x1b[36;06m", '')
-    # For the [ok]'s
-    text = text.replace("\x1b[A", '')
-    text = text.replace("\x1b[-7G", '')
-    text = text.replace("\x1b[73G", '')
-
-    pref = text[0:3]
-    if pref == ">>>" or pref == "<<<" or pref == "---" \
-         or pref == ")))" or  pref == " * ":
-        log_color(parent, "BLUE")
-        wx.LogMessage(text)
-        log_color(parent, "BLACK")
-    elif pref == "!!!":
-        log_color(parent, "RED")
-        wx.LogMessage(text)
-        log_color(parent, "BLACK")
-    else:
-        wx.LogMessage(text)
-
-    parent.busywriting = 0
-
-def log_color(parent, color):
-    """Set color of text sent to log window"""
-    parent.text_ctrl_log.SetDefaultStyle(wx.TextAttr(wx.NamedColour(color)))
-
 def PostAction(parent, action):
     """Execute code after asynchronous job done with ExecuteInLog finishes"""
     if action == "setup":
         ViewEnvironment(parent)
         parent.RefreshExplorer()
     if action == "clean":
-        write(parent, "))) All clean.")
+        parent.Write("))) All clean.")
         parent.RefreshExplorer()
         ViewEnvironment(parent)
     if action == 'digest':
@@ -216,20 +154,20 @@ def PostAction(parent, action):
     if action == 'compile':
         parent.RefreshExplorer()
         log_to_output(parent)
-        write(parent, "))) compile finished")
+        parent.Write("))) compile finished")
     if action == 'install':
         PostInstall(parent)
         log_to_output(parent)
         parent.RefreshExplorer()
-        write(parent, "))) install finished")
+        parent.Write("))) install finished")
     if action == 'qmerge':
         parent.RefreshExplorer()
         log_to_output(parent)
-        write(parent, "))) qmerge finished")
+        parent.Write("))) qmerge finished")
     if action == 'emerge':
         parent.RefreshExplorer()
         log_to_output(parent)
-        write(parent, "))) emerge finished")
+        parent.Write("))) emerge finished")
     parent.statusbar.SetStatusText("%s done." % action, 0)
 
 def log_to_output(parent):
@@ -237,7 +175,7 @@ def log_to_output(parent):
     #TODO: Run through WriteText or something to get color/filter esc codes
     #lines = commands.getoutput("sudo cat /var/tmp/abeni/emerge_log").splitlines()
     #for l in lines:
-    #    write(parent, l)
+    #    parent.Write(l)
     t = commands.getoutput("sudo cat /var/tmp/abeni/emerge_log")
     parent.text_ctrl_log.AppendText("%s\n" % t)
 
@@ -260,7 +198,7 @@ def ExportEbuild(parent):
         for f in auxfilelist:
             if re.search(f+"[^a-zA-Z0-9\-\.\?\*]", ebuild_content):
                 filelist.append(fdir +"/"+f)
-                write(parent, "auto adding file: " + f)
+                parent.Write("auto adding file: " + f)
                 auxfilelist.remove(f)
         if len(auxfilelist) > 0:
             msg = "Select the files you want to include in the tarball.\n(don't worry about the digest,\nit will be included automatically)"
@@ -323,15 +261,15 @@ def get_status(parent):
         if os.path.exists(os.path.join(d,f)): 
             out.append(f)
     if len(out):
-        write(parent, "))) This package is:")
+        parent.Write("))) This package is:")
         for o in out:
             if o == ".unpacked":
-                write(parent, ")))     unpacked")
+                parent.Write(")))     unpacked")
                 fix_unpacked(parent)
             if o == ".compiled":
-                write(parent, ")))     compiled")
+                parent.Write(")))     compiled")
             if o == ".installed":
-                write(parent, ")))     installed")
+                parent.Write(")))     installed")
 
 def fix_unpacked(parent):
     """chmod for portage group read"""
@@ -361,27 +299,27 @@ def PostUnpack(parent):
         return
     dirs = []
     #logColor(parent, "RED")
-    write(parent, "))) These directory(s) are in ${WORKDIR}:")
+    parent.Write("))) These directory(s) are in ${WORKDIR}:")
     for l in lines:
         if os.path.isdir("%s/%s" % (d, l)):
-            write(parent, " * %s" % l)
+            parent.Write(" * %s" % l)
             dirs.append(l)
     if len(dirs) == 1:
         #We know we have S. Otherwise there were multiple directories unpacked
         p = dirs[0]
         if p == getP(parent):
-            write(parent, " * S=${WORKDIR}/${P}")
+            parent.Write(" * S=${WORKDIR}/${P}")
             if parent.FindReplace("S=${WORKDIR}/${P}", "") != -1:
                 SetS(parent, p)
-                write(parent, "))) removed S=${WORKDIR}/${P} from ebuild (its not necessary)")
+                parent.Write("))) removed S=${WORKDIR}/${P} from ebuild (its not necessary)")
         else:
             ep = GetS(parent)
             if ep == "${WORKDIR}/${P}":
-                write(parent, "S=${WORKDIR}/%s" % p)
+                parent.Write("S=${WORKDIR}/%s" % p)
                 SetS(parent, p)
     else:
         if GetS(parent) == "${WORKDIR}/${P}":
-            write(parent, "))) More than one directory unpacked, you get to guess what ${S} is.")
+            parent.Write("))) More than one directory unpacked, you get to guess what ${S} is.")
     log_color(parent, "BLACK")
 
 def SetS(parent, myp):
@@ -681,7 +619,7 @@ def GetEnvs(parent):
     if not os.path.exists(f):
         #cmd = '/usr/sbin/ebuild %s setup' % parent.filename
         #os.system(cmd)
-        #write(parent, cmd)
+        #parent.Write(cmd)
         return
     lines = open(f, 'r').readlines()
     #TODO: This is a partial list. Should add option to show all vars available.
@@ -768,7 +706,7 @@ def LoadEbuild(parent, filename):
     """Load ebuild from filename"""
     filename = string.strip(filename)
     if not os.path.exists(filename):
-        write(parent, "File not found: " + filename)
+        parent.Write("File not found: " + filename)
         dlg = wx.MessageDialog(parent, "The file " + filename + " does not exist",
                               "File not found", wx.OK | wx.ICON_ERROR)
         dlg.ShowModal()
@@ -791,9 +729,9 @@ def LoadEbuild(parent, filename):
     os.system("chmod -x %s" % filename)
     if r:
         busy=None
-        write(parent, "Ebuild syntax is incorrect - /bin/bash found an error:")
+        parent.Write("Ebuild syntax is incorrect - /bin/bash found an error:")
         for l in out:
-            write(parent, l)
+            parent.Write(l)
         msg = "The ebuild has a syntax error."
         dlg = wx.MessageDialog(parent, msg,
                 'Syntax Error', wx.OK | wx.ICON_ERROR)
@@ -878,11 +816,11 @@ def WriteEbuild(parent, temp=0):
     categoryDir = GetCategoryPath(parent)
     if not os.path.exists(categoryDir):
         os.mkdir(categoryDir)
-        write(parent, "))) Created %s" % categoryDir)
+        parent.Write("))) Created %s" % categoryDir)
     parent.ebuildDir = GetEbuildDir(parent)
     if not os.path.exists(parent.ebuildDir):
         os.mkdir(parent.ebuildDir)
-        write(parent, "))) Created %s" % parent.ebuildDir)
+        parent.Write("))) Created %s" % parent.ebuildDir)
     filename = GetEbuildFileBase(parent)
     SetFilename(parent, filename)
     parent.filehistory.AddFileToHistory(filename.strip())
@@ -893,10 +831,10 @@ def WriteEbuild(parent, temp=0):
     out = '\n'.join([t.rstrip() for t in txt.splitlines() if t != '\n'])
     out += '\n'
     if txt != out:
-        write(parent, "))) Stripped trailing whitespace.")
+        parent.Write("))) Stripped trailing whitespace.")
         parent.STCeditor.SetText(out)
     if parent.FindReplace("S=${WORKDIR}/${P}", "") != -1:
-        write(parent, "))) removed S=${WORKDIR}/${P} from ebuild (its not necessary)")
+        parent.Write("))) removed S=${WORKDIR}/${P} from ebuild (its not necessary)")
     f_out = open(filename, 'w')
     f_out.write(out)
     f_out.close()
@@ -906,8 +844,8 @@ def WriteEbuild(parent, temp=0):
     parent.statusbar.SetStatusText("Saved", 0)
     if parent.db:
         db_write_record(parent)
-    #TODO: Add option in prefs to show this:
-    write(parent, "))) Saved %s" % filename)
+    #TODO: Add option in prefs to show this optionally:
+    parent.Write("))) Saved %s" % filename)
 
 def db_write_record(parent):
     """Write Notes tab to db backend"""

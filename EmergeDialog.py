@@ -83,5 +83,5 @@ class EmergeDialog(wx.Dialog):
         """ emerge -pv this ebuild """
         pretend_cmd = "FEATURES='%s' USE='%s' emerge --nospinner -pv =%s" \
                    % (self.features.GetValue(), self.use.GetValue(), self.cat_pack_ver)
-        utils.write(self.parent, ">>> %s" % pretend_cmd)
+        self.parent.Write(">>> %s" % pretend_cmd)
         self.parent.ExecuteInLog(pretend_cmd)

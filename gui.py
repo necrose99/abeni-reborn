@@ -544,16 +544,20 @@ class MyFrame(wx.Frame):
         f = wx.Font(points, wx.MODERN, wx.NORMAL, True)
         self.text_ctrl_log.SetDefaultStyle(wx.TextAttr("BLACK", wx.NullColour, f))
         wx.Log_SetActiveTarget(MyLog(self.text_ctrl_log))
-        utils.write(self, "))) PORTDIR_OVERLAY=%s\n\n\n" % PORTDIR_OVERLAY)
+        self.Write("))) PORTDIR_OVERLAY=%s\n\n\n" % PORTDIR_OVERLAY)
         if not self.pref['editor']:
-            utils.write(self,"!!! Please set your external editor under the Options menu")
-            utils.write(self," *  If you use gvim you will need to use '/usr/bin/gvim -f'")
+            self.Write("!!! Please set your external editor under the Options menu")
+            self.Write(" *  If you use gvim you will need to use '/usr/bin/gvim -f'")
         #wx.EVT_MENU_RANGE(self, wx.ID_FILE1, wx.ID_FILE9, self.OnFileHistory)
 
         self.SetTitle("Abeni - The ebuild Builder " + __version__.version)
         self.finddata = wx.FindReplaceData()
         #self.ExternalControlListen()
         self.ApplyPrefs()
+        if self.pref['db'] == 0:
+            self.db = None
+        else: 
+            self.db = MyDatabase
         #CVS:
         #self.menubar.Enable(self.mnuFullCommitID, False)
         #Load ebuild if specified on command line, by filename or by
@@ -564,10 +568,70 @@ class MyFrame(wx.Frame):
             #Draw GUI before we start the slow search
             utils.LoadByPackage(self, f)
         self.enable_toolbar(False)
-        if self.pref['db'] == 0:
-            self.db = None
-        else: 
-            self.db = MyDatabase
+
+
+    def Write(self, txt):
+        """Send text to log window"""
+        if self.stdout:
+            print txt
+        self.WriteText(txt)
+
+    def WriteText(self, text):
+        """Send text to log window after colorizing"""
+        self.busywriting = 1
+        #TODO: No idea why this is output at the end of every ExecuteInLog:
+        #TODO: Log file to disk code can go here 
+        #if string.find(text, "md5 src_uri") == 4:
+        #    if self.action != 'unpack':
+        #        return
+
+        if self.pref['logfile'] == 1:
+            self.logfile.write(text + "\n")
+
+        if text[-1:] == '\n':
+            text = text[:-1]
+        #Remove color and other esc codes
+        text = text.replace('\b', '')
+        text = text.replace("\x1b[0m" , '')
+        text = text.replace("\x1b[01m", '')
+        text = text.replace("\x1b[32;01m" , '')
+        text = text.replace("\x1b[32;06m" , '')
+        text = text.replace("\x1b[31;06m", '')
+        text = text.replace("\x1b[31;01m", '')
+        text = text.replace("\x1b[33;06m", '')
+        text = text.replace("\x1b[33;01m", '')
+        text = text.replace("\x1b[32;06m", '')
+        text = text.replace("\x1b[32;01m", '')
+        text = text.replace("\x1b[34;06m", '')
+        text = text.replace("\x1b[35;06m", '')
+        text = text.replace("\x1b[34;01m", '')
+        text = text.replace("\x1b[35;01m", '')
+        text = text.replace("\x1b[36;01m", '')
+        text = text.replace("\x1b[36;06m", '')
+        # For the [ok]'s
+        text = text.replace("\x1b[A", '')
+        text = text.replace("\x1b[-7G", '')
+        text = text.replace("\x1b[73G", '')
+
+        pref = text[0:3]
+        if pref == ">>>" or pref == "<<<" or pref == "---" \
+             or pref == ")))" or  pref == " * ":
+            self.log_color("BLUE")
+            wx.LogMessage(text)
+            self.log_color("BLACK")
+        elif pref == "!!!":
+            self.log_color("RED")
+            wx.LogMessage(text)
+            self.log_color("BLACK")
+        else:
+            wx.LogMessage(text)
+
+        self.busywriting = 0
+
+    def log_color(self, color):
+        """Set color of text sent to log window"""
+        self.text_ctrl_log.SetDefaultStyle(wx.TextAttr(wx.NamedColour(color)))
+
 
     def ExecuteInLog(self, cmd, logMsg=''):
         """Run a program asynchronously and send stdout & stderr to the log window"""
@@ -579,7 +643,7 @@ class MyFrame(wx.Frame):
             utils.MyMessage(self, msg, title, "error")
             return
         if logMsg:
-            utils.write(self, logMsg)
+            self.Write(logMsg)
         self.running = cmd
         self.toolbar.EnableTool(TB_STOP_ID, True)
         self.process = wx.Process(self)
@@ -837,11 +901,11 @@ class MyFrame(wx.Frame):
             stream = self.process.GetInputStream()
             if stream.CanRead():
                 t = stream.readline()
-                utils.write(self, t)
+                self.Write(t)
             stream = self.process.GetErrorStream()
             if stream.CanRead():
                 t = stream.readline()
-                utils.write(self, t)
+                self.Write(t)
 
 
     def OnFileHistory(self, event):
@@ -939,7 +1003,7 @@ class MyFrame(wx.Frame):
     def OnMnuSave(self, event):
         """Save ebuild file to disk"""
         if not self.STCeditor.IsShown():
-            #utils.write(self, "!!! Error - Check Category, PN, PVR")
+            #self.Write("!!! Error - Check Category, PN, PVR")
             return
         utils.SaveEbuild(self)
 
@@ -1007,7 +1071,7 @@ class MyFrame(wx.Frame):
                 self.text_ctrl_PN.SetValue(psplit[0].lower())
                 self.text_ctrl_PVR.SetValue(psplit[1])
             if uri:
-                utils.write(self, '))) Pkg URI="%s"' % uri)
+                self.Write('))) Pkg URI="%s"' % uri)
             if val == wx.ID_OK:
                 self.STCeditor.SetText(open("/usr/share/abeni/templates/%s" % template, 'r').read())
             self.STCeditor.EmptyUndoBuffer()
@@ -1022,7 +1086,7 @@ class MyFrame(wx.Frame):
     def OnClose(self, event):
         """Called when trying to close application"""
         if self.running:
-            utils.write(self, "!!! You're executing %s" % self.running)
+            self.Write("!!! You're executing %s" % self.running)
             return
         if not utils.VerifySaved(self):
             bookmarks = os.path.expanduser('~/.abeni/recent.txt')
@@ -1156,7 +1220,7 @@ class MyFrame(wx.Frame):
                 #         tee /var/tmp/abeni/emerge_log'""" \
                 #         % (self.pref['use'], self.filename)
                 #cmd = 'sudo /usr/sbin/ebuild %s qmerge' % self.filename
-                utils.write(self, cmd)
+                self.Write(cmd)
                 self.ExecuteInLog(cmd, logMsg)
 
     def OnMnuImportPatch(self, event):
@@ -1251,12 +1315,12 @@ class MyFrame(wx.Frame):
             if pe == -1:
                 #already have eutils inheritted
                 self.STCeditor.InsertText(p + 8, "eutils ")
-                utils.write(self, "))) Added 'eutils' to inherit in order to use epatch")
+                self.Write("))) Added 'eutils' to inherit in order to use epatch")
         else:
             #find first blank line
             b = self.STCeditor.GetLineEndPosition(2)
             self.STCeditor.InsertText(b+1, "\ninherit eutils\n")
-            utils.write(self, "))) Added 'inherit eutils' in order to use epatch")
+            self.Write("))) Added 'inherit eutils' in order to use epatch")
         epatch = "epatch ${FILESDIR}/%s || die 'epatch failed on %s'" % (pname, pname)
 
         self.SrcUnpackEpatch(epatch)
@@ -1269,7 +1333,7 @@ class MyFrame(wx.Frame):
             n = self.LastPos()
             unpck = '''src_unpack() {\n\tunpack ${A} || die "Failed to unpack ${A}"\n\tcd ${S} || die "Failed to cd ${S}"\n\t%s\n\n}''' % epatch
             self.STCeditor.InsertText(n, "\n\n%s\n" % unpck)
-            utils.write(self, "))) Added src_unpack() with epatch line")
+            self.Write("))) Added src_unpack() with epatch line")
         else:
             #have existing src_unpack, add epatch line
             #TODO: use regex
@@ -1278,7 +1342,7 @@ class MyFrame(wx.Frame):
             lp = self.STCeditor.FindText(p, self.LastPos(), "^}", wx.stc.STC_FIND_REGEXP)
             if lp != -1:
                 self.STCeditor.InsertText(lp, "\n\t%s\n" % epatch)
-                utils.write(self, "))) Inserted 'epatch' line in src_unpack()")
+                self.Write("))) Inserted 'epatch' line in src_unpack()")
 
     def LastPos(self):
         """Return last position in editor"""
@@ -1644,7 +1708,7 @@ class MyFrame(wx.Frame):
         data = mq.receive()
         if data:
             cmd, file = data.split("*")
-            self.write("))) External command:'%s'" % cmd)
+            self.Write("))) External command:'%s'" % cmd)
             if cmd[4:] == "digest":
                 self.OnMnuCreateDigest(-1)
             if cmd[4:] == "unpack":
@@ -1703,18 +1767,18 @@ class MyFrame(wx.Frame):
     def KillProc(self, event):
         """Kill processes when stop button clicked"""
         #os.system("sudo kill %s" % self.pid)
-        #utils.write(self, "Killed %s" % self.pid)
+        #self.Write("Killed %s" % self.pid)
         try:
             #pid = open("/var/run/abeni_proc.pid", "r").read().strip()
             #os.system("sudo kill %s" % pid)
-            #utils.write(self, "sub pid %s killed" % pid)
-            utils.write(self, "If you're running a command in an xterm, press Ctrl-C in that xterm." % pid)
+            #self.Write("sub pid %s killed" % pid)
+            self.Write("If you're running a command in an xterm, press Ctrl-C in that xterm." % pid)
         except:
             pass
         event.Skip()
 
     def OnProcessEnded(self, evt):
-        #utils.write('OnProcessEnded, pid:%s,  exitCode: %s\n' %
+        #self.Write('OnProcessEnded, pid:%s,  exitCode: %s\n' %
         #               (evt.GetPid(), evt.GetExitCode()))
         self.timer.Stop()
         stream = self.process.GetInputStream()
@@ -1722,7 +1786,7 @@ class MyFrame(wx.Frame):
             text = stream.read()
             text = text.split('\n')
             for t in text:
-                utils.write(self, t)
+                self.Write(t)
         self.process.Destroy()
         self.process = None
         self.toolbar.EnableTool(TB_STOP_ID, False)

@@ -1,4 +1,7 @@
 
+  01 Dec 2004; Rob Cakebread <pythonhead@gentoo.org>:
+  Put CVS repoman support back in
+
   24 Nov 2004; Rob Cakebread <pythonhead@gentoo.org>:
   Added Notes tab to notebook, database option in PrefsDialog,
   sqlobject interface for Notes.
