@@ -2,6 +2,7 @@ This is the TODO file for Abeni.
 
 Immediate:
 
+
 * repoman console:
 
   stop button
@@ -68,14 +69,14 @@ email pythonhead AT gentoo DOT org
 
 * Command line options:
 
-    * -s, --create <src_uri>            Create ebuild using src_uri to determine package and filename
+    * -c, --create <src_uri>            Create ebuild using src_uri to determine package and filename
     * -e, --eclass <eclass name>        Add inherit and appropriate functions for eclass, used with --created
     * -v, --variable <x=val, y=val...>  Add variable(s) and their value(s)
     * -f, --function <func1, func2...>  Add function name(s)
     * -h, --help                        Show list of command line options
     * -b, --bump <version>              Bump the given ebuild up to <version>
-    * -d, --digest                      Create digest. Used with --bump
-    * -c, --category <category>         Set package category
+    * -d, --digest                      Create digest.
+    * -C, --category <category>         Set package category
     * -l, --license <license>           Set LICENSE
     * -i, --iuse <iuse>                 Set IUSE
     * -t, --description <description>   Set DESCRIPTION
@@ -98,18 +99,7 @@ email pythonhead AT gentoo DOT org
 	cheese-0.0.2.tar.gz was released today. We simply want to create a
     bumped-up version of the ebuild:
 
-    abeni --bump app-admin/cheese --pretend
-    (Output shows:)
+    abeni --bump app-admin/cheese-0.0.1 0.0.2
     cheese-0.0.1.ebuild will be bumped up to cheese-0.0.2.ebuild
-
-    This is what we want so we issue:
-    abeni --bump app-admin/cheese --digest
-
-    cheese-0.0.2.ebuild is created in PORTDIR_OVERLAY/app-admin/cheese/
-    The digest is updated. cheese-0.0.2.ebuild is ready to emerge.
-
-* Known problems:
-
- - The first entry in the Most-Recently-Used list is shown without the path,
-   the other entries contain the full path (seems to be wxPython/wxGTK bug)
+    (new ebuild created with digest)
 

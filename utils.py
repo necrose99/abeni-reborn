@@ -94,7 +94,6 @@ def refresh_d(parent):
 def refresh_s(parent):
     """Refresh ${S} file browser"""
     s_dir = get_s(parent)
-    #print s_dir
     if s_dir:
         if os.path.exists(s_dir):
             #parent.sDir.onRefresh(-1)
@@ -171,9 +170,8 @@ def log_to_output(parent):
     #for l in lines:
     #    parent.Write(l)
     #t = commands.getoutput("sudo cat /var/tmp/abeni/emerge_log")
-    status, txt = sudo.cmd("cat /var/tmp/abeni/emerge_log")
-    print txt
-    print "updating log"
+    txt = commands.getoutput("cat %s" % parent.emerge_log)
+    #status, txt = sudo.cmd("cat /var/tmp/abeni/emerge_log")
     parent.text_ctrl_log.AppendText("%s\n" % txt)
 
 def export_ebuild(parent):
@@ -292,7 +290,6 @@ def fix_unpacked(parent):
     p = get_p(parent)
     d = '%s/portage/%s/work' % (PORTAGE_TMPDIR, p)
     d1 = '%s/portage/%s' % (PORTAGE_TMPDIR, p)
-    print d1
     do_sudo("chmod +g+xrw -R %s" % d1)
 
 def post_unpack(parent):
@@ -912,7 +909,6 @@ def overwrite(parent):
 
 def write_ebuild(parent):
     """Write ebuild file in PORTDIR_OVERLAY"""
-    new_ebuild = 0
     parent.ebuild_dir = get_ebuild_dir(parent)
     filename = make_ebuild_pathname(parent)
 
@@ -921,6 +917,8 @@ def write_ebuild(parent):
         if not os.path.exists(filename):
             if create_ebuild_paths(parent) == -1:
                 return
+    else:
+        new_ebuild = 0
 
     if os.path.exists(filename):
         if new_ebuild:
@@ -932,7 +930,18 @@ def write_ebuild(parent):
     parent.filehistory.AddFileToHistory(filename.strip())
     strip_cvs_header(parent)
     txt = strip_whitespace(parent)
-    f_out = open(filename, 'w')
+    try:
+        f_out = open(filename, 'w')
+    except IOError, msg:
+        user = os.environ.get("USER")
+        if user == None:
+            user = os.environ.get("LOGNAME")
+        my_msg = "\nMake sure your regular user owns overlay ebuilds:\n\n" + \
+                 "find %s -name '*.ebuild'|xargs chown %s" % \
+                 (PORTDIR_OVERLAY, user)
+        my_message(parent, "%s\n%s" % (msg, my_msg), "Error", "error")
+        return
+        
     f_out.write(txt)
     f_out.close()
     parent.ThisEd().EmptyUndoBuffer()
