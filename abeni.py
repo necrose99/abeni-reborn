@@ -880,20 +880,28 @@ class MyFrame(wxFrame):
         if self.SaveEbuild():
             filelist = []
             filelist.append(self.GetFilename())
+            # auto-add the digest
             filelist.append(self.env['FILESDIR']+"/digest-"+self.GetP())
             auxfilelist = [f for f in os.listdir(self.env['FILESDIR']) if f[:6] != "digest"]
             
-            # TODO: add all filenames that are present in the ebuild and ask 
-            # the user about the others. For now just ask the user for all files except digests
+            # add all filenames that are present in the ebuild and ask 
+            # the user about the others.
             # Hmm, the multi-choice dialog does not allow to pre-select anything
             # I'd like to select all files by default, but I guess that needs a custom dialog then.
-            msg = "Select the files you want to include in the tarball.\n(don't worry about the digest,\nit will be included automatically)"
-            fileselectdlg = wxMultipleChoiceDialog(self, msg, "Auxiliary file selection", 
-                                                   auxfilelist, size=(300,min([500,150+len(auxfilelist)*20])))
-            if fileselectdlg.ShowModal() == wxID_OK:
-                auxfilelist = [self.env['FILESDIR']+"/"+f for f in list(fileselectdlg.GetValueString())]
-            else:
-                return 0
+            ebuild_content = self.ebuildfile.editorCtrl.GetText()
+            for f in auxfilelist:
+                if re.search(f+"[^a-zA-Z0-9\-\.\?\*]", ebuild_content):
+                    filelist.append(self.env['FILESDIR']+"/"+f)
+                    self.write("auto adding file: " + f)
+                    auxfilelist.remove(f)
+            if len(auxfilelist) > 0:
+                msg = "Select the files you want to include in the tarball.\n(don't worry about the digest,\nit will be included automatically)"
+                fileselectdlg = wxMultipleChoiceDialog(self, msg, "Auxiliary file selection", 
+                                                       auxfilelist, size=(300,min([500,150+len(auxfilelist)*20])))
+                if fileselectdlg.ShowModal() == wxID_OK:
+                    auxfilelist = [self.env['FILESDIR']+"/"+f for f in list(fileselectdlg.GetValueString())]
+                else:
+                    return 0
             filelist += auxfilelist
             
             filelist = [f.replace(self.GetCategory()+"/", "") for f in filelist]
