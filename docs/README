@@ -1,9 +1,15 @@
 
-This is Abeni version 0.0.10.
-
 Any Python developers wishing to help out, please feel free to drop me
 an email.
 
 Rob Cakebread <pythonhead AT gentoo DOT org>
+
+I use wxGlade to create the GUI and individual dialogs. All the 
+.wxg files have /home/rob/abeni/*.py hard-coded in them, so you'll
+need to watch that.
+
+When working on the source code, you should have a version of Abeni
+emerged because it looks for some files such as icons in 
+/usr/share.
 
 
