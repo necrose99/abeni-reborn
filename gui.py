@@ -22,7 +22,7 @@ import FileCopyDialog
 import GetURIDialog
 import HelpCVSDialog
 import HelpFkeysDialog
-#import MetadataDialog
+import MetadataDialog
 import PortageFuncsDialog
 import PrefsDialog
 from URI_Link import MyURILink
@@ -30,7 +30,7 @@ import MyDatabase
 
 import pyipc
 import options 
-#import abeniCVS
+import abeniCVS
 
 env = config(clone=settings).environ()
 PORTDIR_OVERLAY = env['PORTDIR_OVERLAY'].split(" ")[0]
@@ -390,7 +390,7 @@ class MyFrame(wx.Frame):
         wx.EVT_TOOL(self, TB_EDIT_ID, self.OnMnuEdit)
 
         #Insert
-        wx.EVT_TOOL(self, TB_NEW_ID, self.OnMnuNewFunction)
+        wx.EVT_TOOL(self, TB_FUNC_ID, self.OnMnuNewFunction)
         wx.EVT_TOOL(self, mnuLicenseID, self.InsertLicense)
 
         #Tools
@@ -554,7 +554,8 @@ class MyFrame(wx.Frame):
         self.finddata = wx.FindReplaceData()
         #self.ExternalControlListen()
         self.ApplyPrefs()
-        self.menubar.Enable(self.mnuFullCommitID, False)
+        #CVS:
+        #self.menubar.Enable(self.mnuFullCommitID, False)
         #Load ebuild if specified on command line, by filename or by
         ## full package name
         if len(sys.argv) == 2:
@@ -998,28 +999,24 @@ class MyFrame(wx.Frame):
                 psplit = pkgsplit(p)
 
                 if psplit:
-                    uri_line = uri.replace(p, "${P}") 
+                    uri = uri.replace(p, "${P}") 
                 else:
-                    uri_line = uri.replace(p, "${MY_P}") 
+                    uri = uri.replace(p, "${MY_P}") 
             utils.Reset(self) 
             if psplit:
                 self.text_ctrl_PN.SetValue(psplit[0].lower())
                 self.text_ctrl_PVR.SetValue(psplit[1])
-            #if self.pref['log'] == 'window':
-            #    utils.LogWindow()
-            # In case we edit SRC_URI and forget what the
-            # original url is:
             if uri:
                 utils.write(self, '))) Pkg URI="%s"' % uri)
-
-            self.STCeditor.SetText(open("/usr/share/abeni/templates/%s" % template, 'r').read())
+            if val == wx.ID_OK:
+                self.STCeditor.SetText(open("/usr/share/abeni/templates/%s" % template, 'r').read())
             self.STCeditor.EmptyUndoBuffer()
             self.STCeditor.SetSavePoint()
             self.STCeditor.Show()
             self.window_1_pane_2.Hide()
             self.editing = 1
             self.saved = 0
-            self.FindReplace("SRC_URI", 'SRC_URI="%s"' % uri_line)
+            self.FindReplace("SRC_URI", 'SRC_URI="%s"' % uri)
             self.SetTitle("Abeni * The ebuild Builder " + __version__.version)
 
     def OnClose(self, event):

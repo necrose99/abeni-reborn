@@ -1,3 +1,4 @@
+
 import os
 import popen2
 import shutil
@@ -41,7 +42,6 @@ class CVS:
         #full path to PORTDIR_OVERLAY ebuild:
         self.overlay_file = self.parent.filename
         self.overlay_dir = os.path.dirname(self.overlay_file)
-        self.userName = self.parent.pref['userName']
         if not os.path.exists(self.cvsEbuildDir):
             self.newPackage = 1
         else:
@@ -52,7 +52,7 @@ class CVS:
         self.cmsg = ""
 
     def FullCommit(self):
-        """Does the whole repoman CVS commit dealio"""
+        """Do the whole repoman CVS commit dealio"""
 
         try:
             cur_dir = os.getcwd()
@@ -141,14 +141,11 @@ class CVS:
             #    utils.write(self.parent, "!!! Failed to copy metadata.xml.")
             #    utils.write(self.parent, "!!! Aborted CVS commit.")
             #    return
-            self.FixPerms()
             busy = wxBusyInfo("Adding metadata...")
             self.CVSAdd("metadata.xml")
 
-        self.FixPerms()
         # Create digest for ebuild (should auto-add to cvs)
         self.CreateDigest()
-        wxYield()
         busy = None
 
         # echangelog dialog
@@ -164,7 +161,6 @@ class CVS:
         if self.newPackage:
             self.CVSAdd("ChangeLog")
 
-        wxYield()
 
         # Get commit message (could be same as echangelog msg)
         r = self.GetMsg("Enter CVS commit message                                ", \
@@ -181,7 +177,6 @@ class CVS:
         dlg.ShowModal()
         dlg.Destroy()
 
-        wxYield()
 
         msg = "Happy with repoman full?\nDo you want to run:\n \
               /usr/bin/repoman --pretend commit -m " + self.cmsg
@@ -198,16 +193,14 @@ class CVS:
             utils.write(self.parent, "!!! CVS commit Cancelled.")
             return
 
-        wxYield()
         msg = 'Happy with repoman --pretend commit?\nDo you want to run:\n \
-              /usr/bin/repoman commit -m %s\n\n \
+              /usr/bin/repoman commit -m "%s"\n\n \
               WARNING: This will actually COMMIT to CVS with repoman!' % self.cmsg
 
         if (utils.MyMessage(self.parent, msg, "repoman commit", "info", 1)):
             busy = wxBusyInfo("Running repoman commit...")
-            self.SyncExecute('PORTDIR_OVERLAY=%s /usr/bin/repoman commit -m %s' % (self.cvsEbuildDir, self.cmsg))
+            self.SyncExecute('PORTDIR_OVERLAY=%s /usr/bin/repoman commit -m "%s"' % (self.cvsEbuildDir, self.cmsg))
             busy=None
-            wxYield()
             utils.write(self.parent,"))) Repoman commit finished.")
         else:
             utils.write(self.parent, "!!! CVS commit Cancelled.")
@@ -267,6 +260,7 @@ class CVS:
         """Create CVSroot/category/package directory"""
         try:
             self.SyncExecute("mkdir %s" % self.cvsEbuildDir)
+            self.SyncExecute("mkdir %s/files" % self.cvsEbuildDir)
             return 1
         except:
             return 0
@@ -281,7 +275,6 @@ class CVS:
         """Copy ebuild from PORT_OVERLAY to CVSroot/category/package/"""
         try:
             shutil.copy(self.overlay_file, self.cvsEbuildDir)
-            self.FixPerms()
             return 1
         except:
             return 0
@@ -295,13 +288,9 @@ class CVS:
         except:
             return 0
 
-    def FixPerms(self):
-        """ Nothing in CVS should be owned as root """
-        os.system("chown %s:portage -R %s/*" % (self.userName, self.cvsEbuildDir))
 
     def Repoman(self, args):
         """/usr/bin/repoman"""
-        self.FixPerms()
         cmd = "/usr/bin/repoman %s" % (args)
         self.Execute(cmd)
 
@@ -327,6 +316,7 @@ class CVS:
 
     def CVSAddDir(self):
         cmd = "/usr/bin/cvs add %s" % self.package
+        cmd = "/usr/bin/cvs add %s/files" % self.package
         self.SyncExecute(cmd)
 
     def CVSAdd(self, file):
@@ -334,14 +324,14 @@ class CVS:
         self.SyncExecute(cmd)
 
     def Execute(self, cmd):
-        su_cmd = '''su %s -c ". ~%s/.keychain/localhost-sh; %s"''' % (self.userName, self.userName, cmd)
-        utils.write(self.parent, "))) Executing:\n)))  %s" % su_cmd)
-        utils.ExecuteInLog(self.parent, su_cmd)
+        cmd = ". ~/.keychain/localhost-sh; %s" % cmd
+        utils.write(self.parent, "))) Executing:\n)))  %s" % cmd)
+        utils.ExecuteInLog(self.parent, cmd)
 
     def SyncExecute(self, cmd, ret=0, strip_color=0):
-        su_cmd = '''su %s -c ". ~%s/.keychain/localhost-sh; %s"''' % (self.userName, self.userName, cmd)
-        utils.write(self.parent, "))) Executing:\n)))  %s" % su_cmd)
-        a = popen2.Popen4(su_cmd , 1)
+        cmd = ". ~/.keychain/localhost-sh; %s" % cmd
+        utils.write(self.parent, "))) Executing:\n)))  %s" % cmd)
+        a = popen2.Popen4(cmd , 1)
         inp = a.fromchild
         lines = "" 
         l = inp.readline()
