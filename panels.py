@@ -238,3 +238,20 @@ class install(wxPanel):
                         "make DESTDIR=${D} install || die",
                     "}"
                   ])
+
+
+class NewFunction(wxPanel):
+
+    """Add notebook page for new function, using a simple text editor"""
+
+    def __init__(self, parent, statusbar, pref):
+        wxPanel.__init__(self, parent, -1)
+        self.statusbar = statusbar
+        self.pref = pref
+        self.parent=parent
+        self.edNewFun = wxEditor(self, -1, style=wxSUNKEN_BORDER)
+        box = wxBoxSizer(wxVERTICAL)
+        box.Add(self.edNewFun, 1, wxALL|wxGROW, 1)
+        self.SetSizer(box)
+        self.SetAutoLayout(True)
+        self.edNewFun.SetText([""])

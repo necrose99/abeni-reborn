@@ -68,8 +68,10 @@ class MyFrame(wxFrame):
 
         # Edit
         menu_edit = wxMenu()
-        mnuEditID = wxNewId()
-        menu_edit.Append(mnuEditID, "&New Variable")
+        mnuNewVariableID = wxNewId()
+        mnuNewFunctionID = wxNewId()
+        menu_edit.Append(mnuNewVariableID, "New &Variable")
+        menu_edit.Append(mnuNewFunctionID, "New &Function")
         menubar.Append(menu_edit, "&Edit")
 
         # Options
@@ -91,7 +93,8 @@ class MyFrame(wxFrame):
         EVT_MENU(self, mnuLoadID, self.OnMnuLoad)
         EVT_MENU(self, mnuNewID, self.OnMnuNew)
         EVT_MENU(self, mnuNewFromID, self.OnMnuNewFrom)
-        EVT_MENU(self, mnuEditID, self.OnMnuNewVariable)
+        EVT_MENU(self, mnuNewVariableID, self.OnMnuNewVariable)
+        EVT_MENU(self, mnuNewFunctionID, self.OnMnuNewFunction)
         EVT_MENU(self, mnuPrefID, self.OnMnuPref)
         EVT_MENU(self, mnuAboutID, self.OnMnuAbout)
         EVT_MENU(self, mnuHelpID, self.OnMnuHelp)
@@ -106,20 +109,40 @@ class MyFrame(wxFrame):
         #Create Toolbar with icons
 
         newID = wxNewId()
-        closeID = wxNewId()
+        #closeID = wxNewId()
+        openID = wxNewId()
+        saveID = wxNewId()
+        newVarID = wxNewId()
+        newFunID = wxNewId()
         helpID = wxNewId()
         self.tb = self.CreateToolBar(wxTB_HORIZONTAL|wxNO_BORDER|wxTB_FLAT)
         newBmp = ('%s/Images/new.bmp' % appdir)
-        closeBmp = ('%s/Images/close.bmp' % appdir)
+        saveBmp = ('%s/Images/save.bmp' % appdir)
+        openBmp = ('%s/Images/open.bmp' % appdir)
+        #closeBmp = ('%s/Images/close.bmp' % appdir)
+        newVarBmp = ('%s/Images/new_var.bmp' % appdir)
+        newFunBmp = ('%s/Images/new_fun.bmp' % appdir)
         helpBmp = ('%s/Images/help.bmp' % appdir)
         self.tb.AddSimpleTool(newID, wxBitmap(newBmp, wxBITMAP_TYPE_BMP), \
                                 "Create new ebuild", "Create New ebuild")
-        self.tb.AddSimpleTool(closeID, wxBitmap(closeBmp, wxBITMAP_TYPE_BMP), \
-                                "Close ebuild", "Close ebuild")
+        self.tb.AddSimpleTool(openID, wxBitmap(openBmp, wxBITMAP_TYPE_BMP), \
+                                "Open ebuild", "Open ebuild")
+        self.tb.AddSimpleTool(saveID, wxBitmap(saveBmp, wxBITMAP_TYPE_BMP), \
+                                "Save ebuild", "Save ebuild")
+        #self.tb.AddSimpleTool(closeID, wxBitmap(closeBmp, wxBITMAP_TYPE_BMP), \
+        #                        "Close ebuild", "Close ebuild")
+        self.tb.AddSimpleTool(newVarID, wxBitmap(newVarBmp, wxBITMAP_TYPE_BMP), \
+                                "New Variable", "New Variable")
+        self.tb.AddSimpleTool(newFunID, wxBitmap(newFunBmp, wxBITMAP_TYPE_BMP), \
+                                "New Function", "New Function")
         self.tb.AddSimpleTool(helpID, wxBitmap(helpBmp, wxBITMAP_TYPE_BMP ), \
                                 "Help", "Abeni Help")
         self.tb.Realize()
         EVT_TOOL(self, newID, self.OnMnuNew)
+        EVT_TOOL(self, newVarID, self.OnMnuNewVariable)
+        EVT_TOOL(self, newFunID, self.OnMnuNewFunction)
+        EVT_TOOL(self, saveID, self.OnMnuSave)
+        #EVT_TOOL(self, openID, self.OnMnuOpen)
         EVT_TOOL_ENTER(self, -1, self.OnToolZone)
         EVT_TIMER(self, -1, self.OnClearSB)
         self.timer = None
@@ -151,6 +174,8 @@ class MyFrame(wxFrame):
 
     def OnMnuNewVariable(self, event):
         """Add new variable to Main panel"""
+        if not self.editing:
+            return
         dlg = wxTextEntryDialog(self, 'New Variable Name:',
                             'Enter Variable Name', 'test')
         dlg.SetValue("")
@@ -159,6 +184,19 @@ class MyFrame(wxFrame):
             self.panelMain.AddVar(newVariable)
         dlg.Destroy()
 
+    def OnMnuNewFunction(self, event):
+        """Add page in notebook for a new function"""
+        if not self.editing:
+            return
+        dlg = wxTextEntryDialog(self, 'New Function:',
+                        'Enter Function Name', 'test')
+        dlg.SetValue("()")
+        if dlg.ShowModal() == wxID_OK:
+            newFunction = dlg.GetValue()
+            self.panelNewFunction=panels.NewFunction(self.nb, self.sb, self.pref)
+            self.nb.AddPage(self.panelNewFunction, newFunction)
+            self.panelNewFunction.edNewFun.SetText([newFunction + "{\n", "\n", "}\n"])
+        dlg.Destroy()
 
     def OnMnuHelp(self, event):
         """Display html help file"""
@@ -187,7 +225,7 @@ class MyFrame(wxFrame):
         self.panelMain.Ebuild.SetValue(myData['ebuild'])
         self.panelMain.EbuildFile.SetValue(myData['ebuild_file'])
         self.panelMain.URI.SetValue(myData['src_uri'])
-        self.panelMain.Rev.SetValue(myData['rev'])
+        #self.panelMain.Rev.SetValue(myData['rev'])
         self.panelMain.Homepage.SetValue(myData['homepage'])
         self.panelMain.Desc.SetValue(myData['desc'])
         self.panelMain.USE.SetValue(myData['iuse'])
@@ -196,6 +234,8 @@ class MyFrame(wxFrame):
 
     def OnMnuSave(self, event):
         """Save ebuild file to disk"""
+        if not self.editing:
+            return
         if self.checkEntries():
             myData = self.GatherData()
             file = open(self.panelMain.Ebuild.GetValue() + ".abeni", 'w')
@@ -239,8 +279,8 @@ class MyFrame(wxFrame):
         self.panelChangelog=panels.changelog(self.nb, self.sb, self.pref)
         self.nb.AddPage(self.panelMain, "Main")
         self.nb.AddPage(self.panelDepend, "Dependencies")
-        self.nb.AddPage(self.panelCompile, "Compile")
-        self.nb.AddPage(self.panelInstall, "Install")
+        self.nb.AddPage(self.panelCompile, "src_compile()")
+        self.nb.AddPage(self.panelInstall, "src_install()")
         self.nb.AddPage(self.panelChangelog, "Changelog")
 
     def OnMnuNewFrom(self,event):
@@ -273,7 +313,7 @@ class MyFrame(wxFrame):
         myData['desc'] = self.panelMain.Desc.GetValue()
         myData['homepage'] = self.panelMain.Homepage.GetValue()
         myData['src_uri'] = self.panelMain.URI.GetValue()
-        myData['rev'] = self.panelMain.Rev.GetValue()
+        #myData['rev'] = self.panelMain.Rev.GetValue()
         myData['license'] = self.panelMain.License
         myData['slot'] = self.panelMain.Slot.GetValue()
         myData['keywords'] = self.panelMain.Keywords.GetValue()
@@ -360,7 +400,7 @@ class GetURIDialog(wxDialog):
         label = wxStaticText(self, -1, "Package URI:")
         label.SetHelpText("Enter the URI for the package. This can be a URL like 'http://..' or a path to a file.")
         box.Add(label, 0, wxALIGN_CENTRE|wxALL, 5)
-        self.URI = wxTextCtrl(self, -1, "http://", size=(280,-1))
+        self.URI = wxTextCtrl(self, -1, "http://abeni.sf.net/abeni-1.2.3.tgz", size=(280,-1))
         self.URI.SetHelpText("Enter the URI for the package. This can be a URL like 'http://...' or a path to a file.")
         box.Add(self.URI, 1, wxALIGN_CENTRE|wxALL, 5)
         sizer.AddSizer(box, 0, wxGROW|wxALIGN_CENTER_VERTICAL|wxALL, 5)
@@ -398,4 +438,3 @@ class MyApp(wxApp):
 
 app=MyApp(0)
 app.MainLoop()
-
