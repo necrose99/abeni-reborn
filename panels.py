@@ -55,6 +55,9 @@ class main(wxPanel):
         text6 = wxStaticText(self, -1, "DESCRIPTION")
         self.Desc = wxTextCtrl(self, wxNewId(), "", wxPoint(0,0), wxSize(250, 20))
         row+=30
+        text65 = wxStaticText(self, -1, "S")
+        self.S = wxTextCtrl(self, wxNewId(), "", wxPoint(0,0), wxSize(250, 20))
+        row+=30
         text7 = wxStaticText(self, -1, "IUSE")
         self.USE = wxTextCtrl(self, wxNewId(), "", wxPoint(0,0), wxSize(250, 20))
         row+=30
@@ -75,6 +78,7 @@ class main(wxPanel):
         self.group2_ctrls.append((text3, self.URI))
         self.group2_ctrls.append((text5, self.Homepage))
         self.group2_ctrls.append((text6, self.Desc))
+        self.group2_ctrls.append((text65, self.S))
         self.group2_ctrls.append((text7, self.USE))
         self.group2_ctrls.append((text8, self.Slot))
         self.group2_ctrls.append((text9, self.Keywords))
