@@ -13,6 +13,7 @@ from portage import config, portdb, db, pkgsplit, catpkgsplit, settings
 sys.path.insert(0, "/usr/lib/gentoolkit/pym")
 import gentoolkit
 
+import sudo
 import options
 import __version__
 
@@ -136,36 +137,38 @@ def LogBottom(parent, log):
     parent.text_ctrl_log.Show(True)
     parent.pref['log'] = 'bottom'
 
-
 def PostAction(parent, action):
     """Execute code after asynchronous job done with ExecuteInLog finishes"""
     if action == "setup":
         ViewEnvironment(parent)
-        parent.RefreshExplorer()
+        parent.filesDir.onRefresh(-1)
+        #parent.sDir.onRefresh(-1)
     if action == "clean":
         parent.Write("))) All clean.")
-        parent.RefreshExplorer()
+        parent.filesDir.onRefresh(-1)
         ViewEnvironment(parent)
     if action == 'digest':
-        parent.RefreshExplorer()
+        parent.filesDir.onRefresh(-1)
     if action == 'unpack':
         PostUnpack(parent)
-        parent.RefreshExplorer()
+        parent.filesDir.onRefresh(-1)
+        #parent.sDir.onRefresh(-1)
     if action == 'compile':
-        parent.RefreshExplorer()
+        #parent.sDir.onRefresh(-1)
         LogToOutput(parent)
         parent.Write("))) compile finished")
     if action == 'install':
         PostInstall(parent)
         LogToOutput(parent)
-        parent.RefreshExplorer()
+        #parent.sDir.onRefresh(-1)
         parent.Write("))) install finished")
     if action == 'qmerge':
-        parent.RefreshExplorer()
+        #parent.sDir.onRefresh(-1)
         LogToOutput(parent)
         parent.Write("))) qmerge finished")
     if action == 'emerge':
-        parent.RefreshExplorer()
+        #parent.sDir.onRefresh(-1)
+        parent.filesDir.onRefresh(-1)
         LogToOutput(parent)
         parent.Write("))) emerge finished")
     parent.statusbar.SetStatusText("%s done." % action, 0)
@@ -176,8 +179,9 @@ def LogToOutput(parent):
     #lines = commands.getoutput("sudo cat /var/tmp/abeni/emerge_log").splitlines()
     #for l in lines:
     #    parent.Write(l)
-    t = commands.getoutput("sudo cat /var/tmp/abeni/emerge_log")
-    parent.text_ctrl_log.AppendText("%s\n" % t)
+    #t = commands.getoutput("sudo cat /var/tmp/abeni/emerge_log")
+    status, txt = sudo.cmd("cat /var/tmp/abeni/emerge_log")
+    parent.text_ctrl_log.AppendText("%s\n" % txt)
 
 def ExportEbuild(parent):
     """Export ebuild directory to tar file"""
@@ -242,12 +246,17 @@ def ExportEbuild(parent):
     else:
         return 0
 
+def DoSudo(cmd):
+    """Execute command with sudo"""
+    status, output = sudo.cmd(cmd)
+    return status, output
+    
 def PostInstall(parent):
     """Change group perms of files in ${D} so we can read them"""
     p = GetP(parent)
     d = '%s/portage/%s/image' % (PORTAGE_TMPDIR, p)
-    os.system("sudo chmod +g+r -R %s" %  d)
-    os.system("sudo chmod +g+xr %s" %  d)
+    DoSudo("chmod +g+r -R %s" %  d)
+    DoSudo("chmod +g+xr %s" %  d)
 
 def GetStatus(parent):
     """Let us know if ebuild has been unpacked, comiled and installed"""
@@ -276,23 +285,14 @@ def FixUnpacked(parent):
     p = GetP(parent)
     d = '%s/portage/%s/work' % (PORTAGE_TMPDIR, p)
     d1 = '%s/portage/%s' % (PORTAGE_TMPDIR, p)
-    #uname = pwd.getpwuid(os.getuid())[0]
-    #Yay! Can we say 'kludge'?
-    #print uname, d
-    #os.system("sudo chown %s -R %s" % (uname, d1))
-    os.system("sudo chmod +g+xrw -R %s &" % d1)
+    DoSudo("chmod +g+xrw -R %s" % d1)
 
 def PostUnpack(parent):
     """Report what directories were unpacked, try to set S if necessary"""
     p = GetP(parent)
     d = '%s/portage/%s/work' % (PORTAGE_TMPDIR, p)
     d1 = '%s/portage/%s' % (PORTAGE_TMPDIR, p)
-    #uname = pwd.getpwuid(os.getuid())[0]
-    #Yay! Can we say 'kludge'?
-    #print uname, d
-    #os.system("sudo chown %s -R %s" % (uname, d1))
     FixUnpacked(parent)
-    #print "done"
     try:
         lines = os.listdir(d)
     except:
@@ -392,12 +392,12 @@ def DeleteEbuild(parent):
     val = dlg.ShowModal()
     if val == wx.ID_YES:
         try:
-            os.system("sudo rm -r %s" % d)
+            DoSudo("rm -r %s" % d)
             #See if category is empty, if not delete it
             pd = os.path.abspath("%s/.." % d)
             if not os.listdir(pd):
                 try:
-                    os.system("sudo rmdir %s" % pd)
+                    DoSudo("rmdir %s" % pd)
                 except:
                     msg = "Couldn't delete empty category directory %s" % pd
                     MyMessage(parent, msg, "Error", "error")
@@ -411,6 +411,7 @@ def SaveEbuild(parent):
     if not msg:
         WriteEbuild(parent)
         parent.saved = 1
+        parent.EnableSaveToolbar(False)
         #DoTitle(parent)
         return 1
     else:
@@ -491,16 +492,6 @@ def checkEntries(parent):
     if not pvr:
         msg = "You need to set $PVR (Package Version)"
         return msg
-
-def DoTitle(parent):
-    """Set application's titlebar"""
-    p = parent.GetParent()
-    if p.STCeditor.GetModify():
-        p.SetTitle("*" + GetP(p) + " - Abeni " + __version__.version)
-        #p.EnableSaveTool(True)
-    else:
-        p.SetTitle(GetP(p) + " - Abeni " + __version__.version)
-        #p.EnableSaveTool(False)
 
 def LoadByPackage(parent, query):
     """Offer list of ebuilds when given a package or filename on command line"""
@@ -722,11 +713,8 @@ def LoadEbuild(parent, filename):
     #Check if ebuild has syntax errors before loading.
     #If there are errors ask if they want to edit it in external editor.
     #Try to load again after exiting external editor.
-    #busy = wx.BusyInfo("Checking syntax...")
-    os.system("chmod +x %s" % filename)
     cmd = "/bin/bash -n %s" % filename
     r, out = RunExtProgram(cmd)
-    os.system("chmod -x %s" % filename)
     if r:
         busy=None
         parent.Write("Ebuild syntax is incorrect - /bin/bash found an error:")
@@ -771,6 +759,18 @@ def LoadEbuild(parent, filename):
     parent.window_3.set_uri(v, v)
     if parent.db:
         LoadDbRecord(parent)
+    f = "%s/files/" % os.path.split(filename)[0]
+    parent.filesDir.populate(f)
+    if IsOverlay(parent, filename):
+        parent.button_filesdir_edit.Enable(True)
+        parent.button_filesdir_new.Enable(True)
+        parent.button_filesdir_download.Enable(True)
+        parent.button_filesdir_delete.Enable(True)
+    else:
+        parent.button_filesdir_edit.Enable(False)
+        parent.button_filesdir_new.Enable(False)
+        parent.button_filesdir_download.Enable(False)
+        parent.button_filesdir_delete.Enable(False)
 
 def LoadDbRecord(parent):
     """Load db record for current ebuild"""

@@ -35,7 +35,6 @@ class AbstractFileWindow(wx.Panel):
 
         sizer = wx.BoxSizer(wx.VERTICAL)
         sizer.Add(self.list, 1, wx.EXPAND)
-        #sizer.Add(status_bar, 0, wx.EXPAND)
         self.SetAutoLayout(True)
         self.SetSizer(sizer)
 
@@ -45,7 +44,7 @@ class AbstractFileWindow(wx.Panel):
         self.dir = None
 
         # Set up the interactivity
-        #wx.EVT_LEFT_DCLICK(self.list, self.onDoubleClick)
+        wx.EVT_LEFT_DCLICK(self.list, self.onDoubleClick)
         wx.EVT_RIGHT_DOWN(self.list, self.onRightClick)
 
     def selectBitmapIndex(self, flags):
@@ -65,8 +64,8 @@ class AbstractFileWindow(wx.Panel):
     def getDir(self):
         return self.dir
 
-    #def onDoubleClick(self, event):
-    #    raise NotImplementedError
+    def onDoubleClick(self, event):
+        raise NotImplementedError
 
     def onRightClick(self, event):
         raise NotImplementedError
@@ -122,21 +121,13 @@ class AbstractFileWindow(wx.Panel):
         index = self.list.FindItem(-1, file)
         return file_utils.getColumnText(self.list, index, 2)
 
-class LocalWindow(AbstractFileWindow):
+class MyBrowser(AbstractFileWindow):
 
     idPOPUP_UPLOAD  = wx.NewId()
     idPOPUP_RENAME  = wx.NewId()
     idPOPUP_DELETE  = wx.NewId()
     idPOPUP_CREATE  = wx.NewId()
     idPOPUP_CHMOD   = wx.NewId()
-    idPOPUP_CHANGE  = wx.NewId()
-    idPOPUP_REFRESH = wx.NewId()
-    idPOPUP_HIDDEN  = wx.NewId()
-    idPOPUP_UNSORT  = wx.NewId()
-    idPOPUP_BYNAME  = wx.NewId()
-    idPOPUP_BYSIZE  = wx.NewId()
-    idPOPUP_BYDATE  = wx.NewId()
-    idPOPUP_ORDER   = wx.NewId()
 
     time_re = re.compile('[A-Za-z]+\s+([A-Za-z]+\s+\d+\s+\d+:\d+):(\d+)\s+\d+')
 
@@ -144,11 +135,11 @@ class LocalWindow(AbstractFileWindow):
         if __debug__:
             pass
 
-        self.headers = [ "Filename", "Size", "Date", "Flags" ]
+        self.headers = [ "Filename", "Size", "Date", "Perms" ]
         AbstractFileWindow.__init__(self, parent, self.headers)
 
         # Set the date alignment
-        file_utils.setListColumnAlignment(self.list, 2, wx.LIST_FORMAT_RIGHT)
+        #file_utils.setListColumnAlignment(self.list, 2, wx.LIST_FORMAT_RIGHT)
 
         # Set the headings sizes accordingly
         for i in range(len(self.headers)):
@@ -156,21 +147,16 @@ class LocalWindow(AbstractFileWindow):
         # Explicitly make the filenames column bigger
         self.list.SetColumnWidth(0, 200)
 
-        # Open up the default directory for display
-        self.setDir(os.getcwd())
-        if os.environ.has_key('HOME'):
-            self.setDir(os.environ['HOME'])
-        else:
-            self.setDir(os.getcwd())
-
+    def populate(self, myDir):
+        self.setDir(myDir)
         self.last_listing = None
         self.updateListing(self.getDir())
 
-    #def onDoubleClick(self, event):
-    #    item = self.list.GetNextItem(-1, wx.LIST_NEXT_ALL, wx.LIST_STATE_SELECTED)
-    #    if item != -1:
-    #        selected = util.getColumnText(self.list, item, 0)
-    #        self.updateListing(selected)
+    def onDoubleClick(self, event):
+        item = self.list.GetNextItem(-1, wx.LIST_NEXT_ALL, wx.LIST_STATE_SELECTED)
+        if item != -1:
+            selected = file_utils.getColumnText(self.list, item, 0)
+            self.updateListing(selected)
 
     def onRightClick(self, event):
         menu = self.makePopupMenu()
@@ -189,7 +175,14 @@ class LocalWindow(AbstractFileWindow):
         wx.EVT_MENU(self, self.idPOPUP_REFRESH, self.onRefresh)
         return menu
 
+    def getFilename(self):
+        """Return full path to selected files"""
+        selected = file_utils.getSelected(self.list)
+        file = file_utils.getColumnText(self.list, selected[0], 0)
+        return os.path.join(self.getDir(), file)
+
     def onDelete(self, event):
+        """Delete selected files"""
         selected = file_utils.getSelected(self.list)
         for item in selected:
             file = file_utils.getColumnText(self.list, item, 0)
@@ -302,6 +295,7 @@ class LocalWindow(AbstractFileWindow):
             except OSError, strerror:
                 # Set the size and mtime to 0 then and carry on if we can't stat
                 # the file for some reason but know it's there
+                print strerror
                 st_size = 0
                 st_mtime = 0
 

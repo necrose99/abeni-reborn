@@ -19,6 +19,7 @@ import AboutDialog
 import AddFunctionDialog
 import EmergeDialog
 import FileCopyDialog
+from GentooSTC import GentooSTC
 import GetURIDialog
 import HelpCVSDialog
 import HelpFkeysDialog
@@ -26,7 +27,7 @@ import MetadataDialog
 import PortageFuncsDialog
 import PrefsDialog
 from URI_Link import MyURILink
-from FileBrowser import LocalWindow
+from FileBrowser import MyBrowser
 import MyDatabase
 import pyipc
 import options 
@@ -45,20 +46,24 @@ class MyFrame(wx.Frame):
         # begin wxGlade: MyFrame.__init__
         kwds["style"] = wx.DEFAULT_FRAME_STYLE
         wx.Frame.__init__(self, *args, **kwds)
-        self.panel_1 = wx.Panel(self, -1)
-        self.splitter = wx.SplitterWindow(self.panel_1, -1, style=wx.SP_3D|wx.SP_BORDER)
+        self.panel_main = wx.Panel(self, -1)
+        self.splitter = wx.SplitterWindow(self.panel_main, -1, style=wx.SP_3D|wx.SP_BORDER)
         self.notebook_1 = wx.Notebook(self.splitter, -1, style=wx.NB_BOTTOM)
-        self.notebook_1_pane_5 = wx.Panel(self.notebook_1, -1)
-        self.notebook_1_pane_4 = wx.Panel(self.notebook_1, -1)
+        self.notebook_s = wx.Panel(self.notebook_1, -1)
+        self.notebook_filesdir = wx.Panel(self.notebook_1, -1)
+        self.notebook_notes = wx.Panel(self.notebook_1, -1)
         self.panel_environment = wx.Panel(self.notebook_1, -1)
         self.panel_explorer = wx.Panel(self.notebook_1, -1)
         self.window_1 = wx.SplitterWindow(self.panel_explorer, -1, style=wx.SP_3DBORDER|wx.SP_BORDER)
         self.window_1_pane_2 = wx.Panel(self.window_1, -1)
         self.window_1_pane_1 = wx.Panel(self.window_1, -1)
         self.panel_log = wx.Panel(self.notebook_1, -1)
-        self.sizer_18_staticbox = wx.StaticBox(self.notebook_1_pane_4, -1, "Notes")
-        self.sizer_15_staticbox = wx.StaticBox(self.notebook_1_pane_4, -1, "")
-        self.panel_cpvr = wx.Panel(self.panel_1, -1)
+        self.splitter_2 = wx.SplitterWindow(self.splitter, -1, style=wx.SP_3D|wx.SP_BORDER)
+        self.panel_top_log = wx.Panel(self.splitter_2, -1)
+        self.panel_editor = wx.Panel(self.splitter_2, -1)
+        self.sizer_notes_staticbox = wx.StaticBox(self.notebook_notes, -1, "Notes")
+        self.sizer_sql_staticbox = wx.StaticBox(self.notebook_notes, -1, "")
+        self.panel_cpvr = wx.Panel(self.panel_main, -1)
         
         # Menu Bar
         self.menubar = wx.MenuBar()
@@ -96,6 +101,8 @@ class MyFrame(wx.Frame):
         global mnuViewMetadataID; mnuViewMetadataID = wx.NewId()
         global mnuViewChangeLogID; mnuViewChangeLogID = wx.NewId()
         global mnuClearLogID; mnuClearLogID = wx.NewId()
+        global mnuBottomLogID; mnuBottomLogID = wx.NewId()
+        global mnuTopLogID; mnuTopLogID = wx.NewId()
         global mnuPrefID; mnuPrefID = wx.NewId()
         global mnuHelpID; mnuHelpID = wx.NewId()
         global mnuHelpRefID; mnuHelpRefID = wx.NewId()
@@ -152,6 +159,11 @@ class MyFrame(wx.Frame):
         self.menubar.Append(wxglade_tmp_menu, "&View")
         self.menu_options = wx.Menu()
         self.menu_options.Append(mnuClearLogID, "&Clear log window\tF11", "", wx.ITEM_NORMAL)
+        self.menu_options.AppendSeparator()
+        self.BottomLog = wx.MenuItem(self.menu_options, mnuBottomLogID, "Bottom", "", wx.ITEM_RADIO)
+        self.menu_options.AppendItem(self.BottomLog)
+        self.TopLog = wx.MenuItem(self.menu_options, mnuTopLogID, "Top", "", wx.ITEM_RADIO)
+        self.menu_options.AppendItem(self.TopLog)
         self.menubar.Append(self.menu_options, "Lo&g")
         wxglade_tmp_menu = wx.Menu()
         wxglade_tmp_menu.Append(mnuPrefID, "&Preferences", "", wx.ITEM_NORMAL)
@@ -216,8 +228,9 @@ class MyFrame(wx.Frame):
         self.label_PVR = wx.StaticText(self.panel_cpvr, -1, "$PVR")
         self.text_ctrl_PVR = wx.TextCtrl(self.panel_cpvr, -1, "")
         self.button_1 = wx.ToggleButton(self.panel_cpvr, -1, "noauto")
-        self.static_line_3 = wx.StaticLine(self.panel_1, -1)
-        self.STCeditor = GentooSTC(self.splitter, -1)
+        self.static_line_3 = wx.StaticLine(self.panel_main, -1)
+        self.STCeditor = GentooSTC(self.panel_editor, self, self.toolbar, TB_SAVE_ID)
+        self.text_ctrl_top_log = wx.TextCtrl(self.panel_top_log, -1, "", style=wx.TE_MULTILINE|wx.TE_READONLY)
         self.text_ctrl_log = wx.TextCtrl(self.panel_log, -1, "", style=wx.TE_MULTILINE|wx.TE_READONLY)
         global treeID; treeID = wx.NewId()
         self.tree_ctrl_1 = wx.TreeCtrl(self.window_1_pane_1, treeID, style=wx.SUNKEN_BORDER)
@@ -229,11 +242,21 @@ class MyFrame(wx.Frame):
         self.text_ctrl_environment = wx.TextCtrl(self.panel_environment, -1, "", style=wx.TE_MULTILINE|wx.TE_READONLY)
         self.button_env_refresh = wx.Button(self.panel_environment, -1, "Refresh")
         self.radio_box_env = wx.RadioBox(self.panel_environment, -1, "View", choices=["Brief", "Full"], majorDimension=1, style=wx.RA_SPECIFY_ROWS)
-        self.button_bugzilla = wx.Button(self.notebook_1_pane_4, -1, "Bugzilla number:")
-        self.text_ctrl_bugz = wx.TextCtrl(self.notebook_1_pane_4, -1, "")
-        self.window_3 = MyURILink(self.notebook_1_pane_4, -1)
-        self.text_ctrl_notes = wx.TextCtrl(self.notebook_1_pane_4, -1, "", style=wx.TE_MULTILINE)
-        self.window_2 = LocalWindow(self.notebook_1_pane_5)
+        self.button_bugzilla = wx.Button(self.notebook_notes, -1, "Bugzilla number:")
+        self.text_ctrl_bugz = wx.TextCtrl(self.notebook_notes, -1, "")
+        self.window_3 = MyURILink(self.notebook_notes, -1)
+        self.text_ctrl_notes = wx.TextCtrl(self.notebook_notes, -1, "", style=wx.TE_MULTILINE)
+        self.filesDir = MyBrowser(self.notebook_filesdir)
+        self.button_filesdir_view = wx.Button(self.notebook_filesdir, -1, "View")
+        self.button_filesdir_edit = wx.Button(self.notebook_filesdir, -1, "Edit")
+        self.button_filesdir_new = wx.Button(self.notebook_filesdir, -1, "New File")
+        self.button_filesdir_download = wx.Button(self.notebook_filesdir, -1, "Download")
+        self.button_filesdir_delete = wx.Button(self.notebook_filesdir, -1, "Delete")
+        self.sDir = MyBrowser(self.notebook_s)
+        self.button_s_view = wx.Button(self.notebook_s, -1, "View")
+        self.button_s_edit = wx.Button(self.notebook_s, -1, "Edit")
+        self.button_s_delete = wx.Button(self.notebook_s, -1, "Delete")
+        self.button_s_patch = wx.Button(self.notebook_s, -1, "Patch")
 
         self.__set_properties()
         self.__do_layout()
@@ -245,7 +268,7 @@ class MyFrame(wx.Frame):
         _icon = wx.EmptyIcon()
         _icon.CopyFromBitmap(wx.Bitmap("/usr/share/pixmaps/abeni/abeni_logo16.png", wx.BITMAP_TYPE_ANY))
         self.SetIcon(_icon)
-        self.SetSize((882, 696))
+        self.SetSize((882, 811))
         self.statusbar.SetStatusWidths([-1, 400])
         # statusbar fields
         statusbar_fields = ["", ""]
@@ -268,43 +291,59 @@ class MyFrame(wx.Frame):
 
     def __do_layout(self):
         # begin wxGlade: MyFrame.__do_layout
-        sizer_1 = wx.BoxSizer(wx.VERTICAL)
-        sizer_2 = wx.BoxSizer(wx.VERTICAL)
-        sizer_19 = wx.BoxSizer(wx.HORIZONTAL)
-        sizer_15 = wx.StaticBoxSizer(self.sizer_15_staticbox, wx.VERTICAL)
-        sizer_18 = wx.StaticBoxSizer(self.sizer_18_staticbox, wx.HORIZONTAL)
-        sizer_17 = wx.BoxSizer(wx.HORIZONTAL)
-        sizer_16 = wx.BoxSizer(wx.HORIZONTAL)
-        sizer_13 = wx.BoxSizer(wx.VERTICAL)
-        sizer_14 = wx.BoxSizer(wx.HORIZONTAL)
+        sizer_main = wx.BoxSizer(wx.VERTICAL)
+        sizer_cpvr_notebook = wx.BoxSizer(wx.VERTICAL)
+        sizer_s = wx.BoxSizer(wx.HORIZONTAL)
+        sizer_s_buttons = wx.BoxSizer(wx.VERTICAL)
+        sizer_filesdir = wx.BoxSizer(wx.HORIZONTAL)
+        sizer_filesdir_buttons = wx.BoxSizer(wx.VERTICAL)
+        sizer_sql = wx.StaticBoxSizer(self.sizer_sql_staticbox, wx.VERTICAL)
+        sizer_notes = wx.StaticBoxSizer(self.sizer_notes_staticbox, wx.HORIZONTAL)
+        sizer_homepage = wx.BoxSizer(wx.HORIZONTAL)
+        sizer_bugzilla = wx.BoxSizer(wx.HORIZONTAL)
+        sizer_environment = wx.BoxSizer(wx.VERTICAL)
+        sizer_environment_ctrls = wx.BoxSizer(wx.HORIZONTAL)
         sizer_9 = wx.BoxSizer(wx.HORIZONTAL)
         sizer_11 = wx.BoxSizer(wx.VERTICAL)
         sizer_12 = wx.BoxSizer(wx.HORIZONTAL)
         sizer_10 = wx.BoxSizer(wx.HORIZONTAL)
         sizer_4 = wx.BoxSizer(wx.VERTICAL)
-        sizer_3 = wx.BoxSizer(wx.HORIZONTAL)
-        sizer_5 = wx.BoxSizer(wx.HORIZONTAL)
+        sizer_top_log = wx.BoxSizer(wx.HORIZONTAL)
+        sizer_editor = wx.BoxSizer(wx.HORIZONTAL)
+        sizer_cpvr = wx.BoxSizer(wx.HORIZONTAL)
+        sizer_oops_delete_me = wx.BoxSizer(wx.HORIZONTAL)
         sizer_7 = wx.BoxSizer(wx.HORIZONTAL)
         sizer_6 = wx.BoxSizer(wx.HORIZONTAL)
         sizer_8 = wx.BoxSizer(wx.HORIZONTAL)
-        sizer_1.Add(self.static_line_2, 0, wx.EXPAND, 0)
+        sizer_main.Add(self.static_line_2, 0, wx.EXPAND, 0)
         sizer_8.Add(self.button_Category, 0, wx.RIGHT, 10)
         sizer_8.Add(self.text_ctrl_Category, 1, wx.RIGHT|wx.EXPAND, 16)
-        sizer_5.Add(sizer_8, 1, wx.EXPAND, 0)
+        sizer_oops_delete_me.Add(sizer_8, 1, wx.EXPAND, 0)
         sizer_6.Add(self.label_PN, 0, wx.RIGHT|wx.ALIGN_CENTER_VERTICAL, 10)
         sizer_6.Add(self.text_ctrl_PN, 1, wx.RIGHT|wx.EXPAND, 16)
-        sizer_5.Add(sizer_6, 1, wx.EXPAND, 0)
+        sizer_oops_delete_me.Add(sizer_6, 1, wx.EXPAND, 0)
         sizer_7.Add(self.label_PVR, 0, wx.RIGHT|wx.ALIGN_CENTER_VERTICAL, 10)
         sizer_7.Add(self.text_ctrl_PVR, 0, 0, 0)
-        sizer_5.Add(sizer_7, 1, wx.EXPAND, 0)
-        sizer_5.Add(self.button_1, 0, wx.FIXED_MINSIZE, 0)
-        sizer_3.Add(sizer_5, 1, wx.ALL, 6)
+        sizer_oops_delete_me.Add(sizer_7, 1, wx.EXPAND, 0)
+        sizer_oops_delete_me.Add(self.button_1, 0, wx.FIXED_MINSIZE, 0)
+        sizer_cpvr.Add(sizer_oops_delete_me, 1, wx.ALL, 6)
         self.panel_cpvr.SetAutoLayout(True)
-        self.panel_cpvr.SetSizer(sizer_3)
-        sizer_3.Fit(self.panel_cpvr)
-        sizer_3.SetSizeHints(self.panel_cpvr)
-        sizer_2.Add(self.panel_cpvr, 0, wx.EXPAND, 0)
-        sizer_2.Add(self.static_line_3, 0, wx.EXPAND, 0)
+        self.panel_cpvr.SetSizer(sizer_cpvr)
+        sizer_cpvr.Fit(self.panel_cpvr)
+        sizer_cpvr.SetSizeHints(self.panel_cpvr)
+        sizer_cpvr_notebook.Add(self.panel_cpvr, 0, wx.EXPAND, 0)
+        sizer_cpvr_notebook.Add(self.static_line_3, 0, wx.EXPAND, 0)
+        sizer_editor.Add(self.STCeditor, 1, wx.EXPAND, 0)
+        self.panel_editor.SetAutoLayout(True)
+        self.panel_editor.SetSizer(sizer_editor)
+        sizer_editor.Fit(self.panel_editor)
+        sizer_editor.SetSizeHints(self.panel_editor)
+        sizer_top_log.Add(self.text_ctrl_top_log, 1, wx.EXPAND|wx.FIXED_MINSIZE, 0)
+        self.panel_top_log.SetAutoLayout(True)
+        self.panel_top_log.SetSizer(sizer_top_log)
+        sizer_top_log.Fit(self.panel_top_log)
+        sizer_top_log.SetSizeHints(self.panel_top_log)
+        self.splitter_2.SplitHorizontally(self.panel_editor, self.panel_top_log)
         sizer_4.Add(self.text_ctrl_log, 1, wx.EXPAND, 0)
         self.panel_log.SetAutoLayout(True)
         self.panel_log.SetSizer(sizer_4)
@@ -331,44 +370,61 @@ class MyFrame(wx.Frame):
         self.panel_explorer.SetSizer(sizer_9)
         sizer_9.Fit(self.panel_explorer)
         sizer_9.SetSizeHints(self.panel_explorer)
-        sizer_13.Add(self.text_ctrl_environment, 1, wx.EXPAND, 0)
-        sizer_14.Add(self.button_env_refresh, 0, wx.ALL, 10)
-        sizer_14.Add(self.radio_box_env, 0, wx.BOTTOM, 12)
-        sizer_13.Add(sizer_14, 0, wx.EXPAND, 0)
+        sizer_environment.Add(self.text_ctrl_environment, 1, wx.EXPAND, 0)
+        sizer_environment_ctrls.Add(self.button_env_refresh, 0, wx.ALL, 10)
+        sizer_environment_ctrls.Add(self.radio_box_env, 0, wx.BOTTOM, 12)
+        sizer_environment.Add(sizer_environment_ctrls, 0, wx.EXPAND, 0)
         self.panel_environment.SetAutoLayout(True)
-        self.panel_environment.SetSizer(sizer_13)
-        sizer_13.Fit(self.panel_environment)
-        sizer_13.SetSizeHints(self.panel_environment)
-        sizer_16.Add(self.button_bugzilla, 0, wx.ALL|wx.FIXED_MINSIZE, 6)
-        sizer_16.Add(self.text_ctrl_bugz, 0, wx.ALL|wx.FIXED_MINSIZE, 6)
-        sizer_15.Add(sizer_16, 0, wx.EXPAND, 0)
-        sizer_17.Add(self.window_3, 1, wx.EXPAND, 0)
-        sizer_15.Add(sizer_17, 1, wx.EXPAND, 0)
-        sizer_18.Add(self.text_ctrl_notes, 1, wx.EXPAND|wx.FIXED_MINSIZE, 0)
-        sizer_15.Add(sizer_18, 1, wx.EXPAND, 0)
-        self.notebook_1_pane_4.SetAutoLayout(True)
-        self.notebook_1_pane_4.SetSizer(sizer_15)
-        sizer_15.Fit(self.notebook_1_pane_4)
-        sizer_15.SetSizeHints(self.notebook_1_pane_4)
-        sizer_19.Add(self.window_2, 1, wx.EXPAND, 0)
-        self.notebook_1_pane_5.SetAutoLayout(True)
-        self.notebook_1_pane_5.SetSizer(sizer_19)
-        sizer_19.Fit(self.notebook_1_pane_5)
-        sizer_19.SetSizeHints(self.notebook_1_pane_5)
+        self.panel_environment.SetSizer(sizer_environment)
+        sizer_environment.Fit(self.panel_environment)
+        sizer_environment.SetSizeHints(self.panel_environment)
+        sizer_bugzilla.Add(self.button_bugzilla, 0, wx.ALL|wx.FIXED_MINSIZE, 6)
+        sizer_bugzilla.Add(self.text_ctrl_bugz, 0, wx.ALL|wx.FIXED_MINSIZE, 6)
+        sizer_sql.Add(sizer_bugzilla, 0, wx.EXPAND, 0)
+        sizer_homepage.Add(self.window_3, 1, wx.EXPAND, 0)
+        sizer_sql.Add(sizer_homepage, 1, wx.EXPAND, 0)
+        sizer_notes.Add(self.text_ctrl_notes, 1, wx.EXPAND|wx.FIXED_MINSIZE, 0)
+        sizer_sql.Add(sizer_notes, 1, wx.EXPAND, 0)
+        self.notebook_notes.SetAutoLayout(True)
+        self.notebook_notes.SetSizer(sizer_sql)
+        sizer_sql.Fit(self.notebook_notes)
+        sizer_sql.SetSizeHints(self.notebook_notes)
+        sizer_filesdir.Add(self.filesDir, 1, wx.EXPAND, 0)
+        sizer_filesdir_buttons.Add(self.button_filesdir_view, 0, wx.ALL|wx.FIXED_MINSIZE, 8)
+        sizer_filesdir_buttons.Add(self.button_filesdir_edit, 0, wx.ALL|wx.FIXED_MINSIZE, 8)
+        sizer_filesdir_buttons.Add(self.button_filesdir_new, 0, wx.ALL|wx.FIXED_MINSIZE, 8)
+        sizer_filesdir_buttons.Add(self.button_filesdir_download, 0, wx.ALL|wx.FIXED_MINSIZE, 8)
+        sizer_filesdir_buttons.Add(self.button_filesdir_delete, 0, wx.ALL|wx.FIXED_MINSIZE, 8)
+        sizer_filesdir.Add(sizer_filesdir_buttons, 0, wx.EXPAND, 0)
+        self.notebook_filesdir.SetAutoLayout(True)
+        self.notebook_filesdir.SetSizer(sizer_filesdir)
+        sizer_filesdir.Fit(self.notebook_filesdir)
+        sizer_filesdir.SetSizeHints(self.notebook_filesdir)
+        sizer_s.Add(self.sDir, 1, wx.EXPAND, 0)
+        sizer_s_buttons.Add(self.button_s_view, 0, wx.ALL|wx.FIXED_MINSIZE, 6)
+        sizer_s_buttons.Add(self.button_s_edit, 0, wx.ALL|wx.FIXED_MINSIZE, 6)
+        sizer_s_buttons.Add(self.button_s_delete, 0, wx.ALL|wx.FIXED_MINSIZE, 6)
+        sizer_s_buttons.Add(self.button_s_patch, 0, wx.ALL|wx.FIXED_MINSIZE, 6)
+        sizer_s.Add(sizer_s_buttons, 0, wx.EXPAND, 0)
+        self.notebook_s.SetAutoLayout(True)
+        self.notebook_s.SetSizer(sizer_s)
+        sizer_s.Fit(self.notebook_s)
+        sizer_s.SetSizeHints(self.notebook_s)
         self.notebook_1.AddPage(self.panel_log, "Output")
         self.notebook_1.AddPage(self.panel_explorer, "Files")
         self.notebook_1.AddPage(self.panel_environment, "Environment")
-        self.notebook_1.AddPage(self.notebook_1_pane_4, "Notes")
-        self.notebook_1.AddPage(self.notebook_1_pane_5, "$FILESDIR")
-        self.splitter.SplitHorizontally(self.STCeditor, self.notebook_1)
-        sizer_2.Add(self.splitter, 1, wx.EXPAND, 0)
-        self.panel_1.SetAutoLayout(True)
-        self.panel_1.SetSizer(sizer_2)
-        sizer_2.Fit(self.panel_1)
-        sizer_2.SetSizeHints(self.panel_1)
-        sizer_1.Add(self.panel_1, 1, wx.EXPAND, 0)
+        self.notebook_1.AddPage(self.notebook_notes, "Notes")
+        self.notebook_1.AddPage(self.notebook_filesdir, "${FILESDIR}")
+        self.notebook_1.AddPage(self.notebook_s, "${S}")
+        self.splitter.SplitHorizontally(self.splitter_2, self.notebook_1)
+        sizer_cpvr_notebook.Add(self.splitter, 1, wx.EXPAND, 0)
+        self.panel_main.SetAutoLayout(True)
+        self.panel_main.SetSizer(sizer_cpvr_notebook)
+        sizer_cpvr_notebook.Fit(self.panel_main)
+        sizer_cpvr_notebook.SetSizeHints(self.panel_main)
+        sizer_main.Add(self.panel_main, 1, wx.EXPAND, 0)
         self.SetAutoLayout(True)
-        self.SetSizer(sizer_1)
+        self.SetSizer(sizer_main)
         self.Layout()
         self.Centre()
         # end wxGlade
@@ -387,11 +443,13 @@ class MyFrame(wx.Frame):
         wx.EVT_TREE_SEL_CHANGED(self, self.explorer.GetTreeCtrl().GetId(), self.OnFileSelect)
         wx.EVT_BUTTON(self, self.button_bugzilla.GetId(), self.LaunchBugz) 
         wx.EVT_BUTTON(self, self.button_env_refresh.GetId(), self.ViewEnvironment)
-        wx.EVT_BUTTON(self, self.button_view.GetId(), self.OnViewButton)
-        wx.EVT_BUTTON(self, self.button_edit.GetId(), self.OnEditButton)
-        wx.EVT_BUTTON(self, self.button_patch.GetId(), self.OnPatchButton)
-        wx.EVT_BUTTON(self, self.button_delete.GetId(), self.OnDeleteButton)
         wx.EVT_BUTTON(self, self.button_Category.GetId(), self.OnCatButton)
+
+        wx.EVT_BUTTON(self, self.button_filesdir_delete.GetId(), self.OnDeleteFilesdirButton)
+        wx.EVT_BUTTON(self, self.button_s_patch.GetId(), self.OnPatchButton)
+        wx.EVT_BUTTON(self, self.button_filesdir_edit.GetId(), self.OnEditFilesdirButton)
+        wx.EVT_BUTTON(self, self.button_filesdir_view.GetId(), self.OnViewFilesdirButton)
+
         wx.EVT_TOOL(self, TB_NEW_ID, self.OnMnuNew)
         wx.EVT_TOOL(self, TB_OPEN_ID, self.OnMnuLoad)
         wx.EVT_TOOL(self, TB_OPEN_OLAY_ID, self.OnMnuLoadFromOverlay)
@@ -459,6 +517,8 @@ class MyFrame(wx.Frame):
 
         # Log:
         wx.EVT_MENU(self, mnuClearLogID, self.OnMnuClearLog)
+        wx.EVT_MENU(self, mnuTopLogID, self.OnTopLog)
+        wx.EVT_MENU(self, mnuBottomLogID, self.OnBottomLog)
 
         # Options:
         wx.EVT_MENU(self, mnuPrefID, self.OnMnuPref)
@@ -576,6 +636,19 @@ class MyFrame(wx.Frame):
             #Draw GUI before we start the slow search
             utils.LoadByPackage(self, f)
         self.EnableToolbar(False)
+
+    def OnTopLog(self, evt):
+        wx.Log_SetActiveTarget(MyLog(self.text_ctrl_top_log))
+
+
+    def OnBottomLog(self, evt):
+        self.text_ctrl_log = wx.TextCtrl(self.panel_top_log, -1, "", style=wx.TE_MULTILINE|wx.TE_READONLY)
+ 
+        sizer_top_log.Add(self.text_ctrl_log, 1, wx.EXPAND, 0)
+        points = self.text_ctrl_log.GetFont().GetPointSize()  # get the current size
+        f = wx.Font(points, wx.MODERN, wx.NORMAL, True)
+        self.text_ctrl_log.SetDefaultStyle(wx.TextAttr("BLACK", wx.NullColour, f))
+        wx.Log_SetActiveTarget(MyLog(self.text_ctrl_log))
 
 
     def Write(self, txt):
@@ -772,41 +845,49 @@ class MyFrame(wx.Frame):
         #self.saved = 0
         dlg.Destroy()
 
-    def OnViewButton(self, evt):
+    def OnViewFilesdirButton(self, evt):
         """View file in explorer"""
-        f = self.explorer.GetPath()
+        f = self.filesDir.getFilename()
         if not os.path.isfile(f):
             return
         self.ViewFile(f)
     
-    def OnEditButton(self, evt):
+    def OnEditFilesdirButton(self, evt):
         """Edit file in external editor"""
-        f = self.explorer.GetPath()
+        f = self.filesDir.getFilename()
         if not os.path.isfile(f):
             return
         self.EditFile(f)
 
     def OnPatchButton(self, evt):
         """patch file in ${S}, copy to ${FILESDIR}"""
-        f = self.explorer.GetPath()
+        f = self.filesDir.getFilename()
         if not os.path.isfile(f):
             return
         self.CreatePatch([f])
 
-    def OnDeleteButton(self, evt):
+    def OnDeleteFilesdirButton(self, evt):
         """delete file in explorer"""
-        f = self.explorer.GetPath()
+        f = self.filesDir.getFilename()
         if not os.path.isfile(f):
             return
         dlg = wx.MessageDialog(self, 'DELETE this file?\n' + f,
-                'DELETE file?', wx.YES_NO | wx.ICON_INFORMATION)
+                'DELETE file?', wx.YES_NO | wx.ICON_WARNING)
         val = dlg.ShowModal()
         if val == wx.ID_YES:
-            os.unlink(f)
-        self.SetExplorer(self.branch)
-        itemId = self.explorer.GetTreeCtrl().GetSelection()
-        self.explorer.GetTreeCtrl().CollapseAndReset(itemId)
-        self.explorer.GetTreeCtrl().Expand(itemId)
+            if os.path.basename(f)[:6] == "digest":
+                utils.DoSudo("rm %s" % f)
+            else:
+                try:
+                    os.unlink(f)
+                except:
+                    utils.MyMessage(self, "Couldn't delete file.", \
+                          "Error", "error")
+            self.filesDir.onRefresh(-1)
+        #self.SetExplorer(self.branch)
+        #itemId = self.explorer.GetTreeCtrl().GetSelection()
+        #self.explorer.GetTreeCtrl().CollapseAndReset(itemId)
+        #self.explorer.GetTreeCtrl().Expand(itemId)
 
     def OnTreeActivate(self, evt):
         """Get tree selection ($S, $D, etc) and show filesystem"""
@@ -835,6 +916,7 @@ class MyFrame(wx.Frame):
         if txt == "$FILESDIR":
             f = utils.GetFilesDir(self)
             if os.path.exists(f):
+                self.filesDir.populate(f)
                 self.button_view.Enable(True)
                 self.button_edit.Enable(True)
                 self.button_patch.Enable(False)
@@ -846,6 +928,7 @@ class MyFrame(wx.Frame):
         if txt == "$S":
             f = utils.GetS(self)
             if f:
+                self.sDir.populate(f)
                 self.explorer.ExpandPath(f)
                 self.button_view.Enable(True)
                 self.button_edit.Enable(True)
@@ -2036,91 +2119,4 @@ class MyLog(wx.PyLog):
         if self.tc:
             self.tc.AppendText(message + '\n')
 
-
-class GentooSTC(wx.stc.StyledTextCtrl):
-
-    """Main editor widget"""
-
-    def __init__(self, parent, ID):
-        wx.stc.StyledTextCtrl.__init__(self, parent, ID,
-                                  style = wx.NO_FULL_REPAINT_ON_RESIZE)
-        self.parent = parent
-        #Increase text size
-        self.CmdKeyAssign(ord('B'), wx.stc.STC_SCMOD_CTRL, wx.stc.STC_CMD_ZOOMIN)
-        #Decrease text size
-        self.CmdKeyAssign(ord('N'), wx.stc.STC_SCMOD_CTRL, wx.stc.STC_CMD_ZOOMOUT)
-        self.Colourise(0, -1)
-        # line numbers in the margin
-        self.SetMarginType(1, wx.stc.STC_MARGIN_NUMBER)
-        self.SetMarginWidth(1, 25)
-        # No bash lexer. Maybe there is a better than Python?
-        self.SetLexer(wx.stc.STC_LEX_PYTHON)
-        #self.SetLexer(wx.stc.STC_LEX_AUTOMATIC)
-
-        gentooKeywords = 'jumpin eastereggs abeni FILESDIR WORKDIR PV P PN PVR D S DESCRIPTION HOMEPAGE SRC_URI LICENSE SLOT KEYWORDS IUSE DEPEND RDEPEND insinto docinto glibc_version ewarn replace-flags env-update filter-flags inherit pkg_postinst pkg_postrm pkg_preinst pkg_setup src_unpack src_install pkg_prerm pkg_nofetch pkg_config unpack src_compile dodir pkg_mv_plugins src_mv_plugins einfo epatch use has_version best_version use_with use_enable doexe exeinto econf emake dodoc dohtml dobin dosym einstall check_KV keepdir die einfo eerror into dohard doinfo doins dolib dolib.a dolib.so doman domo donewins dosbin dosed fowners fperms newbin newdoc newexe newins newlib.a newlib.so newman newsbin pmake prepalldocs prepallinfo prepallman prepall addwrite replace-sparc64-flags edit_makefiles'
-        self.SetKeyWords(0, gentooKeywords)
-        self.SetProperty("fold", "0")
-        # Leading spaces are bad in Gentoo ebuilds!
-        self.SetProperty("tab.timmy.whinge.level", "3") 
-        self.SetMargins(0,0)
-        self.SetUseTabs(1)
-        self.SetBufferedDraw(False)
-
-        self.SetEdgeMode(wx.stc.STC_EDGE_BACKGROUND)
-        self.SetEdgeColumn(80)
-
-        self.SetMarginWidth(2, 12)
-
-        self.SetCaretForeground("BLUE")
-        self.SetMyStyle()
-        wx.stc.EVT_STC_SAVEPOINTLEFT(self, -1, self.UnsavedTitle)
-        wx.stc.EVT_STC_SAVEPOINTREACHED(self, -1, self.SavedTitle)
-
-    def SetMyStyle(self):
-        try:
-            my_face, my_size = options.Options().Prefs()['font'].split(",")
-        except:
-            my_face = "Courier"
-            my_size = "12"
-        my_size = string.atoi(my_size)
-        faces = { 'mono' : my_face,
-            'size' : my_size,
-            'size2': 10,
-            }
-
-        self.SetViewWhiteSpace(int(options.Options().Prefs()['show_whitespace']))
-        self.SetTabWidth(int(options.Options().Prefs()['tabsize']))
-        self.StyleClearAll()
-
-        self.StyleSetSpec(wx.stc.STC_STYLE_DEFAULT,     "face:%(mono)s,size:%(size)d" % faces)
-        #self.StyleSetSpec(wx.stc.STC_STYLE_DEFAULT, 'fore:#000000,back:#FFFFFF,face:Courier,size:12')
-    
-        self.StyleSetSpec(wx.stc.STC_STYLE_LINENUMBER,  "back:#C0C0C0,face:%(mono)s,size:%(size2)d" % faces)
-        self.StyleSetSpec(wx.stc.STC_STYLE_CONTROLCHAR, "face:%(mono)s" % faces)
-        self.StyleSetSpec(wx.stc.STC_STYLE_BRACELIGHT,  "fore:#FFFFFF,back:#0000FF,bold")
-        self.StyleSetSpec(wx.stc.STC_STYLE_BRACEBAD,    "fore:#000000,back:#FF0000,bold")
-        self.StyleSetSpec(wx.stc.STC_P_DEFAULT, "fore:#808080,face:%(mono)s,size:%(size)d" % faces)
-        self.StyleSetSpec(wx.stc.STC_P_COMMENTLINE, "fore:#007F00,face:%(mono)s,size:%(size)d" % faces)
-        self.StyleSetSpec(wx.stc.STC_P_NUMBER, "fore:#007F7F,size:%(size)d" % faces)
-        self.StyleSetSpec(wx.stc.STC_P_STRING, "fore:#7F007F,bold,face:%(mono)s,size:%(size)d" % faces)
-        self.StyleSetSpec(wx.stc.STC_P_CHARACTER, "fore:#7F007F,bold,face:%(mono)s,size:%(size)d" % faces)
-        self.StyleSetSpec(wx.stc.STC_P_WORD, "fore:#00007F,bold,size:%(size)d" % faces)
-        self.StyleSetSpec(wx.stc.STC_P_TRIPLE, "fore:#7F0000,size:%(size)d" % faces)
-        self.StyleSetSpec(wx.stc.STC_P_TRIPLEDOUBLE, "fore:#7F0000,size:%(size)d" % faces)
-        self.StyleSetSpec(wx.stc.STC_P_CLASSNAME, "fore:#0000FF,bold,underline,size:%(size)d" % faces)
-        self.StyleSetSpec(wx.stc.STC_P_DEFNAME, "fore:#007F7F,bold,size:%(size)d" % faces)
-        self.StyleSetSpec(wx.stc.STC_P_OPERATOR, "bold,size:%(size)d" % faces)
-        self.StyleSetSpec(wx.stc.STC_P_IDENTIFIER,"face:%(mono)s,size:%(size)d" % faces) 
-        self.StyleSetSpec(wx.stc.STC_P_COMMENTBLOCK, "fore:#7F7F7F,size:%(size)d" % faces)
-        self.StyleSetSpec(wx.stc.STC_P_STRINGEOL, "fore:#000000,face:%(mono)s,eol,size:%(size)d" % faces)
-
-
-    
-    def UnsavedTitle(self, evt):
-        ''' Set application's titlebar '''
-        utils.DoTitle(self.parent.GetParent())
- 
-    def SavedTitle(self, evt):
-        ''' Set application's titlebar '''
-        utils.DoTitle(self.parent.GetParent()) 
 
