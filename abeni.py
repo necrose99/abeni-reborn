@@ -1354,11 +1354,32 @@ class MyFrame(wxFrame):
                 del self.tabs[self.tabs.index('Environment')]
             except:
                 pass
-            #self.AddEditor('Environment', open(f, 'r').read())
             self.AddEditor('Environment', txt)
 
     def SetToNewPage(self):
         self.nb.SetSelection(self.nb.GetPageCount() -1)
+
+    def OnMnuEchangelog(self, event):
+        """Run echangelog for official Gentoo devs"""
+        if not self.editing:
+            return
+        win = dialogs.EchangelogDialog(self, -1, "echangelog entry", \
+                                size=wxSize(350, 200), \
+                                style = wxDEFAULT_DIALOG_STYLE \
+                                )
+        win.CenterOnScreen()
+        val = win.ShowModal()
+        if val == wxID_OK:
+            os.chdir(os.path.dirname(self.filename))
+            l = win.inp.GetValue()
+            if l:
+                self.ExecuteInLog("/usr/bin/echangelog %s" % l)
+            else:
+                #Not all xterms (konsole, eterm etc) have -hold feature, so we use actual xterm
+                #os.system("%s -hold -e /usr/bin/echangelog" % self.pref['xterm'])
+                os.system("xterm -hold -e /usr/bin/echangelog")
+        win.Destroy()
+
 
     def OnMnuGetTemplate(self, event):
         """"""
@@ -1453,8 +1474,11 @@ class MyFrame(wxFrame):
         EVT_MENU(self, mnuEmergeID, self.OnMnuEmerge)
         mnuLintoolID = wxNewId()
         mnuGetDepsID = wxNewId()
-        menu_tools.Append(mnuGetDepsID, "Fix lazy R/DEPEND")
+        menu_tools.Append(mnuGetDepsID, "Fix la&zy R/DEPEND")
         EVT_MENU(self, mnuGetDepsID, self.OnMnuGetDeps)
+        mnuEchangelogID = wxNewId()
+        menu_tools.Append(mnuEchangelogID, "Run ec&hangelog for this ebuild")
+        EVT_MENU(self, mnuEchangelogID, self.OnMnuEchangelog)
         mnuGetDepsID = wxNewId()
         menu_tools.Append(mnuLintoolID, "Run &Lintool on this ebuild")
         EVT_MENU(self, mnuLintoolID, self.OnMnuLintool)
