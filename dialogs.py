@@ -96,6 +96,8 @@ class Preferences(wxDialog):
         self.features.SetValue(self.pref['features'])
         self.use = wxTextCtrl(self, wxNewId(), "", size=(200,-1))
         self.use.SetValue(self.pref['use'])
+        self.log = wxTextCtrl(self, wxNewId(), "", size=(200,-1))
+        self.log.SetValue(self.pref['log'])
 
         gs.AddMany([
         (wxStaticText(self, -1, "Web browser"), 0, wxALIGN_LEFT),
@@ -114,6 +116,10 @@ class Preferences(wxDialog):
         (self.use, 0, wxALIGN_RIGHT),
         (wxStaticText(self, -1, "FEATURES"), 0, wxALIGN_LEFT),
         (self.features, 0, wxALIGN_RIGHT),
+
+        (wxStaticText(self, -1, "Log window (bottom/tab)"), 0, wxALIGN_LEFT),
+        (self.log, 0, wxALIGN_RIGHT),
+
         (btnOK, 0, wxALIGN_CENTER),
         (btnCancel, 0, wxALIGN_CENTER)
         ])

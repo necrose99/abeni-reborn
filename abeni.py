@@ -12,11 +12,10 @@ print "Importing portage config, wxPython, Python and Abeni modules..."
 from portage import config
 from wxPython.wx import *
 from wxPython.lib.dialogs import wxScrolledMessageDialog
-import os, string, sys, urlparse
+import os, string, sys, urlparse, threading, time, popen2
 import dialogs, panels
 from utils import *
 
-#Get portage path locations from /etc/make.conf
 distdir = config().environ()['DISTDIR']
 portdir = config().environ()['PORTDIR']
 portdir_overlay = config().environ()['PORTDIR_OVERLAY']
@@ -49,8 +48,6 @@ class MyFrame(wxFrame):
         GetOptions(self)
         # Custom functions added instances
         self.funcList = []
-        #Misc editor tab instances
-        self.editorList = []
         #Misc statements/commands instances
         self.statementList = []
         # Keep track of order variables are set
@@ -61,15 +58,19 @@ class MyFrame(wxFrame):
         self.filename = ''
         # Previous file opened. For use with diff
         self.lastFile = ''
-        # Saved-state
+        # Saved state
         self.saved = 1
+        # Ordered list of notebook tabs
+        self.tabs = []
+        self.tabsInstance = []
         #Stuff to keep log window updating in "real-time" as shell commands are executed
-        self.process = None
-        ID_Timer = wxNewId()
+        #self.process = None
+        #ID_Timer = wxNewId()
         #self.processTimer = wxTimer(self, ID_Timer)
         #EVT_TIMER(self, ID_Timer, self.OnTimer)
-        EVT_IDLE(self, self.OnIdle)
+
         self.inp = None
+        EVT_IDLE(self, self.OnIdle)
         #EVT_END_PROCESS(self, -1, self.OnProcessEnded)
         #application icon 16x16
         iconFile = ('/usr/share/pixmaps/abeni/abeni_logo16.png')
@@ -82,6 +83,8 @@ class MyFrame(wxFrame):
         def EmptyHandler(evt): pass
         EVT_ERASE_BACKGROUND(self.splitter, EmptyHandler)
         self.nb = wxNotebook(self.splitter, -1, style=wxCLIP_CHILDREN)
+        EVT_NOTEBOOK_PAGE_CHANGED(self.nb, -1, self.OnPageChanged)
+        EVT_NOTEBOOK_PAGE_CHANGED(self.nb, -1, self.OnPageChanging)
         self.nb.portdir_overlay = portdir_overlay
         self.nb.portdir = portdir
         self.log = wxTextCtrl(self.splitter, -1,
@@ -97,14 +100,19 @@ class MyFrame(wxFrame):
             if os.path.exists(f):
                 LoadEbuild(self, f, __version__, portdir)
             else:
-                print "No such file: " + f
-                print "Checking for package: " + f
+                print "No such file: %s" % f
+                print "Checking for package: %s" % f
+                #Make sure GUI is drawn before we start the slow search
+                wxSafeYield()
                 self.LoadByPackage(f)
 
     def OnMnuLogBottom(self, event):
         """Switch ouput log to bottom"""
         if not self.editing:
             return
+        self.LogBottom()
+
+    def LogBottom(self):
         txt = self.log.GetValue()
         self.splitter.SplitHorizontally(self.nb, self.log, 400)
         self.splitter.SetMinimumPaneSize(20)
@@ -112,18 +120,24 @@ class MyFrame(wxFrame):
         self.log.SetValue(txt)
         self.log.Show(True)
         self.log.Refresh()
+        self.pref['log'] = 'bottom'
         self.nb.DeletePage(0)
 
     def OnMnuLogTab(self, event):
         """Switch ouput log to tab"""
         if not self.editing:
             return
+        self.LogTab()
+
+    def LogTab(self):
         txt = self.log.GetValue()
         self.logWindow=panels.LogWindow(self.nb, self.sb, self.pref)
         self.nb.InsertPage(0, self.logWindow, "Log")
         wxLog_SetActiveTarget(MyLog(self.logWindow.log))
         self.logWindow.log.SetValue(txt)
         self.splitter.Unsplit()
+        self.nb.SetSelection(0)
+        self.pref['log'] = 'tab'
 
     def WriteText(self, text):
         if text[-1:] == '\n':
@@ -162,7 +176,7 @@ class MyFrame(wxFrame):
 
     def AddCommand(self, command):
         t = self.panelMain.stext.GetValue()
-        t += (command + "\n")
+        t += "%s\n" % command
         self.panelMain.stext.SetValue(t)
 
     def OnMnuEdit(self, event):
@@ -207,7 +221,6 @@ class MyFrame(wxFrame):
         if not self.editing:
             return
         WriteEbuild(self)
-        # I did this in an xterm because we need to be root and it has colored output.
         #TODO: Strip escape codes so we can put in a text widget for those who use sudo
         cmd = 'sudo /usr/sbin/ebuild %s digest' % self.filename
         #os.system(self.pref['xterm'] + ' -T "Creating Digest" -hold -e ' + cmd + ' &')
@@ -289,15 +302,18 @@ class MyFrame(wxFrame):
 
     def OnIdle(self, event):
         if self.inp is not None:
+            wxYield()
             l = self.inp.readline()
             self.write(l)
             while l:
+                wxYield()
                 l = self.inp.readline()
                 self.write(l)
             self.inp = None
             #self.tb.Enable(True)
             self.tb.EnableTool(self.toolStopID, False)
             #self.nb.Enable(True)
+            #self.menu.Enable(True)
 
     def ExecuteInLog(self, cmd):
         """Executes cmd and shows output asynchronously in log window"""
@@ -305,12 +321,21 @@ class MyFrame(wxFrame):
         self.tb.EnableTool(self.toolStopID, True)
         #self.nb.Enable(False)
         #self.tb.Enable(False)
-        #wxSafeYield()
-        sys.stdout.write("\n")
-        sys.stdout.flush()
-        self.inp = os.popen('%s 2>&1 &' % cmd)
+        #self.menu.Enable(False)
+        wxYield()
+        #self.inp = os.popen('%s 2>&1' % cmd)
+        a = popen2.Popen4(cmd, 1)
+        #fooOut, self.inp = self.popen3('%s' % cmd)
+        self.inp = a.fromchild
+        self.pid = a.pid
+        self.write("%s (PID: %s)" % (cmd, self.pid))
+        #print myPipe.pid
         l = self.inp.readline()
         self.write(l)
+
+    def KillProc(self, event):
+        os.system("sudo kill %s" % self.pid)
+        self.write("Killed %s" % self.pid)
 
     def OnMnuLintool(self, event):
         """Run 'lintool' on this ebuild"""
@@ -329,7 +354,6 @@ class MyFrame(wxFrame):
         self.nb.DeleteAllPages()
         self.funcList = []
         self.statementList = []
-        self.editorList = []
         self.funcOrder = []
         self.varOrder = []
         # Stupid kludge. See TODO
@@ -433,26 +457,30 @@ class MyFrame(wxFrame):
             rdepends.append(s)
         self.panelDepend.elb2.SetStrings(rdepends)
 
-    def OnToolZone(self, event):
-        """Clear statusbar 3 seconds after mouse moves over toolbar icon
-        if self.timer is None:
-            self.timer = wxTimer(self)
-        if self.timer.IsRunning():
-            self.timer.Stop()
-        self.timer.Start(4000)
-        """
-        event.Skip()
-
-    def OnClearSB(self, event):
-        """OnToolZone clear status bar after hovering over toolbar icon"""
-        #self.timer.Stop()
-        #self.timer = None
-        #self.sb.SetStatusText("", 0)
+    def OnPageChanging(self, event):
+        """Catch event when page in notebook is going to change"""
+        #to = event.GetSelection()
+        #current = event.GetOldSelection()
+        #print "Change from %s to %s" % (current, to)
+        #print "Page %s" % n
+        #print "Tab %s" % self.tabs[n]
+        #if self.tabs[current] == 'Ebuild File':
+            #pass
+            #need to reload all other pages based on changes. Ugh.
+        #else:
+            #pass
         event.Skip()
 
     def OnPageChanged(self, event):
         """Catch event when page in notebook is changed"""
-        self.nbPage = event.GetSelection()
+        #n = self.nb.GetSelection()
+        # If we switch to ebuild file editor, reload it with changes made in other tabs
+        #if self.tabs[n] == 'Ebuild File':
+            #WriteEbuild(self)
+            #self.ebuildfile.editorCtrl.SetText(open(self.filename, 'r').read())
+            #pass
+        #print "Page - %s" % n
+        #print "Tab - %s" % self.tabs[n]
         event.Skip()
 
     def OnMnuEclassCVS(self, event):
@@ -483,12 +511,18 @@ class MyFrame(wxFrame):
         self.saved = 0
         dlg.Destroy()
 
+    def NewPage(self, panel, name):
+        self.nb.AddPage(panel, name)
+        self.tabs.append(name)
+        #self.tabsInstance.append(panel)
+        #print self.tabsInstance
+        #print self.tabs
+
     def AddFunc(self, newFunction, val):
         """Add page in notebook for a new function"""
         n = panels.NewFunction(self.nb, self.sb, self.pref)
-        if newFunction != 'Original File':
-            self.funcList.append(n)
-        self.nb.AddPage(n, newFunction)
+        self.funcList.append(n)
+        self.NewPage(n, newFunction)
         n.edNewFun.SetText(val)
         n.edNewFun.SetSavePoint()
         self.nb.SetSelection(self.nb.GetPageCount() -1)
@@ -503,6 +537,7 @@ class MyFrame(wxFrame):
             if f == check:
                 self.nb.SetSelection(p-1)
                 self.nb.RemovePage(p)
+                del self.tabs[p]
                 x,y  = self.GetSize()
                 self.SetSize(wxSize(x+1, y))
                 break
@@ -513,8 +548,10 @@ class MyFrame(wxFrame):
     def AddEditor(self, name, val):
         """Add page in notebook for an editor"""
         n = panels.Editor(self.nb, self.sb, self.pref)
-        self.editorList.append(n)
-        self.nb.AddPage(n, name)
+        if name == 'Ebuild File':
+            self.ebuildfile = n
+        #self.nb.AddPage(n, name)
+        self.NewPage(n, name)
         n.editorCtrl.SetText(val)
         #self.nb.SetSelection(self.nb.GetPageCount() -1)
 
@@ -553,12 +590,11 @@ class MyFrame(wxFrame):
         if not os.path.exists(valid_cat):
             msg = category + " isn't a valid category."
             return msg
-
         return 0
 
     def OnMnuNew(self,event):
         """Creates a new ebuild from scratch"""
-        #TODO: Add an "Are you sure?" dialog
+        #TODO:
         # Show dialog if URI isn't properly formed or can't determine package, filename, ebuild name
         if not self.VerifySaved():
             win = dialogs.GetURIDialog(self, -1, "Enter Package URI", \
@@ -573,6 +609,8 @@ class MyFrame(wxFrame):
             if val == wxID_OK and self.URI:
                 self.ClearNotebook()
                 self.AddPages()
+                if self.pref['log'] == 'tab':
+                    self.LogTab()
                 self.panelMain.PopulateDefault()
                 if self.URI == "CVS" or self.URI == "cvs":
                     #self.panelMain.SetURI("package-cvs-0.0.1")
@@ -587,15 +625,17 @@ class MyFrame(wxFrame):
                 if self.URI == "CVS" or self.URI == "cvs":
                     self.OnMnuEclassCVS(-1)
                 self.SetTitle(self.panelMain.GetEbuildName() + " | Abeni " + __version__)
+                if self.pref['log'] == 'tab':
+                    self.nb.SetSelection(1)
 
     def AddPages(self):
         """Add pages to blank notebook"""
         self.panelMain=panels.main(self.nb, self.sb, self.pref)
         self.panelDepend=panels.depend(self.nb, self.sb, self.pref)
         self.panelChangelog=panels.changelog(self.nb, self.sb, self.pref)
-        self.nb.AddPage(self.panelMain, "Main")
-        self.nb.AddPage(self.panelDepend, "Dependencies")
-        self.nb.AddPage(self.panelChangelog, "ChangeLog")
+        self.NewPage(self.panelMain, "Main")
+        self.NewPage(self.panelDepend, "Dependencies")
+        self.NewPage(self.panelChangelog, "ChangeLog")
 
     def OnClose(self, event):
         """Called when trying to close application"""
@@ -629,7 +669,9 @@ class MyFrame(wxFrame):
             self.pref['editor'] = win.editor.GetValue()
             self.pref['autoTabs'] = win.autoTabs.GetValue()
             self.pref['fileBrowser'] = win.fileBrowser.GetValue()
-
+            self.pref['use'] = win.use.GetValue()
+            self.pref['features'] = win.features.GetValue()
+            self.pref['log'] = win.log.GetValue()
             f = open(os.path.expanduser('~/.abeni/abenirc'), 'w')
             f.write('browser = %s\n' % self.pref['browser'])
             f.write('xterm = %s\n' % self.pref['xterm'])
@@ -639,6 +681,7 @@ class MyFrame(wxFrame):
             f.write('fileBrowser = %s\n' % self.pref['fileBrowser'])
             f.write('use = %s\n' % self.pref['use'])
             f.write('features = %s\n' % self.pref['features'])
+            f.write('log = %s\n' % self.pref['log'])
             f.close()
 
     def OnMnuAbout(self,event):
@@ -732,12 +775,18 @@ class MyFrame(wxFrame):
         os.system('sudo chmod a+r /tmp/Makefile 2> /dev/null')
         # Example: /var/tmp/portage/zinf-2.2.3/work/zinf-2.2.3/configure
         if os.path.exists('/tmp/Makefile'):
+            try:
+                self.nb.RemovePage(self.tabs.index('Makefile'))
+                del self.tabs[self.tabs.index('Makefile')]
+            except:
+                pass
             self.AddEditor('Makefile', open('/tmp/Makefile', 'r').read())
             self.SetToNewPage()
             os.system('sudo rm /tmp/Makefile')
 
+    """
     def ExploreWorkdir(self, event):
-        """Show configure file in editor window"""
+        #Show configure file in editor window
         # Gah. This won't work with sudo. ${WORKDIR} is locked.
         # Could spawn an xterm, do su -c filemanager
         # Feh. xterm su -c doesn't work with kfmclient
@@ -757,12 +806,43 @@ class MyFrame(wxFrame):
                           'Error', wxOK | wxICON_INFORMATION)
             dlg.ShowModal()
             dlg.Destroy()
+    """
+
+    def GetEnvs(self):
+        #if not self.CheckUnpacked():
+            #return
+        self.env = {}
+        p = self.panelMain.EbuildFile.GetValue()[:-7]
+        f = '%s/portage/%s/temp/environment' % (portage_tmpdir, p)
+        if not os.path.exists(f):
+            cmd = 'sudo /usr/sbin/ebuild %s setup' % self.filename
+            self.write(cmd)
+            self.ExecuteInLog(cmd)
+            time.sleep(1)
+        lines = open(f, 'r').readlines()
+        envVars = ['A', 'AA', 'AUTOCLEAN', 'BUILDDIR', 'BUILD_PREFIX', \
+                'D', 'DESTTREE', 'EBUILD', 'FEATURES', 'FILESDIR', \
+                'INHERITED', 'KV', 'KVERS', 'O', 'P', 'PF', 'PN', 'PV', \
+                'PVR', 'RESTRICT', 'S', 'SRC_URI', 'T', 'WORKDIR']
+        for l in lines:
+            if "=" in l:
+                s = string.split(l, '=')
+                var = s[0]
+                val = s[1]
+                if var in envVars:
+                    self.env[var] = val.strip()
 
     def OnMnuViewConfigure(self, event):
         """Show configure file in editor window"""
         #We can't read ${WORKDIR} as non-root, so we have to copy the file and change permissions.
         if not self.editing:
             return
+        if not self.CheckUnpacked():
+            dlg = wxMessageDialog(self, 'You need to unpack the package first\n\nThis can be done from the Tools menu.',
+                          'Error', wxOK | wxICON_INFORMATION)
+            dlg.ShowModal()
+            dlg.Destroy()
+
         p = self.panelMain.EbuildFile.GetValue()[:-7]
         s = '%s/portage/%s/work/%s/configure' % (portage_tmpdir, p, p)
         try:
@@ -779,11 +859,28 @@ class MyFrame(wxFrame):
             dlg.ShowModal()
             dlg.Destroy()
 
+    def CheckUnpacked(self):
+        p = self.panelMain.EbuildFile.GetValue()[:-7]
+        if os.path.exists('%s/portage/%s/.unpacked' % (portage_tmpdir, p)):
+            return 1
+
+    def OnMnuUnpack(self, event):
+        if self.editing:
+            self.write("Unpacking %s " % self.filename)
+            self.ExecuteInLog("sudo /usr/sbin/ebuild %s unpack" % self.filename)
+
     def OnMnuViewSetuppy(self, event):
         """Show setuppy file in editor window"""
         #We can't read ${WORKDIR} as non-root, so we have to copy the file and change permissions.
         if not self.editing:
             return
+        if not self.CheckUnpacked():
+            dlg = wxMessageDialog(self, 'You need to unpack the package first.\n\nThis can be done from the Tools menu.',
+                        'Error', wxOK | wxICON_INFORMATION)
+            dlg.ShowModal()
+            dlg.Destroy()
+            return
+
         p = self.panelMain.EbuildFile.GetValue()[:-7]
         s = '%s/portage/%s/work/%s/setup.py' % (portage_tmpdir, p, p)
         try:
@@ -795,10 +892,11 @@ class MyFrame(wxFrame):
         if os.path.exists('/tmp/setup.py'):
             self.ViewSetuppy()
         else:
-            dlg = wxMessageDialog(self, 'You need to create a digest and unpack the package first\n\nThis can be done from the Tools menu.',
+            if not os.path.exists('%s/portage/%s/.unpack' % (portage_tmpdir, self.package)):
+                dlg = wxMessageDialog(self, ('There is no setup.py: %s ' % s),
                           'Error', wxOK | wxICON_INFORMATION)
-            dlg.ShowModal()
-            dlg.Destroy()
+                dlg.ShowModal()
+                dlg.Destroy()
 
     def ViewSetuppy(self):
         """Show setup.py file in editor window"""
@@ -812,6 +910,11 @@ class MyFrame(wxFrame):
             pass
         # Example: /var/tmp/portage/zinf-2.2.3/work/zinf-2.2.3/configure
         if os.path.exists('/tmp/setup.py'):
+            try:
+                self.nb.RemovePage(self.tabs.index('setup.py'))
+                del self.tabs[self.tabs.index('setup.py')]
+            except:
+                pass
             self.AddEditor('setup.py', open('/tmp/setup.py', 'r').read())
             self.SetToNewPage()
             os.system('sudo rm /tmp/setup.py')
@@ -828,6 +931,11 @@ class MyFrame(wxFrame):
             pass
         # Example: /var/tmp/portage/zinf-2.2.3/work/zinf-2.2.3/configure
         if os.path.exists('/tmp/configure'):
+            try:
+                self.nb.RemovePage(self.tabs.index('configure'))
+                del self.tabs[self.tabs.index('configure')]
+            except:
+                pass
             self.AddEditor('configure', open('/tmp/configure', 'r').read())
             self.SetToNewPage()
             os.system('sudo rm /tmp/configure')
@@ -836,23 +944,37 @@ class MyFrame(wxFrame):
         """Show environment file in editor window"""
         if not self.editing:
             return
-        p = self.panelMain.EbuildFile.GetValue()[:-7]
-        f = '%s/portage/%s/temp/environment' % (portage_tmpdir, p)
+        #p = self.panelMain.EbuildFile.GetValue()[:-7]
+        #f = '%s/portage/%s/temp/environment' % (portage_tmpdir, p)
         # Example: /var/tmp/portage/pysnmp-2.0.8/temp/environment
-        if os.path.exists(f):
-            self.ViewEnvironment()
-        else:
-            dlg = wxMessageDialog(self, 'You need to create a digest and unpack the package first.\n\nThis can be done from the Tools menu.',
-                          'Error', wxOK | wxICON_INFORMATION)
-            dlg.ShowModal()
-            dlg.Destroy()
+        #if os.path.exists(f):
+        self.ViewEnvironment()
+        #else:
+        #    dlg = wxMessageDialog(self, 'You need to create a digest and unpack the package first.\n\nThis can be done from the Tools menu.',
+        #                  'Error', wxOK | wxICON_INFORMATION)
+        #    dlg.ShowModal()
+        #    dlg.Destroy()
 
     def ViewEnvironment(self):
         """Show environment file in editor window"""
+        #TODO: This is brief version, the commented out line below gives full environment.
+        #Add config option to show either, or menu option. Or both.
+        self.GetEnvs()
+        txt = ''
+        keys = self.env.keys()
+        keys.sort()
+        for k in keys:
+            txt += '%s=%s\n' % (k, self.env[k])
         p = self.panelMain.EbuildFile.GetValue()[:-7]
         f = '%s/portage/%s/temp/environment' % (portage_tmpdir, p)
         if os.path.exists(f):
-            self.AddEditor('Environment', open(f, 'r').read())
+            try:
+                self.nb.RemovePage(self.tabs.index('Environment'))
+                del self.tabs[self.tabs.index('Environment')]
+            except:
+                pass
+            #self.AddEditor('Environment', open(f, 'r').read())
+            self.AddEditor('Environment', txt)
             self.SetToNewPage()
 
     def SetToNewPage(self):
@@ -871,6 +993,34 @@ class MyLog(wxPyLog):
         if self.tc:
             self.tc.AppendText(message + '\n')
 
+'''
+class MyThread(threading.Thread):
+    """ test of popen in thread to keep gui perky"""
+    # Need better control of processes before we implement this.
+    # User needs to be able to kill process with a button on toolbar
+    def run(self):
+        self.lines = []
+        self.inp = os.popen('%s 2>&1' % self.cmd)
+        l = self.inp.readline()
+        self.AddLine(l)
+        while l:
+            time.sleep(1)
+            l = self.inp.readline()
+            self.AddLine(l)
+
+    def AddLine(l):
+        self.lines.append(l)
+
+    def GetLines(self):
+        l = self.lines
+        self.lines = []
+        return l
+
+    def SetCmd(self, parent, cmd):
+        self.cmd = cmd
+        self.parent = parent
+        self.inp = None
+'''
 
 class MyApp(wxPySimpleApp):
 
@@ -888,3 +1038,4 @@ class MyApp(wxPySimpleApp):
 
 app=MyApp(0)
 app.MainLoop()
+

@@ -39,6 +39,9 @@ class Options:
             if string.find(line, 'features') != -1:
                 self.features = string.strip(string.split(line, '=')[1])
 
+            if string.find(line, 'log') != -1:
+                self.log = string.strip(string.split(line, '=')[1])
+
             line = f.readline()
         f.close()
 
@@ -54,4 +57,5 @@ class Options:
         pref['fileBrowser'] = self.fileBrowser
         pref['use'] = self.use
         pref['features'] = self.features
+        pref['log'] = self.log
         return pref

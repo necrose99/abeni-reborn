@@ -73,7 +73,8 @@ def LoadEbuild(parent, filename, __version__, portdir):
             while 1:
                 l = f.readline()
                 #replace spaces with tabs
-                l = badSpaces.sub('\t', l)
+                if parent.pref['autoTabs'] == 'yes':
+                    l = badSpaces.sub('\t', l)
                 l = badComments.sub('\t#', l)
                 tempf.append(l)
                 if l[0] == "}":
@@ -126,8 +127,7 @@ def LoadEbuild(parent, filename, __version__, portdir):
     parent.panelChangelog.Populate(clog, portdir)
 
     # Add original ebuild file:
-    parent.AddEditor('Original File', open(filename, 'r').read())
-
+    parent.AddEditor('Ebuild File', open(filename, 'r').read())
     #Add custom variables to Main panel
 
     #This was un-ordered:
@@ -139,14 +139,20 @@ def LoadEbuild(parent, filename, __version__, portdir):
         for v in otherVars:
             if v == parent.varOrder[n]:
                 parent.AddNewVar(v, otherVars[v])
-    parent.ViewEnvironment()
-    parent.ViewConfigure()
-    parent.ViewMakefile()
+    if parent.CheckUnpacked():
+        parent.ViewEnvironment()
+        parent.ViewConfigure()
+        parent.ViewMakefile()
+        parent.ViewSetuppy()
     #Add functions in order they were in in ebuild:
     for n in range(len(parent.funcOrder)):
         parent.AddFunc(parent.funcOrder[n], funcs[parent.funcOrder[n]])
     parent.panelMain.stext.SetValue(string.join(parent.statementList, '\n'))
-    parent.nb.SetSelection(0)
+    if parent.pref['log'] == 'bottom':
+        parent.nb.SetSelection(0)
+    else:
+        parent.LogTab()
+        parent.nb.SetSelection(1)
 
     # Set titlebar of app to ebuild name
     parent.SetTitle(parent.ebuild_file + ' | Abeni ' + __version__)
@@ -244,13 +250,6 @@ def WriteEbuild(parent, temp=0):
     for fns in parent.funcList:
         fns.edNewFun.SetSavePoint()
 
-    #TODO: We need to get each notebook's tab/label for this:
-    #for n in range(len(parent.funcOrder)):
-    #    parent.AddFunc(parent.funcOrder[n], funcs[parent.funcOrder[n]])
-
-    #TODO: Create a single Saved File window, update each time we save
-    #parent.AddEditor('Saved File', open(parent.filename, 'r').read())
-
     changelog = os.path.join(parent.ebuildDir, 'ChangeLog')
     f = open(changelog, 'w')
     f.write(parent.panelChangelog.edChangelog.GetText())
@@ -319,6 +318,7 @@ def AddMenu(parent):
     parent.menu = menu_file = wxMenu()
     mnuNewID=wxNewId()
     menu_file.Append(mnuNewID, "&New ebuild")
+    EVT_MENU(parent, mnuNewID, parent.OnMnuNew)
     mnuLoadID=wxNewId()
     menu_file.Append(mnuLoadID, "&Load ebuild")
     EVT_MENU(parent, mnuLoadID, parent.OnMnuLoad)
@@ -330,7 +330,6 @@ def AddMenu(parent):
     EVT_MENU(parent, mnuExitID, parent.OnMnuExit)
     menubar = wxMenuBar()
     menubar.Append(menu_file, "&File")
-    EVT_MENU(parent, mnuNewID, parent.OnMnuNew)
     EVT_MENU_RANGE(parent, wxID_FILE1, wxID_FILE9, parent.OnFileHistory)
     parent.filehistory = wxFileHistory()
     parent.filehistory.UseMenu(parent.menu)
@@ -401,7 +400,7 @@ def AddMenu(parent):
     menu_view.Append(mnuDiffID, "&diff")
     EVT_MENU(parent, mnuDiffID, parent.OnMnuDiff)
     mnuEditID = wxNewId()
-    menu_view.Append(mnuEditID, "This ebuild in e&xternal editor")
+    menu_view.Append(mnuEditID, "This ebuild in e&xternal editor\tf7")
     EVT_MENU(parent, mnuEditID, parent.OnMnuEdit)
     #mnuExploreWorkdirID = wxNewId()
     #menu_view.Append(mnuExploreWorkdirID, "File browser in ${WORKDIR}")
@@ -476,6 +475,14 @@ def AddToolbar(parent):
                          "Lintool - check syntax of ebuild")
     EVT_TOOL(parent, lintoolID, parent.OnMnuLintool)
 
+
+    toolUnpackID = wxNewId()
+    unpackBmp = ('/usr/share/pixmaps/abeni/unpack.png')
+    parent.tb.AddSimpleTool(toolUnpackID, wxBitmap(unpackBmp, wxBITMAP_TYPE_PNG), \
+                         "Unpack this package")
+    EVT_TOOL(parent, toolUnpackID, parent.OnMnuUnpack)
+
+
     toolDigestID = wxNewId()
     digestBmp = ('/usr/share/pixmaps/abeni/digest.png')
     parent.tb.AddSimpleTool(toolDigestID, wxBitmap(digestBmp, wxBITMAP_TYPE_PNG), \
@@ -501,7 +508,10 @@ def AddToolbar(parent):
     stopBmp = ('/usr/share/pixmaps/abeni/stop.png')
     parent.stop = parent.tb.AddSimpleTool(parent.toolStopID, wxBitmap(stopBmp, wxBITMAP_TYPE_PNG), \
                          "Stop command running")
+    EVT_TOOL(parent, parent.toolStopID, parent.KillProc)
+    parent.tb.EnableTool(parent.toolStopID, False)
     parent.tb.AddSeparator()
+
     helpID = wxNewId()
     helpBmp = ('/usr/share/pixmaps/abeni/help.png')
     parent.tb.AddSimpleTool(helpID, wxBitmap(helpBmp, wxBITMAP_TYPE_PNG), \
@@ -512,9 +522,6 @@ def AddToolbar(parent):
         parent.filehistory.AddFileToHistory(ebuild.strip())
 
     parent.tb.Realize()
-    parent.tb.EnableTool(parent.toolStopID, False)
-    EVT_TOOL_ENTER(parent, -1, parent.OnToolZone)
-    EVT_TIMER(parent, -1, parent.OnClearSB)
     parent.timer = None
 
 def DelVariable(parent):

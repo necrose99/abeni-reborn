@@ -1,7 +1,6 @@
 from wxPython.wx import *
 import urlparse, string, os, keyword
 from wxPython.gizmos import *
-#from wxPython.lib.editor import wxEditor # REMOVE
 from wxPython.stc import *
 
 faces = { 'times': 'Times',
