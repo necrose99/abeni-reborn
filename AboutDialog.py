@@ -26,7 +26,9 @@ class MyAboutBox(wx.Dialog):
 
         <p><b>Abeni</b> is an IDE for creating ebuilds for
         Gentoo Linux</p>
-
+        <br>
+        <img src="/usr/share/pixmaps/abeni/gentoo-logo.png">
+        <br>
         <p><b>Abeni</b> was written by<br>
         <b>Rob Cakebread - pythonhead@gentoo.org</b><br><br>
 
@@ -40,7 +42,9 @@ class MyAboutBox(wx.Dialog):
         <font size="-1"><b>Abeni</b> is released under the terms of<br>
         the GNU Public License v.2</font>
         </p>
-
+        <p>
+        Abeni is <i>not</i> an official Gentoo product.
+        </p>
         <p><wxp module="wx" class="Button">
         <param name="label" value="Okay">
         <param name="id"    value="ID_OK">
