@@ -1,5 +1,4 @@
 import wx
-
 import utils
 
 class EmergeDialog(wx.Dialog):
@@ -42,24 +41,15 @@ class EmergeDialog(wx.Dialog):
         self.features.SetHelpText("Enter any variables for FEATURES.")
         box.Add(self.features, 1, wx.ALIGN_CENTRE|wx.ALL, 5)
 
-        kwLabel = wx.StaticText(self, -1, "ACCEPT_KEYWORDS=")
-        kwLabel.SetHelpText("Enter archs (x86, ~x86 etc)")
-        box.Add(kwLabel, 0, wx.ALIGN_CENTRE|wx.ALL, 5)
-
-        self.kw = wx.TextCtrl(self, -1, "", size=(100,-1))
-        self.kw.SetHelpText("Enter arch")
-        box.Add(self.kw, 1, wx.ALIGN_CENTRE|wx.ALL, 5)
-
         sizer.Add(box, 0, wx.GROW|wx.ALIGN_CENTER_VERTICAL|wx.ALL, 5)
         box = wx.BoxSizer(wx.HORIZONTAL)
 
         self.cat_pack_ver = utils.GetCatPackVer(parent)
 
-        cmd = "emerge --nospinner =%s"  % self.cat_pack_ver
+        cmd = "emerge --oneshot --nospinner =%s"  % self.cat_pack_ver
 
         pretend_cmd = "emerge --nospinner -pv =%s"  % self.cat_pack_ver
 
-        self.kw.SetValue(utils.GetArch())
         self.emerge = wx.TextCtrl(self, -1, cmd, size=(560,-1))
         self.emerge.SetHelpText("Enter any options for the emerge command.")
         box.Add(self.emerge, 1, wx.ALIGN_CENTRE|wx.ALL, 5)
@@ -91,7 +81,7 @@ class EmergeDialog(wx.Dialog):
 
     def OnPretendButton(self, event):
         """ emerge -pv this ebuild """
-        pretend_cmd = "ACCEPT_KEYWORDS='%s' FEATURES='%s' USE='%s' emerge --nospinner -pv =%s" \
-                   % (self.kw.GetValue(), self.features.GetValue(), self.use.GetValue(), self.cat_pack_ver)
+        pretend_cmd = "FEATURES='%s' USE='%s' emerge --nospinner -pv =%s" \
+                   % (self.features.GetValue(), self.use.GetValue(), self.cat_pack_ver)
         utils.write(self.parent, ">>> %s" % pretend_cmd)
         utils.ExecuteInLog(self.parent, pretend_cmd)
