@@ -1,0 +1,159 @@
+#!/usr/bin/python
+
+
+"""
+
+NAME     - metagen
+
+SYNOPSIS - Adds metadata.xml to current directory
+
+AUTHOR   - Rob Cakebread <pythonhead@gentoo.org>
+
+USE      - metagen --help
+
+"""
+
+import string, sys, re, os
+from optparse import *
+from commands import getstatusoutput
+
+from output import *
+import jaxml
+
+
+def generate_xml(options):
+    """Returns metadata.xml"""
+    #TODO: Make a separate class so it can be used by external apps?
+    doc = jaxml.XML_document("1.0", "UTF-8")
+    doc._indentstring("\t")
+    doc._text('<!DOCTYPE pkgmetadata SYSTEM "http://www.gentoo.org/dtd/metadata.dtd">')
+    doc.pkgmetadata()
+    if not options.herd:
+        options.herd = "no-herd"
+    for o in options.herd.split(","):
+        doc.herd(o)
+    i = 0
+    if options.echangelog:
+        if not os.environ.has_key("ECHANGELOG_USER"):
+            print red("!!! Environmental variable ECHANGELOG_USER not set.")
+            sys.exit(1) 
+        e = os.environ["ECHANGELOG_USER"]
+        my_email = e[e.find("<") +1:e.find(">")]
+        my_name = e[0:e.find("<")-1]
+        if options.email:
+            options.email = "%s,%s" % (my_email, options.email)
+        else:
+            options.email = my_email
+        if options.name:
+            options.name = "%s,%s" % (my_name, options.name)
+        else:
+            options.name = my_name
+    if options.email:
+        emails = options.email.split(",") 
+        for o in emails:
+            doc._push("maintainer_level")
+            doc.maintainer().email(o)
+            if options.name:
+                names = options.name.split(",")
+                if len(names) > len(emails):
+                    print red("!!! Number of names is greater than number of emails")
+                    sys.exit(1)
+                if i <= len(names) -1:
+                    doc.name(names[i])
+            if options.desc:
+                descs = options.desc.split(",")
+                if len(descs) > len(emails):
+                    print red("!!! Number of descriptions is greater than number of emails")
+                    sys.exit(1)
+                if i <= len(descs) -1:
+                    doc.description(descs[i])
+            doc._pop("maintainer_level")
+            i += 1
+    if options.long:
+        doc.longdescription(options.long)
+
+    return "%s" % doc
+
+def ValidateXML(file):
+    """Test for valid XML"""
+    #TODO validate against DTD
+    re_escape_quotes=re.compile('"')
+    s=re_escape_quotes.sub('\\"', f)
+    return getstatusoutput("echo \"%s\" | xmllint --valid - 2>&1 > /dev/null" % s)[0]
+
+
+if __name__ == '__main__':
+    optParser = OptionParser()
+    optParser.add_option( "-H", action="store", dest="herd", type="string",
+                            help="Name of herd. If not specified, 'no-herd' will be inserted. \
+                                    This would require the -e option.")
+
+    optParser.add_option( "-e", action="store", dest="email", type="string",
+                            help="Maintainer's email address")
+
+    optParser.add_option( "-n", action="store", dest="name", type="string",
+                            help="Maintainer's name")
+
+    optParser.add_option( "-m", action="store_true", dest="echangelog", default=False,
+                            help="Use name and email address from ECHANGELOG_USER environmental variable. \
+                                    This is a shortcut for -e <email> -n <name>")
+
+    optParser.add_option( "-d", action="store", dest="desc", type="string",
+                            help="Description of maintainership")
+
+    optParser.add_option( "-l", action="store", dest="long", type="string",
+                            help="Long description of package.")
+
+    optParser.add_option( "-o", action="store", dest="output", type="string",
+                            help="Specify location of output file.")
+
+    optParser.add_option( "-f", action="store_true", dest="force", default=False,
+                            help="Force overwrite of existing metadata.")
+
+    optParser.add_option( "-v", action="store_true", dest="verbose", default=True,
+                            help="Verbose. Output of file to stdout. (default)")
+
+    optParser.add_option( "-q", action="store_false", dest="verbose",
+                            help="Squelch output of file to stdout.")
+
+    optParser.add_option( "-Q", action="store_true", dest="no_write", default=False,
+                            help="Do not write file to disk.")
+
+    (options, remainingArgs) = optParser.parse_args()
+
+    if len(sys.argv) == 1:
+        optParser.print_help()
+        sys.exit(1)
+
+    if options.desc or options.name:
+        if not options.email:
+            print red("!!! You haven't specified a maintainer's email address (-e)")
+            print red("!!! Options -d and -n are only valid when used with -e")
+            sys.exit(1)
+ 
+    if not options.herd and not options.email:
+        print red("!!! You must specify at least a herd (-H) or maintainer's email address (-e)\n")
+        sys.exit(1)
+
+    f = generate_xml(options)
+
+    if ValidateXML(f):
+        print red("!!! Error - Invalid XML")
+        print red("!!! Please report this bug with the options you used and the output:")
+        print f
+        sys.exit(1)
+
+    if options.verbose:
+        print "\n%s" % f
+
+    oloc = "./metadata.xml"
+    if options.output:
+        oloc = options.output
+    if not options.no_write and os.path.exists(oloc):
+        if not options.force:
+            print red("!!! File %s exists." % oloc)
+            print red("!!! Use -f to force overwrite.")
+            sys.exit(1)
+    if not options.no_write:
+        open("%s" % oloc, "w").writelines(f)
+

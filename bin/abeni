@@ -1,0 +1,7 @@
+#!/bin/bash
+
+export FEATURES="notitles"
+export NOCOLOR="yes"
+exec /usr/bin/python -c 'import abeni.main'
+
+

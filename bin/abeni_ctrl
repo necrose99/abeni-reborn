@@ -1,0 +1,23 @@
+#!/usr/bin/python
+
+"""
+
+Use this program to send one of the following commands to Abeni:
+digest unpack compile install qmerge
+
+Use this format:
+command*/full/path/to/ebuild
+
+Example:
+
+abeni_ctrl digest*/usr/portage/app-portage/foo-0.1.ebuild
+
+"""
+
+import sys
+import pyipc
+
+mq = pyipc.MessageQueue(100)
+mq.send("\x00\x00\x00\x01%s" % sys.argv[1])
+
+
