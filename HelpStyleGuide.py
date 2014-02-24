@@ -8,7 +8,7 @@ import __version__
 
 #---------------------------------------------------------------------------
 
-class MyHelpCVS(wx.Dialog):
+class MyHelpStyle(wx.Dialog):
     text = '''
 <html>
 <body bgcolor="#dddaec">
@@ -17,26 +17,38 @@ cellpadding="0" border="1">
 <tr>
     <td align="center">
     <font color="#ffffff">
-    <h2>Abeni %s</h2>
+    <h1>Abeni %s</h1>
     Python %s<br>
     wxPython %s<br>
     </font">
     </td>
 </tr>
 </table>
-CVS repoman commits have been disabled until gpg signing
-of manifests is added in Abeni version ~0.2.0
-        <p><wxp module="wx" class="Button">
-        <param name="label" value="Okay">
-        <param name="id"    value="ID_OK">
-        </wxp></p>
-
+<p>
+<b>Abeni writes ebuild elements in this order:</b>
+</p>
+<p>
+<ul>
+<li> header
+<li> inherits
+<li> MY_* variables
+<li> standard variables
+<li> custom variables (non MY_* )
+<li> misc statements and comments
+<li> functions
+</ul>
+</p>
+<center>
+<p><wxp module="wx" class="Button">
+    <param name="label" value="Okay">
+    <param name="id"    value="ID_OK">
+</wxp></p>
 </center>
 </body>
 </html>
 '''
     def __init__(self, parent):
-        wx.Dialog.__init__(self, parent, -1, 'Help: repoman CVS commits',)
+        wx.Dialog.__init__(self, parent, -1, 'Abeni Fkeys',)
         html = wx.html.HtmlWindow(self, -1, size=(420, -1))
         py_version = sys.version.split()[0]
         html.SetPage(self.text % (__version__.version, py_version, wx.VERSION_STRING))

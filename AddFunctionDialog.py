@@ -94,8 +94,7 @@ class AddFunction(wx.Dialog):
         # self.functions[][1] is the default contents, '' is filled in later.
         # self.functions[][2] is the help
         self.functions = [ 
-                ('pkg_setup', '{\n\t\n\t\n\t\n}', \
-                'Use this function to perform any miscellaneous prerequisite tasks. This might include adding system accounts or checking for an existing configuration file.'),
+                ('pkg_setup', '{\n\t\n\t\n\t\n}', 'Use this function to perform any miscellaneous prerequisite tasks. This might include adding system accounts or checking for an existing configuration file.'),
                 ('pkg_nofetch', '{\n\teinfo "Please download $A from"\n\teinfo "${SRC_URI}"\n\teinfo "and put into ${DISTFILES}"\n}', 'Inform the user about required actions if for some reason (such as licensing issues) the sources may not be downloaded by Portage automatically. Use this in conjunction with RESTRICT="fetch". You only should display messages in this function, never call "die".'),
                 ('src_unpack', '{\n\tunpack ${A} || die "Unpacking the source failed"\n\tcd ${S} || die "Could not change directory."\n}', 'Use this function to unpack your sources, apply patches, and run auxiliary programs such as the autotools. By default, this function unpacks the packages listed in ${A}. The initial working directory is defined by ${WORKDIR}.'),
                 ('src_compile (configure/make)', '{\n\teconf || die "Configure failed"\n\temake || die "Make failed"\n}', 'Use this function to configure and build the package. The initial working directory is ${S}.'),
@@ -150,8 +149,7 @@ class AddFunction(wx.Dialog):
         
         # If starting to type in TextCtrl, clear selection in ListBox
         if self.flag:
-            self.functionListBox.SetSelection(self.functionListBox. \
-                                              GetSelection(), select=FALSE)
+            self.functionListBox.SetSelection(self.functionListBox.GetSelection(), select=FALSE)
         self.flag = 0
 
     def GetFunc(self):

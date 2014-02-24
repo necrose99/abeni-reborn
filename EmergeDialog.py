@@ -44,14 +44,14 @@ class EmergeDialog(wx.Dialog):
         sizer.Add(box, 0, wx.GROW|wx.ALIGN_CENTER_VERTICAL|wx.ALL, 5)
         box = wx.BoxSizer(wx.HORIZONTAL)
 
-        self.cat_pack_ver = utils.get_cpvr(parent)
+        self.cat_pack_ver = utils.GetCatPackVer(parent)
 
         cmd = "emerge --oneshot --nospinner =%s"  % self.cat_pack_ver
 
         pretend_cmd = "emerge --nospinner -pv =%s"  % self.cat_pack_ver
 
         self.emerge = wx.TextCtrl(self, -1, cmd, size=(560,-1))
-        self.emerge.Enable(False)
+        self.emerge.SetHelpText("Enter any options for the emerge command.")
         box.Add(self.emerge, 1, wx.ALIGN_CENTRE|wx.ALL, 5)
         sizer.Add(box, 0, wx.GROW|wx.ALIGN_CENTER_VERTICAL|wx.ALL, 5)
         box = wx.BoxSizer(wx.HORIZONTAL)
@@ -83,5 +83,5 @@ class EmergeDialog(wx.Dialog):
         """ emerge -pv this ebuild """
         pretend_cmd = "FEATURES='%s' USE='%s' emerge --nospinner -pv =%s" \
                    % (self.features.GetValue(), self.use.GetValue(), self.cat_pack_ver)
-        self.parent.Write(">>> %s\n" % pretend_cmd)
-        self.parent.ExecuteInLog(pretend_cmd)
+        utils.write(self.parent, ">>> %s" % pretend_cmd)
+        utils.ExecuteInLog(self.parent, pretend_cmd)

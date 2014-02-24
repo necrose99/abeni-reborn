@@ -1,4 +1,3 @@
-db = 0
 browser = /usr/bin/firefox
 xterm = xterm
 font = Courier,12
@@ -16,5 +15,4 @@ diff = /usr/bin/gtkdiff
 checkSyntax = 1
 logfile = 0
 cvsRoot = /tmp2/cvs/gentoo-x86
-tabPlacement = top
-logPlacement = middle
+gentooHighlight = 1
