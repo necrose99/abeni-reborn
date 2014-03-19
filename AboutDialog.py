@@ -1,9 +1,3 @@
-"""AboutDialog.py
-
-Obligatory about dialog
-
-"""
-
 import sys
 
 import wx 
@@ -12,12 +6,10 @@ import wx.lib.wxpTag
 
 import __version__
 
+#---------------------------------------------------------------------------
 
 class MyAboutBox(wx.Dialog):
-
-    """HTML window for about dialog"""
-
-    text = """<html>
+    text = '''<html>
         <body bgcolor="#dddaec">
         <center><table bgcolor="#7a5ada" width="100%%" cellspacing="0"
         cellpadding="0" border="1">
@@ -39,11 +31,13 @@ class MyAboutBox(wx.Dialog):
         <br>
         <p><b>Abeni</b> was written by<br>
         <b>Rob Cakebread - pythonhead@gentoo.org</b><br><br>
+
         with contributions from:<br><br>
+
         <b>Marius Mauch - genone@gentoo.org<br>
         Tim Cera - timcera@earthlink.net</b><br><br>
-        <b>Abeni</b> is Copyright (c) 2003-2004
-        <b>Rob Cakebread</b> <pythonhead@gentoo.org>.</p>
+        <b>Abeni</b> is Copyright (c) 2003-2004 <b>Rob Cakebread</b> <pythonhead@gentoo.org>.</p>
+
         <p>
         <font size="-1"><b>Abeni</b> is released under the terms of<br>
         the GNU Public License v.2</font>
@@ -58,15 +52,12 @@ class MyAboutBox(wx.Dialog):
         </center>
         </body>
         </html>
-        """
-
+'''
     def __init__(self, parent):
-        """Setup html widget"""
         wx.Dialog.__init__(self, parent, -1, 'About Abeni',)
         html = wx.html.HtmlWindow(self, -1, size=(420, -1))
         py_version = sys.version.split()[0]
-        html.SetPage(self.text % \
-                     (__version__.version, py_version, wx.VERSION_STRING))
+        html.SetPage(self.text % (__version__.version, py_version, wx.VERSION_STRING))
         btn = html.FindWindowById(wx.ID_OK)
         btn.SetDefault()
         ir = html.GetInternalRepresentation()
