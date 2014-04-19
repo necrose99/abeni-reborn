@@ -7,10 +7,16 @@
 .metadata
 bin/
 tmp/
+<<<<<<< HEAD
 *.pyc
 *.swp
 *.tmp
 *.bak
+=======
+*.tmp
+*.bak
+*.swp
+>>>>>>> a4db3844e373939fa0e790cf97d3baac83a325cd
 *~.nib
 local.properties
 .classpath
