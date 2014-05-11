@@ -2,7 +2,9 @@ abeni-reborn
 ============
 
 abeni-reborn
-What is Abeni reborn ? it is Abeni and a few vian attmepts to to do "CPR" on the project. 
+What is Abeni reborn ? it is Abeni and a few vian attmepts to to do "CPR" <img alt=""
+src="http://www.animalresearch.info/assets/imgpool/defribillator200px-istock_Serdar_Yagci.jpg"
+height="190" width="200">on the project. 
 
 
 Much needs to be dont to ABeni to Spark new life to it, 
