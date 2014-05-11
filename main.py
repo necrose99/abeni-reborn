@@ -28,7 +28,8 @@ import os
 import shutil
 
 import wxversion
-wxversion.select("2.5")
+# wxversion.select("2.5")  # version 2.5 is old and not one Gentoo repo;s anymore
+wxversion.select(">=2.5")  # added >= hopefully it will work as abeni hotfix.
 import wx
 from portage import config, settings
 
