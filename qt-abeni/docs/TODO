@@ -1,0 +1,98 @@
+This is the TODO file for Abeni.
+
+If you are interested in working on any of these, please
+email pythonhead AT gentoo DOT org
+
+* Do by next release:
+ - Disable menus/toolbar icons when not in edit mode
+ - Disable cpvr inputs till editor is visible
+ - Make sure caret is visible after ExecuteInLog? wx.CallAfter(self.EnsureCaretVisible)
+
+* General:
+ - Need function to check/warn if external apps exist every time someone tries to launch
+   the external editor, web browser etc.
+ - When you inherit an eclass, scan the functions and add them to Scintilla's
+   keyword list for highlighting and auto-completion
+ - Improve find / search&replace dialog: "whole word", "match case" don't work
+ - Lowercase PN when given URI on new ebuilds in GetURIDialog.py
+ - New feature: Launch browser to HOMEPAGE url
+ - Need function to extract variables from editor (see genone's ebuild.py)
+ - Don't let user edit current ebuild through Explorer
+
+* Repoman/CVS:
+
+ - Test signing of manifests (Future: need to run gpg-agent when it gets in portage)
+ - Don't allow CVS operations if ssh-agent isn't running 
+ - New feature: rm -rf CVS/cat/PN then 'cvs update' in CVS/cat
+
+* Dialogs:
+
+ - Add Notes dialog with bugzilla bug# field, launch browser to bug#. When committing 
+   to CVS we can include bug# automatically.
+ - metadata.xml templates to choose from, for all the herds you belong to
+ - When deleting ebuild, offer to rm -rf package dir when there are no more ebuilds
+
+* Website:
+
+  - Needs make-over
+
+* Syntax checking/formatting ebuilds:
+
+ - Validate metadata.xml
+ - Give warning if /usr/local is in ${D}
+ - Dynamic slots like in mod_php are a bad thing because portage can't detect them.
+ - Give warning if inherit isn't first thing in ebuild after comments, unless CVS vars
+ - Check Common Ebuild Mistakes, see if we can auto-fix any
+
+* Documentation:
+
+ - Its out of date, website needs big makeover
+ - Private portage functions needs help in html format
+
+* Command line options:
+
+    * -s, --create <src_uri>            Create ebuild using src_uri to determine package and filename
+    * -e, --eclass <eclass name>        Add inherit and appropriate functions for eclass, used with --created
+    * -v, --variable <x=val, y=val...>  Add variable(s) and their value(s)
+    * -f, --function <func1, func2...>  Add function name(s)
+    * -h, --help                        Show list of command line options
+    * -b, --bump <version>              Bump the given ebuild up to <version>
+    * -d, --digest                      Create digest. Used with --bump
+    * -c, --category <category>         Set package category
+    * -l, --license <license>           Set LICENSE
+    * -i, --iuse <iuse>                 Set IUSE
+    * -t, --description <description>   Set DESCRIPTION
+    * -a, --homepage <homepage>         Set HOMEPAGE
+    * -k, --keywords <keywords>         Set KEYWORDS
+    * -o, --slot <slot>                 Set SLOT
+    * -p, --pretend                     Show which package would be used with --bump, and version numbers.
+
+    Example One:
+    We have a python program that uses 'python setup.py install':
+
+    abeni --create 'http://abeni.sf.net/foo-0.1.tgz' --eclass 'distutils' --category 'app-admin' --digest
+
+    This would create an ebuild named foo-0.1.ebuild in
+	PORTDIR_OVERLAY/app-admin, fetch the source code and create the digest,
+    creating a complete ebuild, ready to be emerged.
+
+    Example Two:
+    We have package app-admin/cheese with cheese-0.0.1.ebuild.
+	cheese-0.0.2.tar.gz was released today. We simply want to create a
+    bumped-up version of the ebuild:
+
+    abeni --bump app-admin/cheese --pretend
+    (Output shows:)
+    cheese-0.0.1.ebuild will be bumped up to cheese-0.0.2.ebuild
+
+    This is what we want so we issue:
+    abeni --bump app-admin/cheese --digest
+
+    cheese-0.0.2.ebuild is created in PORTDIR_OVERLAY/app-admin/cheese/
+    The digest is updated. cheese-0.0.2.ebuild is ready to emerge.
+
+* Known problems:
+
+ - The first entry in the Most-Recently-Used list is shown without the path,
+   the other entries contain the full path (seems to be wxPython/wxGTK bug)
+
