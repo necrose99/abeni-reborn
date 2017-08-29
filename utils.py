@@ -39,8 +39,10 @@ portage_tmpdir = env['PORTAGE_TMPDIR']
 #Lets choose the first arch they have, in case of multiples.
 #TODO: Mention in documentation
 #arch = '~%s' % env['ACCEPT_KEYWORDS'].split(' ')[0].replace('~', '')
-arch = '%s' % env['ACCEPT_KEYWORDS'].split(' ')[0]
-
+if env.has_key('ACCEPT_KEYWORDS'):
+    arch = '%s' % env['ACCEPT_KEYWORDS'].split(' ')[0]
+else:
+    arch = env['DEFAULT_ABI']
 
 #TODO: We might get this every time from /etc/make.conf in case
 #      its changed while Abeni is running? 

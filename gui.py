@@ -513,7 +513,7 @@ class MyFrame(wx.Frame):
         self.STCeditor.Hide()
         
         points = self.text_ctrl_log.GetFont().GetPointSize()  # get the current size
-        f = wx.Font(points, wx.MODERN, wx.NORMAL, True)
+        f = wx.Font(points, wx.MODERN, wx.NORMAL, wx.FONTWEIGHT_NORMAL, True)
         self.text_ctrl_log.SetDefaultStyle(wx.TextAttr("BLACK", wx.NullColour, f))
         wx.Log_SetActiveTarget(MyLog(self.text_ctrl_log))
         utils.write(self, "))) PORTDIR_OVERLAY=%s\n\n\n" % portdir_overlay)

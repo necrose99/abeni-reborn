@@ -4,9 +4,10 @@ import shutil
 import utils
 import string
 
-from wxPython.wx import *
-from wxPython.lib.dialogs import wxMultipleChoiceDialog
-from wxPython.lib.dialogs import wxScrolledMessageDialog
+from wx import *
+import wx.lib.dialogs
+from wx.lib.dialogs import MultipleChoiceDialog
+from wx.lib.dialogs import ScrolledMessageDialog
 
 import MetadataDialog
 

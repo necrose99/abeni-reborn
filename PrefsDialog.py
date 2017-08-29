@@ -150,7 +150,7 @@ class MyDialog(wx.Dialog):
         self.notebook.AddPage(self.noteboo_pane_editor, "Editor")
         self.notebook.AddPage(self.noteboo_pane_dev, "Gentoo Developer")
         self.notebook.AddPage(self.noteboo_pane_emerge, "Emerge")
-        sizer_1.Add(wx.NotebookSizer(self.notebook), 1, wx.ALL|wx.EXPAND, 4)
+        sizer_1.Add(self.notebook, 1, wx.ALL|wx.EXPAND, 4)
         sizer_2.Add(self.button_save, 0, wx.LEFT, 20)
         sizer_2.Add(self.button_cancel, 0, wx.LEFT, 20)
         sizer_1.Add(sizer_2, 0, wx.ALL|wx.EXPAND, 12)
